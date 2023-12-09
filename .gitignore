@@ -1,0 +1,17 @@
+# Node
+node_modules
+.env
+coverage
+coverage.json
+
+#Hardhat files
+cache
+
+# Encryped JSON Wallets
+keystore
+
+# Ganache
+.ganache-db
+
+# Open Zeppelin
+.openzeppelin*
