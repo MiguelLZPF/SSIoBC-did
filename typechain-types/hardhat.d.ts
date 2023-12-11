@@ -86,6 +86,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC165__factory>;
     getContractFactory(
+      name: "DidManager",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.DidManager__factory>;
+    getContractFactory(
+      name: "IDidManager",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IDidManager__factory>;
+    getContractFactory(
       name: "IPayableOwner",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IPayableOwner__factory>;
@@ -197,6 +205,16 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC165>;
     getContractAt(
+      name: "DidManager",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.DidManager>;
+    getContractAt(
+      name: "IDidManager",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IDidManager>;
+    getContractAt(
       name: "IPayableOwner",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -295,6 +313,14 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC165>;
     deployContract(
+      name: "DidManager",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.DidManager>;
+    deployContract(
+      name: "IDidManager",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IDidManager>;
+    deployContract(
       name: "IPayableOwner",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IPayableOwner>;
@@ -405,6 +431,16 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC165>;
+    deployContract(
+      name: "DidManager",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.DidManager>;
+    deployContract(
+      name: "IDidManager",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IDidManager>;
     deployContract(
       name: "IPayableOwner",
       args: any[],
