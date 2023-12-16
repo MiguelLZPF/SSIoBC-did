@@ -31,6 +31,7 @@
     "@types/chai": "^4.3.11",
     "@types/node": "^20.10.4",
     "chai": "^4.3.10",
+    "decentralized-code-trust": "^2.0.0",
     "ganache": "^7.9.1",
     "hardhat": "^2.19.2",
     "hardhat-contract-sizer": "^2.10.0",

@@ -7,3 +7,4 @@ export type { DidManager } from "./DidManager";
 export type { Storage } from "./Storage";
 export type { StorageUpgr } from "./StorageUpgr";
 export type { StorageUpgrV1 } from "./StorageUpgrV1";
+export type { VMStorage } from "./VMStorage";

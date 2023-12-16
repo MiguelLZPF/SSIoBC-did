@@ -113,6 +113,14 @@ declare module "hardhat/types/runtime" {
       name: "StorageUpgrV1",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.StorageUpgrV1__factory>;
+    getContractFactory(
+      name: "VMStorage",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.VMStorage__factory>;
+    getContractFactory(
+      name: "ICodeTrust",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ICodeTrust__factory>;
 
     getContractAt(
       name: "AccessControlUpgradeable",
@@ -239,6 +247,16 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.StorageUpgrV1>;
+    getContractAt(
+      name: "VMStorage",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.VMStorage>;
+    getContractAt(
+      name: "ICodeTrust",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ICodeTrust>;
 
     deployContract(
       name: "AccessControlUpgradeable",
@@ -340,6 +358,14 @@ declare module "hardhat/types/runtime" {
       name: "StorageUpgrV1",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.StorageUpgrV1>;
+    deployContract(
+      name: "VMStorage",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.VMStorage>;
+    deployContract(
+      name: "ICodeTrust",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ICodeTrust>;
 
     deployContract(
       name: "AccessControlUpgradeable",
@@ -466,6 +492,16 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.StorageUpgrV1>;
+    deployContract(
+      name: "VMStorage",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.VMStorage>;
+    deployContract(
+      name: "ICodeTrust",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ICodeTrust>;
 
     // default types
     getContractFactory(

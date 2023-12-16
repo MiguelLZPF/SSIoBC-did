@@ -16,7 +16,7 @@ contract DidManager is IDidManager {
   // hash(method0:method1:method2:id) --> expirationDate
   mapping(bytes32 => uint256) private expirationDate;
 
-  constructor() {}
+  constructor(address vm, address service) {}
 
   /**
    * @dev Creates a new Decentralized Identifier (DID) using the specified method identifiers and a random value.
