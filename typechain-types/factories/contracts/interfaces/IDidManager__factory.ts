@@ -32,6 +32,11 @@ const _abi = [
     inputs: [
       {
         internalType: "bytes32",
+        name: "random",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
         name: "method0",
         type: "bytes32",
       },
@@ -47,7 +52,7 @@ const _abi = [
       },
       {
         internalType: "bytes32",
-        name: "random",
+        name: "vmId",
         type: "bytes32",
       },
     ],

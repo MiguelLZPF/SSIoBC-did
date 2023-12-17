@@ -21,5 +21,11 @@ interface IDidManager {
    * @param method2 The third method component of the DID.
    * @param random A random value used to generate the DID.
    */
-  function createDid(bytes32 method0, bytes32 method1, bytes32 method2, bytes32 random) external;
+  function createDid(
+    bytes32 random,
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 vmId
+  ) external;
 }

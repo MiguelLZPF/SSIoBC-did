@@ -29,7 +29,7 @@ export interface IDidManagerInterface extends Interface {
 
   encodeFunctionData(
     functionFragment: "createDid",
-    values: [BytesLike, BytesLike, BytesLike, BytesLike]
+    values: [BytesLike, BytesLike, BytesLike, BytesLike, BytesLike]
   ): string;
 
   decodeFunctionResult(functionFragment: "createDid", data: BytesLike): Result;
@@ -93,10 +93,11 @@ export interface IDidManager extends BaseContract {
 
   createDid: TypedContractMethod<
     [
+      random: BytesLike,
       method0: BytesLike,
       method1: BytesLike,
       method2: BytesLike,
-      random: BytesLike
+      vmId: BytesLike
     ],
     [void],
     "nonpayable"
@@ -110,10 +111,11 @@ export interface IDidManager extends BaseContract {
     nameOrSignature: "createDid"
   ): TypedContractMethod<
     [
+      random: BytesLike,
       method0: BytesLike,
       method1: BytesLike,
       method2: BytesLike,
-      random: BytesLike
+      vmId: BytesLike
     ],
     [void],
     "nonpayable"

@@ -2,21 +2,34 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import {IDidManager} from "./interfaces/IDidManager.sol";
+import {IVMStorage} from "./interfaces/IVMStorage.sol";
+import {IServiceStorage} from "./interfaces/IServiceStorage.sol";
 
 contract DidManager is IDidManager {
-  // DIDs are stored in a mapping of mappings of mappings that represents something like --> did:method0:method1:method2:id
   bytes32 private constant METHOD0 =
     bytes32(0x6c7a706600000000000000000000000000000000000000000000000000000000); // "lzpf"
   bytes32 private constant METHOD1 =
     bytes32(0x6d61696e00000000000000000000000000000000000000000000000000000000); // "main"
   bytes32 private constant METHOD2 = bytes32(0); // not used by default
   uint32 private constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
-  //      method0    -->     method1    -->     method2 -->   id
-  // mapping(bytes32 => mapping(bytes32 => mapping(bytes32 => bytes32))) private dids;
+  bytes32 private constant VM_ID =
+    bytes32(0x766d2d3000000000000000000000000000000000000000000000000000000000); // "vm-0"
+  // System contracts
+  IVMStorage private _vmStorage;
+  IServiceStorage private _serviceStorage;
+  ////      method0    -->     method1    -->     method2 -->   id
+  //// mapping(bytes32 => mapping(bytes32 => mapping(bytes32 => bytes32))) private dids;
+  // DIDs are stored in a mapping that maps a bytes32 key (representing the hash of the DID) to its expiration date.
   // hash(method0:method1:method2:id) --> expirationDate
-  mapping(bytes32 => uint256) private expirationDate;
+  mapping(bytes32 => uint256) private _expirationDate;
+  // DID controllers are stored in a mapping that maps a bytes32 key (representing the hash of the DID or the hash of a specific VM) to an array of 5 bytes32 values (representing the actual controllers).
+  // hash(method0:method1:method2:id | didHash&vmId) --> controller[0..4]
+  mapping(bytes32 => bytes32[5]) private _controllers;
 
-  constructor(address vm, address service) {}
+  constructor(IVMStorage vmStorage, IServiceStorage serviceStorage) {
+    _vmStorage = vmStorage;
+    _serviceStorage = serviceStorage;
+  }
 
   /**
    * @dev Creates a new Decentralized Identifier (DID) using the specified method identifiers and a random value.
@@ -35,12 +48,16 @@ contract DidManager is IDidManager {
    * Emits a `DidCreated` event with the generated DID and the address of the caller.
    */
   function createDid(
+    bytes32 random,
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
-    bytes32 random
-  ) public override {
+    bytes32 vmId
+  ) external {
+    //* Params validation
+    // Required
     require(random != bytes32(0), "Random cannot be 0");
+    // Optional
     if (method0 == bytes32(0)) {
       method0 = METHOD0;
     }
@@ -50,11 +67,24 @@ contract DidManager is IDidManager {
     if (method2 == bytes32(0)) {
       method2 = METHOD2;
     }
+    if (vmId == bytes32(0)) {
+      vmId = VM_ID; // "vm-0"
+    }
+    //* Implementation
     bytes32 id = keccak256(
-      abi.encodePacked(method0, method1, method2, random, msg.sender, block.timestamp)
+      abi.encodePacked(
+        method0,
+        method1,
+        method2,
+        random,
+        msg.sender,
+        block.timestamp,
+        block.coinbase, // address of the miner
+        blockhash(block.number)
+      )
     );
     bytes32 idHash = keccak256(abi.encodePacked(method0, method1, method2, id));
-    require(_isExpired(idHash), "DID already exists");
+    require(_isExpired(idHash), "DID in use");
     _updateExpiration(idHash);
     emit DidCreated(id, msg.sender);
   }
@@ -64,7 +94,7 @@ contract DidManager is IDidManager {
    * @param idHash The hash of the ID to update the expiration date for.
    */
   function _updateExpiration(bytes32 idHash) internal {
-    expirationDate[idHash] = block.timestamp + EXPIRATION;
+    _expirationDate[idHash] = block.timestamp + EXPIRATION;
   }
 
   /**
@@ -74,7 +104,7 @@ contract DidManager is IDidManager {
    */
   function _isExpired(bytes32 idHash) internal view returns (bool expired) {
     // Check if now is greater than expiration date or 0
-    if (block.timestamp > expirationDate[idHash] || expirationDate[idHash] == 0) {
+    if (block.timestamp > _expirationDate[idHash] || _expirationDate[idHash] == 0) {
       return true;
     } else {
       return false;

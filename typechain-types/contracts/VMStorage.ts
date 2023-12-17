@@ -20,14 +20,20 @@ import type {
 } from "../common";
 
 export interface VMStorageInterface extends Interface {
-  getFunction(nameOrSignature: "addVM"): FunctionFragment;
+  getFunction(nameOrSignature: "createVM"): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "addVM",
-    values: [BytesLike, BytesLike, BytesLike, BytesLike, BytesLike]
+    functionFragment: "createVM",
+    values: [
+      BytesLike,
+      BytesLike,
+      BytesLike,
+      BytesLike[],
+      [BytesLike, BytesLike, BytesLike, BytesLike, BytesLike]
+    ]
   ): string;
 
-  decodeFunctionResult(functionFragment: "addVM", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "createVM", data: BytesLike): Result;
 }
 
 export interface VMStorage extends BaseContract {
@@ -73,15 +79,21 @@ export interface VMStorage extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  addVM: TypedContractMethod<
+  createVM: TypedContractMethod<
     [
       didHash: BytesLike,
       id: BytesLike,
       type_: BytesLike,
-      publicKey: BytesLike,
-      blockchainAccountId: BytesLike
+      publicKey: BytesLike[],
+      blockchainAccountId: [
+        BytesLike,
+        BytesLike,
+        BytesLike,
+        BytesLike,
+        BytesLike
+      ]
     ],
-    [void],
+    [string],
     "nonpayable"
   >;
 
@@ -90,16 +102,22 @@ export interface VMStorage extends BaseContract {
   ): T;
 
   getFunction(
-    nameOrSignature: "addVM"
+    nameOrSignature: "createVM"
   ): TypedContractMethod<
     [
       didHash: BytesLike,
       id: BytesLike,
       type_: BytesLike,
-      publicKey: BytesLike,
-      blockchainAccountId: BytesLike
+      publicKey: BytesLike[],
+      blockchainAccountId: [
+        BytesLike,
+        BytesLike,
+        BytesLike,
+        BytesLike,
+        BytesLike
+      ]
     ],
-    [void],
+    [string],
     "nonpayable"
   >;
 
