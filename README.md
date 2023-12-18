@@ -1,39 +1,90 @@
-# 1. Self-Sovereign Identity Over BlockChain [SSIoBC-DID]
+# Self-Sovereign Identity Over BlockChain [SSIoBC-DID]
 
 Before running anything, make sure you run `npm install`.
 
 https://github.com/MiguelLZPF/hardhat-base
 
-- [1. Hardhat Off-Chain Deployments Base - HHoffCDB](#1-hardhat-off-chain-deployments-base---hhoffcdb)
-  - [1.1. Custom Tasks added](#11-custom-tasks-added)
-    - [AVAILABLE TASKS:](#available-tasks)
-  - [1.2. Configuration file constants](#12-configuration-file-constants)
-  - [1.3. Manage Encryped JSON Wallets](#13-manage-encryped-json-wallets)
-    - [1.3.1. Relevant Constants](#131-relevant-constants)
-    - [1.3.2. Generate one Random Wallet](#132-generate-one-random-wallet)
-    - [1.3.3. Generate Batch Wallets](#133-generate-batch-wallets)
-    - [1.3.4. Generate Wallet from mnemonic phrase](#134-generate-wallet-from-mnemonic-phrase)
-    - [1.3.5. Get Wallet mnemonic phrase](#135-get-wallet-mnemonic-phrase)
-    - [1.3.6. Get Wallet Information](#136-get-wallet-information)
-  - [1.4. Deploy Smart contracts](#14-deploy-smart-contracts)
-    - [1.4.1. Relevant Constants](#141-relevant-constants)
-    - [1.3.2. Regular Deployment](#132-regular-deployment)
-    - [1.3.3. Upgradeable deployment](#133-upgradeable-deployment)
-    - [1.3.4. Upgrade deployed Smart Contract](#134-upgrade-deployed-smart-contract)
-  - [1.4. Unit Test](#14-unit-test)
+- [1. Project Overview](#1-project-overview)
+- [2. Contract Architecture](#2-contract-architecture)
+  - [2.1. DidManager.sol](#21-didmanagersol)
+  - [2.2. VMStorage.sol](#22-vmstoragesol)
+  - [2.3. ServiceStorage.sol](#23-servicestoragesol)
+  - [2.4. System Architecture](#24-system-architecture)
+- [3. Creating a New DID](#3-creating-a-new-did)
+- [4. Advantages of this Implementation](#4-advantages-of-this-implementation)
+- [5. Getting Started](#5-getting-started)
+- [6. Conclusion](#6-conclusion)
 
-# Contract Architecture
+## 1. Project Overview
+
+This project focuses on the creation and management of Decentralized Identifiers (DIDs) using the `DidManager` contract. DIDs provide a decentralized and self-sovereign identity solution, allowing individuals and entities to have control over their digital identities. This readme provides an overview of the process of creating a new DID and highlights the advantages of this implementation compared to other solutions.
+
+## 2. Contract Architecture
 
 This project consists of several contracts that work together to form a system. The main contracts involved are `DidManager`, `VMStorage`, and `ServiceStorage`. In this architecture, `DidManager` is the only contract accessible to addresses other than `VMStorage` or `ServiceStorage`. Let's take a closer look at each of these contracts:
 
-## DidManager.sol
+### 2.1. DidManager.sol
 The `DidManager` contract is responsible for managing Decentralized Identifiers (DIDs). It stores DIDs in a mapping of mappings of mappings, representing the structure `did:method0:method1:method2:id`. DIDs are created using the `createDid` function, which takes method identifiers and a random value as inputs. The method identifiers can be optionally provided, and if not provided, default method identifiers are used. The `createDid` function generates a unique DID and emits a `DidCreated` event with the generated DID and the address of the caller.
 
-## VMStorage.sol
+### 2.2. VMStorage.sol
 The `VMStorage` contract is a storage contract that is only accessible to the Verification Method (VM). It provides a secure and isolated storage space for the VM to store data. The contract contains internal functions and variables that are used by the VM for storage operations. It is not directly accessible by other addresses in the system.
 
-## ServiceStorage.sol
+### 2.3. ServiceStorage.sol
 The `ServiceStorage` contract is another storage contract that is only accessible to a specific service in the system. Similar to `VMStorage`, it provides a dedicated storage space for the service to store data. The contract contains internal functions and variables specific to the service's storage needs. It is not directly accessible by other addresses in the system.
 
-## System Architecture
+### 2.4. System Architecture
 The system architecture revolves around the `DidManager` contract, which acts as the entry point for managing DIDs. Other contracts, such as `VMStorage` and `ServiceStorage`, provide specialized storage capabilities for the Virtual Machine and a specific service, respectively. The contracts work together to enable the system's functionality, with `DidManager` coordinating the creation and management of DIDs, and the storage contracts providing secure and isolated storage spaces.
+
+## 3. Creating a New DID
+
+The process of creating a new DID involves calling the `createDid` function in the `DidManager` contract. Here's an overview of the steps involved:
+
+1. Input Validation: The function validates the provided method identifiers and random value. If any of them are not provided, default values are used.
+
+2. DID Generation: The function generates a unique DID by hashing together the method identifiers, random value, sender's address, current timestamp, miner's address, and block hash.
+
+3. Expiration Check: The function checks if the generated DID is already in use or expired. It calls the internal `_isExpired` function to perform the check.
+
+4. Expiration Update: If the generated DID is valid, the function updates the expiration date for the corresponding ID hash by calling the internal `_updateExpiration` function.
+
+5. Event Emission: Finally, the function emits a `DidCreated` event with the generated DID and the address of the caller.
+
+## 4. Advantages of this Implementation
+
+Compared to other DID solutions, this implementation offers several advantages:
+
+1. **Decentralization**: The system is built on a decentralized blockchain network, ensuring that DIDs are not controlled by any central authority.
+
+2. **Self-Sovereign Identity**: Individuals and entities have full control over their DIDs, allowing them to manage and use their digital identities as they see fit.
+
+3. **Secure Storage**: The system utilizes dedicated storage contracts (`Storage.sol` and `VMStorage.sol`) to securely store and retrieve data related to DIDs and services.
+
+4. **Flexibility**: The `DidManager` contract provides a flexible framework for managing DIDs, allowing for customization and integration with other services in the system.
+
+5. **Efficiency**: The use of hashed identifiers and expiration date tracking ensures efficient and reliable management of DIDs.
+
+For more detailed information about the project structure, contracts, and functionality, please refer to the corresponding source code files in the project repository.
+
+## 5. Getting Started
+
+To get started with the project, follow these steps:
+
+1. Install the required dependencies by running `npm install`.
+
+2. Configure the project settings in [`configuration.ts`](command:_github.copilot.openRelativePath?%5B%22configuration.ts%22%5D "configuration.ts") and [`hardhat.config.ts`](command:_github.copilot.openRelativePath?%5B%22hardhat.config.ts%22%5D "hardhat.config.ts") files.
+
+3. Compile the contracts using the Hardhat framework by running `npx hardhat compile`.
+
+4. Deploy the contracts to the desired network using the deployment scripts in the [`scripts/`](command:_github.copilot.openRelativePath?%5B%22scripts%2F%22%5D "scripts/") directory.
+
+5. Interact with the deployed `DidManager` contract to create and manage DIDs.
+
+For more detailed instructions and additional tasks, please refer to the project's documentation and the [`README.md`](command:_github.copilot.openRelativePath?%5B%22README.md%22%5D "README.md") file.
+
+## 6. Conclusion
+
+The project provides a robust and decentralized solution for creating and managing DIDs. By leveraging the `DidManager` contract and associated contracts, users can have control over their digital identities while benefiting from secure and efficient storage capabilities. The advantages of this implementation make it a compelling choice for decentralized identity management.
+
+For any further questions or assistance, please refer to the project documentation or reach out to the project maintainers.
+
+**Note:** This readme provides a high-level overview of the project. For more detailed information, please refer to the project's documentation and source code files.
