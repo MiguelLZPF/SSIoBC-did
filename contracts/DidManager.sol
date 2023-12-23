@@ -11,7 +11,7 @@ contract DidManager is IDidManager {
   bytes32 private constant METHOD1 =
     bytes32(0x6d61696e00000000000000000000000000000000000000000000000000000000); // "main"
   bytes32 private constant METHOD2 = bytes32(0); // not used by default
-  uint32 private constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
+  uint private constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
   bytes32 private constant VM_ID =
     bytes32(0x766d2d3000000000000000000000000000000000000000000000000000000000); // "vm-0"
   // System contracts
@@ -21,7 +21,7 @@ contract DidManager is IDidManager {
   //// mapping(bytes32 => mapping(bytes32 => mapping(bytes32 => bytes32))) private dids;
   // DIDs are stored in a mapping that maps a bytes32 key (representing the hash of the DID) to its expiration date.
   // hash(method0:method1:method2:id) --> expirationDate
-  mapping(bytes32 => uint256) private _expirationDate;
+  mapping(bytes32 => uint) private _expirationDate;
   // DID controllers are stored in a mapping that maps a bytes32 key (representing the hash of the DID or the hash of a specific VM) to an array of 5 bytes32 values (representing the actual controllers).
   // hash(method0:method1:method2:id | didHash&vmId) --> controller[0..4]
   mapping(bytes32 => bytes32[5]) private _controllers;
