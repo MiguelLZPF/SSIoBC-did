@@ -3,6 +3,7 @@
 /* eslint-disable */
 import type {
   BaseContract,
+  BigNumberish,
   BytesLike,
   FunctionFragment,
   Result,
@@ -20,7 +21,7 @@ import type {
 } from "../common";
 
 export interface VMStorageInterface extends Interface {
-  getFunction(nameOrSignature: "createVM"): FunctionFragment;
+  getFunction(nameOrSignature: "createVM" | "validateVM"): FunctionFragment;
 
   encodeFunctionData(
     functionFragment: "createVM",
@@ -32,8 +33,13 @@ export interface VMStorageInterface extends Interface {
       [BytesLike, BytesLike, BytesLike, BytesLike, BytesLike]
     ]
   ): string;
+  encodeFunctionData(
+    functionFragment: "validateVM",
+    values: [BytesLike, BigNumberish]
+  ): string;
 
   decodeFunctionResult(functionFragment: "createVM", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "validateVM", data: BytesLike): Result;
 }
 
 export interface VMStorage extends BaseContract {
@@ -93,7 +99,13 @@ export interface VMStorage extends BaseContract {
         BytesLike
       ]
     ],
-    [string],
+    [[string, string] & { vmIdHash: string; positionHash: string }],
+    "nonpayable"
+  >;
+
+  validateVM: TypedContractMethod<
+    [positionHash: BytesLike, expiration: BigNumberish],
+    [void],
     "nonpayable"
   >;
 
@@ -117,7 +129,14 @@ export interface VMStorage extends BaseContract {
         BytesLike
       ]
     ],
-    [string],
+    [[string, string] & { vmIdHash: string; positionHash: string }],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "validateVM"
+  ): TypedContractMethod<
+    [positionHash: BytesLike, expiration: BigNumberish],
+    [void],
     "nonpayable"
   >;
 
