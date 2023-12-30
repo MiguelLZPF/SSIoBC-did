@@ -4,3 +4,4 @@
 export type { IDidManager } from "./IDidManager";
 export type { IPayableOwner } from "./IPayableOwner";
 export type { IStorage } from "./IStorage";
+export type { IVMStorage } from "./IVMStorage";

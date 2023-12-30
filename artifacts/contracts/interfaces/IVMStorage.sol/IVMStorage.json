@@ -2,7 +2,86 @@
   "_format": "hh-sol-artifact-1",
   "contractName": "IVMStorage",
   "sourceName": "contracts/interfaces/IVMStorage.sol",
-  "abi": [],
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "didHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "type_",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32[16]",
+          "name": "publicKey",
+          "type": "bytes32[16]"
+        },
+        {
+          "internalType": "bytes32[5]",
+          "name": "blockchainAccountId",
+          "type": "bytes32[5]"
+        },
+        {
+          "internalType": "address",
+          "name": "thisBCAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "expiration",
+          "type": "uint256"
+        }
+      ],
+      "name": "createVM",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "vmIdHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "positionHash",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "positionHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "expiration",
+          "type": "uint256"
+        }
+      ],
+      "name": "validateVM",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
   "bytecode": "0x",
   "deployedBytecode": "0x",
   "linkReferences": {},

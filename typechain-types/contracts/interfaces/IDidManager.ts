@@ -3,6 +3,7 @@
 /* eslint-disable */
 import type {
   BaseContract,
+  BigNumberish,
   BytesLike,
   FunctionFragment,
   Result,
@@ -23,24 +24,94 @@ import type {
 } from "../../common";
 
 export interface IDidManagerInterface extends Interface {
-  getFunction(nameOrSignature: "createDid"): FunctionFragment;
+  getFunction(
+    nameOrSignature: "addController" | "createDid" | "createVM" | "validateVM"
+  ): FunctionFragment;
 
-  getEvent(nameOrSignatureOrTopic: "DidCreated"): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic: "DidCreated" | "VMCreated" | "VMValidated"
+  ): EventFragment;
 
+  encodeFunctionData(
+    functionFragment: "addController",
+    values: [BytesLike, BytesLike, BytesLike, BytesLike, BytesLike]
+  ): string;
   encodeFunctionData(
     functionFragment: "createDid",
     values: [BytesLike, BytesLike, BytesLike, BytesLike, BytesLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "createVM",
+    values: [
+      BytesLike,
+      BytesLike,
+      BytesLike,
+      BytesLike,
+      BytesLike,
+      BytesLike,
+      BytesLike[],
+      [BytesLike, BytesLike, BytesLike, BytesLike, BytesLike],
+      AddressLike,
+      BigNumberish
+    ]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "validateVM",
+    values: [BytesLike, BigNumberish]
+  ): string;
 
+  decodeFunctionResult(
+    functionFragment: "addController",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "createDid", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "createVM", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "validateVM", data: BytesLike): Result;
 }
 
 export namespace DidCreatedEvent {
-  export type InputTuple = [id: BytesLike, creator: AddressLike];
-  export type OutputTuple = [id: string, creator: string];
+  export type InputTuple = [idHash: BytesLike, creator: AddressLike];
+  export type OutputTuple = [idHash: string, creator: string];
+  export interface OutputObject {
+    idHash: string;
+    creator: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace VMCreatedEvent {
+  export type InputTuple = [
+    didIdHash: BytesLike,
+    id: BytesLike,
+    vmIdHash: BytesLike,
+    positionHash: BytesLike
+  ];
+  export type OutputTuple = [
+    didIdHash: string,
+    id: string,
+    vmIdHash: string,
+    positionHash: string
+  ];
+  export interface OutputObject {
+    didIdHash: string;
+    id: string;
+    vmIdHash: string;
+    positionHash: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace VMValidatedEvent {
+  export type InputTuple = [id: BytesLike];
+  export type OutputTuple = [id: string];
   export interface OutputObject {
     id: string;
-    creator: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -91,14 +162,55 @@ export interface IDidManager extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  createDid: TypedContractMethod<
+  addController: TypedContractMethod<
     [
-      random: BytesLike,
       method0: BytesLike,
       method1: BytesLike,
       method2: BytesLike,
+      id: BytesLike,
       vmId: BytesLike
     ],
+    [void],
+    "nonpayable"
+  >;
+
+  createDid: TypedContractMethod<
+    [
+      method0: BytesLike,
+      method1: BytesLike,
+      method2: BytesLike,
+      random: BytesLike,
+      vmId: BytesLike
+    ],
+    [void],
+    "nonpayable"
+  >;
+
+  createVM: TypedContractMethod<
+    [
+      method0: BytesLike,
+      method1: BytesLike,
+      method2: BytesLike,
+      id: BytesLike,
+      vmId: BytesLike,
+      type_: BytesLike,
+      publicKey: BytesLike[],
+      blockchainAccountId: [
+        BytesLike,
+        BytesLike,
+        BytesLike,
+        BytesLike,
+        BytesLike
+      ],
+      thisBCAddress: AddressLike,
+      expiration: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+
+  validateVM: TypedContractMethod<
+    [positionHash: BytesLike, expiration: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -108,15 +220,59 @@ export interface IDidManager extends BaseContract {
   ): T;
 
   getFunction(
-    nameOrSignature: "createDid"
+    nameOrSignature: "addController"
   ): TypedContractMethod<
     [
-      random: BytesLike,
       method0: BytesLike,
       method1: BytesLike,
       method2: BytesLike,
+      id: BytesLike,
       vmId: BytesLike
     ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "createDid"
+  ): TypedContractMethod<
+    [
+      method0: BytesLike,
+      method1: BytesLike,
+      method2: BytesLike,
+      random: BytesLike,
+      vmId: BytesLike
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "createVM"
+  ): TypedContractMethod<
+    [
+      method0: BytesLike,
+      method1: BytesLike,
+      method2: BytesLike,
+      id: BytesLike,
+      vmId: BytesLike,
+      type_: BytesLike,
+      publicKey: BytesLike[],
+      blockchainAccountId: [
+        BytesLike,
+        BytesLike,
+        BytesLike,
+        BytesLike,
+        BytesLike
+      ],
+      thisBCAddress: AddressLike,
+      expiration: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "validateVM"
+  ): TypedContractMethod<
+    [positionHash: BytesLike, expiration: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -127,6 +283,20 @@ export interface IDidManager extends BaseContract {
     DidCreatedEvent.InputTuple,
     DidCreatedEvent.OutputTuple,
     DidCreatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "VMCreated"
+  ): TypedContractEvent<
+    VMCreatedEvent.InputTuple,
+    VMCreatedEvent.OutputTuple,
+    VMCreatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "VMValidated"
+  ): TypedContractEvent<
+    VMValidatedEvent.InputTuple,
+    VMValidatedEvent.OutputTuple,
+    VMValidatedEvent.OutputObject
   >;
 
   filters: {
@@ -139,6 +309,28 @@ export interface IDidManager extends BaseContract {
       DidCreatedEvent.InputTuple,
       DidCreatedEvent.OutputTuple,
       DidCreatedEvent.OutputObject
+    >;
+
+    "VMCreated(bytes32,bytes32,bytes32,bytes32)": TypedContractEvent<
+      VMCreatedEvent.InputTuple,
+      VMCreatedEvent.OutputTuple,
+      VMCreatedEvent.OutputObject
+    >;
+    VMCreated: TypedContractEvent<
+      VMCreatedEvent.InputTuple,
+      VMCreatedEvent.OutputTuple,
+      VMCreatedEvent.OutputObject
+    >;
+
+    "VMValidated(bytes32)": TypedContractEvent<
+      VMValidatedEvent.InputTuple,
+      VMValidatedEvent.OutputTuple,
+      VMValidatedEvent.OutputObject
+    >;
+    VMValidated: TypedContractEvent<
+      VMValidatedEvent.InputTuple,
+      VMValidatedEvent.OutputTuple,
+      VMValidatedEvent.OutputObject
     >;
   };
 }

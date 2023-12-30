@@ -48,10 +48,10 @@ contract DidManager is IDidManager {
    * Emits a `DidCreated` event with the generated DID and the address of the caller.
    */
   function createDid(
-    bytes32 random,
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
+    bytes32 random,
     bytes32 vmId
   ) external {
     //* Params validation
@@ -85,9 +85,81 @@ contract DidManager is IDidManager {
     );
     bytes32 idHash = keccak256(abi.encodePacked(method0, method1, method2, id));
     require(_isExpired(idHash), "DID in use");
+    (, bytes32 positionHash) = _vmStorage.createVM(
+      idHash,
+      vmId,
+      bytes32(0), // type
+      [
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0),
+        bytes32(0)
+      ], // publicKey
+      [
+        bytes32(abi.encodePacked("eip155")),
+        bytes32(abi.encodePacked("666")),
+        bytes32(bytes32(uint256(uint160(msg.sender)))),
+        bytes32(0),
+        bytes32(0)
+      ],
+      msg.sender,
+      1 // Just to avoid one if...
+    );
+    _vmStorage.validateVM(positionHash, block.timestamp + EXPIRATION);
     _updateExpiration(idHash);
     emit DidCreated(id, msg.sender);
   }
+
+  function createVM(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId,
+    bytes32 type_,
+    bytes32[16] calldata publicKey,
+    bytes32[5] calldata blockchainAccountId,
+    address thisBCAddress,
+    uint expiration
+  ) external {
+    bytes32 didHash = keccak256(abi.encodePacked(method0, method1, method2, id));
+    require(!_isExpired(didHash), "DID expired");
+    (bytes32 vmIdHash, bytes32 positionHash) = _vmStorage.createVM(
+      didHash,
+      vmId,
+      type_,
+      publicKey,
+      blockchainAccountId,
+      thisBCAddress,
+      expiration
+    );
+    emit VMCreated(didHash, vmId, vmIdHash, positionHash);
+  }
+
+  function validateVM(bytes32 positionHash, uint expiration) external {
+    bytes32 vmId = _vmStorage.validateVM(positionHash, expiration);
+    emit VMValidated(vmId);
+  }
+
+  function addController(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId
+  ) external {}
 
   /**
    * @dev Updates the expiration date for a given ID hash.

@@ -52,6 +52,8 @@ export type { IPayableOwner } from "./contracts/interfaces/IPayableOwner";
 export { IPayableOwner__factory } from "./factories/contracts/interfaces/IPayableOwner__factory";
 export type { IStorage } from "./contracts/interfaces/IStorage";
 export { IStorage__factory } from "./factories/contracts/interfaces/IStorage__factory";
+export type { IVMStorage } from "./contracts/interfaces/IVMStorage";
+export { IVMStorage__factory } from "./factories/contracts/interfaces/IVMStorage__factory";
 export type { Storage } from "./contracts/Storage";
 export { Storage__factory } from "./factories/contracts/Storage__factory";
 export type { StorageUpgr } from "./contracts/StorageUpgr";

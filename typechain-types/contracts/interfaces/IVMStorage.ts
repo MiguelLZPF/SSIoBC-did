@@ -19,9 +19,9 @@ import type {
   TypedEventLog,
   TypedListener,
   TypedContractMethod,
-} from "../common";
+} from "../../common";
 
-export interface VMStorageInterface extends Interface {
+export interface IVMStorageInterface extends Interface {
   getFunction(nameOrSignature: "createVM" | "validateVM"): FunctionFragment;
 
   encodeFunctionData(
@@ -45,11 +45,11 @@ export interface VMStorageInterface extends Interface {
   decodeFunctionResult(functionFragment: "validateVM", data: BytesLike): Result;
 }
 
-export interface VMStorage extends BaseContract {
-  connect(runner?: ContractRunner | null): VMStorage;
+export interface IVMStorage extends BaseContract {
+  connect(runner?: ContractRunner | null): IVMStorage;
   waitForDeployment(): Promise<this>;
 
-  interface: VMStorageInterface;
+  interface: IVMStorageInterface;
 
   queryFilter<TCEvent extends TypedContractEvent>(
     event: TCEvent,

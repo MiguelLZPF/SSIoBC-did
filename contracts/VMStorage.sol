@@ -35,13 +35,18 @@ contract VMStorage is IVMStorage, Truster {
     bytes32 id,
     bytes32 type_,
     bytes32[16] calldata publicKey,
-    bytes32[5] calldata blockchainAccountId /* onlyTrusted */
+    bytes32[5] calldata blockchainAccountId,
+    address thisBCAddress,
+    uint expiration /* onlyTrusted */
   ) external returns (bytes32 vmIdHash, bytes32 positionHash) {
-    return _createVM(didHash, id, type_, publicKey, blockchainAccountId);
+    return _createVM(didHash, id, type_, publicKey, blockchainAccountId, thisBCAddress, expiration);
   }
 
-  function validateVM(bytes32 positionHash /* onlyTrusted */, uint expiration) external {
-    _validateVM(positionHash, expiration);
+  function validateVM(
+    bytes32 positionHash /* onlyTrusted */,
+    uint expiration
+  ) external returns (bytes32 id) {
+    return _validateVM(positionHash, expiration);
   }
 
   function _createVM(
@@ -49,14 +54,25 @@ contract VMStorage is IVMStorage, Truster {
     bytes32 id,
     bytes32 type_,
     bytes32[16] calldata publicKey,
-    bytes32[5] calldata blockchainAccountId
+    bytes32[5] calldata blockchainAccountId,
+    address thisBCAddress,
+    uint expiration
   ) internal returns (bytes32 vmIdHash, bytes32 positionHash) {
     require(didHash != bytes32(0), "1st param required"); // "DID hash cannot be 0"
     require(id != bytes32(0), "2nd param required"); // "VM ID cannot be 0"
     require(
-      publicKey[0] != bytes32(0) || blockchainAccountId[0] != bytes32(0),
-      "4th or 5th param required" // "PublicKey or blockchainAccountId must be set"
+      publicKey[0] != bytes32(0) ||
+        blockchainAccountId[0] != bytes32(0) ||
+        thisBCAddress != address(0),
+      "4th or 5th or 6th param required" // "PublicKey or blockchainAccountId or thisBCAddress must be set"
     );
+    if (expiration == 0) {
+      expiration = block.timestamp + 365 days;
+    }
+    if (thisBCAddress != address(0)) {
+      // Need to validate thisBCAddress
+      expiration = 0;
+    }
     vmIdHash = keccak256(abi.encodePacked(didHash, id));
     _checkVmIsEmpty(keccak256(abi.encodePacked(didHash, _vmPositionById[vmIdHash])));
     positionHash = keccak256(abi.encodePacked(didHash, _vmLength[didHash]));
@@ -65,12 +81,13 @@ contract VMStorage is IVMStorage, Truster {
       type_,
       publicKey,
       blockchainAccountId,
+      thisBCAddress,
       true,
       false,
       false,
       false,
       false,
-      0
+      expiration // 0 means not validated
     );
     _vmPositionById[vmIdHash] = _vmLength[didHash];
     _vmLength[didHash]++;
@@ -78,11 +95,13 @@ contract VMStorage is IVMStorage, Truster {
     return (vmIdHash, positionHash);
   }
 
-  function _validateVM(bytes32 positionHash, uint expiration) internal {
+  function _validateVM(bytes32 positionHash, uint expiration) internal returns (bytes32 id) {
     VerificationMethod storage vm = _vm[positionHash];
     require(vm.id != bytes32(0), "VM not found");
     require(vm.expiration == 0, "VM already validated");
+    require(vm.thisBCAddress == msg.sender, "Cannot validate VM"); // This is the signature validation of the VM
     vm.expiration = expiration;
+    return (vm.id);
   }
 
   function _calculateHashes(

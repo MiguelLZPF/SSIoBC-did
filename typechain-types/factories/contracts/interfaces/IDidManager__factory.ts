@@ -15,7 +15,7 @@ const _abi = [
       {
         indexed: true,
         internalType: "bytes32",
-        name: "id",
+        name: "idHash",
         type: "bytes32",
       },
       {
@@ -29,12 +29,51 @@ const _abi = [
     type: "event",
   },
   {
+    anonymous: false,
     inputs: [
       {
+        indexed: true,
         internalType: "bytes32",
-        name: "random",
+        name: "didIdHash",
         type: "bytes32",
       },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "id",
+        type: "bytes32",
+      },
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "vmIdHash",
+        type: "bytes32",
+      },
+      {
+        indexed: false,
+        internalType: "bytes32",
+        name: "positionHash",
+        type: "bytes32",
+      },
+    ],
+    name: "VMCreated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "bytes32",
+        name: "id",
+        type: "bytes32",
+      },
+    ],
+    name: "VMValidated",
+    type: "event",
+  },
+  {
+    inputs: [
       {
         internalType: "bytes32",
         name: "method0",
@@ -52,11 +91,125 @@ const _abi = [
       },
       {
         internalType: "bytes32",
+        name: "id",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "vmId",
+        type: "bytes32",
+      },
+    ],
+    name: "addController",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "method0",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "method1",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "method2",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "random",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
         name: "vmId",
         type: "bytes32",
       },
     ],
     name: "createDid",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "method0",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "method1",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "method2",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "id",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "vmId",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32",
+        name: "type_",
+        type: "bytes32",
+      },
+      {
+        internalType: "bytes32[16]",
+        name: "publicKey",
+        type: "bytes32[16]",
+      },
+      {
+        internalType: "bytes32[5]",
+        name: "blockchainAccountId",
+        type: "bytes32[5]",
+      },
+      {
+        internalType: "address",
+        name: "thisBCAddress",
+        type: "address",
+      },
+      {
+        internalType: "uint256",
+        name: "expiration",
+        type: "uint256",
+      },
+    ],
+    name: "createVM",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "bytes32",
+        name: "positionHash",
+        type: "bytes32",
+      },
+      {
+        internalType: "uint256",
+        name: "expiration",
+        type: "uint256",
+      },
+    ],
+    name: "validateVM",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",

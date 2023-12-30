@@ -102,6 +102,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IStorage__factory>;
     getContractFactory(
+      name: "IVMStorage",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IVMStorage__factory>;
+    getContractFactory(
       name: "Storage",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Storage__factory>;
@@ -233,6 +237,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IStorage>;
     getContractAt(
+      name: "IVMStorage",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IVMStorage>;
+    getContractAt(
       name: "Storage",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -347,6 +356,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IStorage>;
     deployContract(
+      name: "IVMStorage",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IVMStorage>;
+    deployContract(
       name: "Storage",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Storage>;
@@ -477,6 +490,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IStorage>;
+    deployContract(
+      name: "IVMStorage",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IVMStorage>;
     deployContract(
       name: "Storage",
       args: any[],
