@@ -12,8 +12,6 @@ contract DidManager is IDidManager {
     bytes32(0x6d61696e00000000000000000000000000000000000000000000000000000000); // "main"
   bytes32 private constant METHOD2 = bytes32(0); // not used by default
   uint private constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
-  bytes32 private constant VM_ID =
-    bytes32(0x766d2d3000000000000000000000000000000000000000000000000000000000); // "vm-0"
   // System contracts
   IVMStorage private _vmStorage;
   IServiceStorage private _serviceStorage;
@@ -66,9 +64,6 @@ contract DidManager is IDidManager {
     }
     if (method2 == bytes32(0)) {
       method2 = METHOD2;
-    }
-    if (vmId == bytes32(0)) {
-      vmId = VM_ID; // "vm-0"
     }
     //* Implementation
     bytes32 id = keccak256(
@@ -134,6 +129,11 @@ contract DidManager is IDidManager {
     address thisBCAddress,
     uint expiration
   ) external {
+    //* Params validation
+    // Required
+    require(method0 != bytes32(0), "Method0 cannot be 0");
+    require(id != bytes32(0), "VM ID cannot be 0");
+    //* Implementation
     bytes32 didHash = keccak256(abi.encodePacked(method0, method1, method2, id));
     require(!_isExpired(didHash), "DID expired");
     (bytes32 vmIdHash, bytes32 positionHash) = _vmStorage.createVM(
