@@ -26,15 +26,15 @@ contract VMStorage is IVMStorage, Truster {
     bytes32[16] calldata publicKey,
     bytes32[5] calldata blockchainAccountId,
     address thisBCAddress,
-    uint expiration /* onlyTrusted */
-  ) external returns (bytes32 vmIdHash, bytes32 positionHash) {
+    uint expiration
+  ) external onlyTrustedCode returns (bytes32 vmIdHash, bytes32 positionHash) {
     return _createVM(didHash, id, type_, publicKey, blockchainAccountId, thisBCAddress, expiration);
   }
 
   function validateVM(
-    bytes32 positionHash /* onlyTrusted */,
+    bytes32 positionHash,
     uint expiration
-  ) external returns (bytes32 id) {
+  ) external onlyTrustedCode returns (bytes32 id) {
     return _validateVM(positionHash, expiration);
   }
 
