@@ -6,11 +6,7 @@ import {
   Overrides,
   BytesLike,
 } from "ethers";
-import {
-  AccessControlEnumerable,
-  Storage as StorageBase,
-  Storage__factory,
-} from "typechain-types";
+import { Create2 as Create2Base, Create2__factory } from "typechain-types";
 import CustomContract, { CCDeployResult } from "models/CustomContract";
 import { GAS_OPT } from "configuration";
 
@@ -43,20 +39,14 @@ const GAS = {
   },
 };
 
-type StorageType = StorageBase & AccessControlEnumerable;
-
-export default class Storage extends CustomContract<StorageType> {
-  private DEFAULT_ADMIN_ROLE: string | undefined;
+export default class Create2 extends CustomContract<Create2Base> {
   gas = GAS;
-  // factory: Storage__factory;
-  number: number | BigInt | undefined;
 
   constructor(address: string, signer: Signer);
   constructor(address: string, provider: Provider);
   constructor(address: string, runner: ContractRunner);
   constructor(address: string, runner: ContractRunner) {
-    super(address, Storage__factory.abi, runner);
-    this.number = undefined;
+    super(address, Create2__factory.abi, runner);
   }
 
   static async deployStorage(
