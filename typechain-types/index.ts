@@ -46,6 +46,8 @@ export type { ERC165 } from "./@openzeppelin/contracts/utils/introspection/ERC16
 export { ERC165__factory } from "./factories/@openzeppelin/contracts/utils/introspection/ERC165__factory";
 export type { IERC165 } from "./@openzeppelin/contracts/utils/introspection/IERC165";
 export { IERC165__factory } from "./factories/@openzeppelin/contracts/utils/introspection/IERC165__factory";
+export type { Create2Deployable } from "./contracts/Create2Deployable";
+export { Create2Deployable__factory } from "./factories/contracts/Create2Deployable__factory";
 export type { DidManager } from "./contracts/DidManager";
 export { DidManager__factory } from "./factories/contracts/DidManager__factory";
 export type { IDidManager } from "./contracts/interfaces/IDidManager";

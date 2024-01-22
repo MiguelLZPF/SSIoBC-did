@@ -11,7 +11,7 @@ import {
 import { setGlobalHRE } from "scripts/utils";
 import { INetwork } from "models/Configuration";
 import CustomWallet from "models/Wallet";
-import StorageUpgr from "models/StorageUpgr";
+import StorageUpgr from "models/contracts/StorageUpgr";
 import CustomContract from "models/CustomContract";
 
 // Specific Constants

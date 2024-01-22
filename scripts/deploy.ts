@@ -1,8 +1,10 @@
 import { Signer, ContractMethodArgs, Overrides, Block } from "ethers";
 import { ContractName, ENV } from "models/Configuration";
 import Deployment from "models/Deployment";
-import Storage, { StorageDeployResult } from "models/Storage";
-import StorageUpgr, { StorageUpgrDeployResult } from "models/StorageUpgr";
+import Storage, { DidManagerDeployResult } from "models/contracts/DidManager";
+import StorageUpgr, {
+  StorageUpgrDeployResult,
+} from "models/contracts/StorageUpgr";
 
 /**
  * Deploys a contract with the specified name using the provided deployer and arguments.
@@ -24,7 +26,7 @@ export async function deploy(
   save: boolean = false,
   tag?: string,
 ) {
-  let deployResult: StorageDeployResult | StorageUpgrDeployResult;
+  let deployResult: DidManagerDeployResult | StorageUpgrDeployResult;
   switch (String(contractName)) {
     case "Storage":
       deployResult = await Storage.deployStorage(deployer, args[0], overrides);

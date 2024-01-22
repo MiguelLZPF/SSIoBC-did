@@ -6,7 +6,7 @@ import { Provider, Block, ZeroAddress, isAddress, parseEther } from "ethers";
 import { setGlobalHRE } from "scripts/utils";
 import { INetwork } from "models/Configuration";
 import CustomWallet from "models/Wallet";
-import Storage from "models/Storage";
+import Storage from "models/contracts/DidManager";
 
 // Specific Constants
 const CONTRACT_NAME = "Storage";

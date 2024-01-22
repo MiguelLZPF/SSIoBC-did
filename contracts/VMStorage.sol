@@ -8,6 +8,10 @@ import {Truster} from "decentralized-code-trust/contracts/Truster.sol";
 contract VMStorage is IVMStorage, Truster {
   bytes32 private constant VM_ID =
     bytes32(0x766d2d3000000000000000000000000000000000000000000000000000000000); // "vm-0"
+  bytes32 private constant VM_TYPE_0 =
+    bytes32(0x4563647361536563703235366b31566572696669636174696f6e4b6579323000); // "EcdsaSecp256k1VerificationKey20"
+  bytes32 private constant VM_TYPE_1 =
+    bytes32(0x3139000000000000000000000000000000000000000000000000000000000000); // "19"
   // hash(DIDHash, position) --> VerificationMethod Details
   mapping(bytes32 => VerificationMethod) private _vm;
   // hash(DIDHash, VM ID) --> position
@@ -22,7 +26,7 @@ contract VMStorage is IVMStorage, Truster {
   function createVM(
     bytes32 didHash,
     bytes32 id,
-    bytes32 type_,
+    bytes32[2] calldata type_,
     bytes32[16] calldata publicKey,
     bytes32[5] calldata blockchainAccountId,
     address thisBCAddress,
@@ -41,7 +45,7 @@ contract VMStorage is IVMStorage, Truster {
   function _createVM(
     bytes32 didHash,
     bytes32 id,
-    bytes32 type_,
+    bytes32[2] memory type_,
     bytes32[16] calldata publicKey,
     bytes32[5] calldata blockchainAccountId,
     address thisBCAddress,
@@ -60,6 +64,9 @@ contract VMStorage is IVMStorage, Truster {
     // Optional
     if (id == bytes32(0)) {
       id = VM_ID; // "vm-0"
+    }
+    if (type_[0] == bytes32(0)) {
+      type_ = [VM_TYPE_0, VM_TYPE_1]; // "EcdsaSecp256k1VerificationKey20", "19"
     }
     if (expiration == 0) {
       expiration = block.timestamp + 365 days;

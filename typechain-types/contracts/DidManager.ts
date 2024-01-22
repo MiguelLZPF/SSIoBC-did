@@ -48,7 +48,7 @@ export interface DidManagerInterface extends Interface {
       BytesLike,
       BytesLike,
       BytesLike,
-      BytesLike,
+      [BytesLike, BytesLike],
       BytesLike[],
       [BytesLike, BytesLike, BytesLike, BytesLike, BytesLike],
       AddressLike,
@@ -193,7 +193,7 @@ export interface DidManager extends BaseContract {
       method2: BytesLike,
       id: BytesLike,
       vmId: BytesLike,
-      type_: BytesLike,
+      type_: [BytesLike, BytesLike],
       publicKey: BytesLike[],
       blockchainAccountId: [
         BytesLike,
@@ -254,7 +254,7 @@ export interface DidManager extends BaseContract {
       method2: BytesLike,
       id: BytesLike,
       vmId: BytesLike,
-      type_: BytesLike,
+      type_: [BytesLike, BytesLike],
       publicKey: BytesLike[],
       blockchainAccountId: [
         BytesLike,

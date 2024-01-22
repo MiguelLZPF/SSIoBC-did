@@ -29,7 +29,7 @@ export interface VMStorageInterface extends Interface {
     values: [
       BytesLike,
       BytesLike,
-      BytesLike,
+      [BytesLike, BytesLike],
       BytesLike[],
       [BytesLike, BytesLike, BytesLike, BytesLike, BytesLike],
       AddressLike,
@@ -92,7 +92,7 @@ export interface VMStorage extends BaseContract {
     [
       didHash: BytesLike,
       id: BytesLike,
-      type_: BytesLike,
+      type_: [BytesLike, BytesLike],
       publicKey: BytesLike[],
       blockchainAccountId: [
         BytesLike,
@@ -124,7 +124,7 @@ export interface VMStorage extends BaseContract {
     [
       didHash: BytesLike,
       id: BytesLike,
-      type_: BytesLike,
+      type_: [BytesLike, BytesLike],
       publicKey: BytesLike[],
       blockchainAccountId: [
         BytesLike,

@@ -42,7 +42,7 @@ interface IDidManager {
     bytes32 method2,
     bytes32 id,
     bytes32 vmId,
-    bytes32 type_,
+    bytes32[2] calldata type_,
     bytes32[16] calldata publicKey,
     bytes32[5] calldata blockchainAccountId,
     address thisBCAddress,

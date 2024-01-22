@@ -83,7 +83,7 @@ contract DidManager is IDidManager {
     (, bytes32 positionHash) = _vmStorage.createVM(
       idHash,
       vmId,
-      bytes32(0), // type
+      [bytes32(0), bytes32(0)], // type
       [
         bytes32(0),
         bytes32(0),
@@ -123,7 +123,7 @@ contract DidManager is IDidManager {
     bytes32 method2,
     bytes32 id,
     bytes32 vmId,
-    bytes32 type_,
+    bytes32[2] calldata type_,
     bytes32[16] calldata publicKey,
     bytes32[5] calldata blockchainAccountId,
     address thisBCAddress,

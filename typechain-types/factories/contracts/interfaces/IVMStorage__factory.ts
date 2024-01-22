@@ -22,9 +22,9 @@ const _abi = [
         type: "bytes32",
       },
       {
-        internalType: "bytes32",
+        internalType: "bytes32[2]",
         name: "type_",
-        type: "bytes32",
+        type: "bytes32[2]",
       },
       {
         internalType: "bytes32[16]",
