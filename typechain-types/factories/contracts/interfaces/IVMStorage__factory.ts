@@ -66,6 +66,24 @@ const _abi = [
   {
     inputs: [
       {
+        internalType: "contract ICodeTrust",
+        name: "codeTrust",
+        type: "address",
+      },
+      {
+        internalType: "contract IDidManager",
+        name: "didManager",
+        type: "address",
+      },
+    ],
+    name: "initialize",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
         internalType: "bytes32",
         name: "positionHash",
         type: "bytes32",
@@ -74,6 +92,11 @@ const _abi = [
         internalType: "uint256",
         name: "expiration",
         type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "sender",
+        type: "address",
       },
     ],
     name: "validateVM",

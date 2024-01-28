@@ -2,3 +2,4 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as interfaces from "./interfaces";
+export { CodeTrust__factory } from "./CodeTrust__factory";

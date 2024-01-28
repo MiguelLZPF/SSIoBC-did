@@ -90,7 +90,7 @@ export default class CustomContract<C extends CBaseContract> {
   ): Promise<CCDeployResult<C>> {
     let contract: CBaseContract;
     if (factoryOrAbi instanceof ContractFactory) {
-      const args = signerOrArgs as ContractMethodArgs<any[]>;
+      const args = (signerOrArgs ?? []) as ContractMethodArgs<any[]>;
       overrides = argsOrOverrides as Overrides;
       contract = bytecodeOrSigner
         ? await factoryOrAbi

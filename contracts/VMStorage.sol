@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import {IVMStorage, VerificationMethod} from "./interfaces/IVMStorage.sol";
-import {IDidManager} from "./interfaces/IDidManager.sol";
+import {ICodeTrust, IDidManager, IVMStorage, VerificationMethod} from "./interfaces/IVMStorage.sol";
+import {SimpleInitializable as Initializable} from "./SimpleInitializable.sol";
 import {Truster} from "decentralized-code-trust/contracts/Truster.sol";
 
-contract VMStorage is IVMStorage, Truster {
+contract VMStorage is IVMStorage, Truster, Initializable {
   bytes32 private constant VM_ID =
     bytes32(0x766d2d3000000000000000000000000000000000000000000000000000000000); // "vm-0"
   bytes32 private constant VM_TYPE_0 =
@@ -19,7 +19,15 @@ contract VMStorage is IVMStorage, Truster {
   // DIDHash --> VM length
   mapping(bytes32 => uint8) private _vmLength;
 
-  constructor(IDidManager didManager) {
+  constructor() {}
+
+  /**
+   *! @dev Its not meant to be used as a Upgradeable contract
+   * @dev Initializes the contract by setting the trust code for the specified DID manager.
+   * @param didManager The address of the DID manager contract.
+   */
+  function initialize(ICodeTrust codeTrust, IDidManager didManager) external initializer {
+    _codeTrust = codeTrust;
     _codeTrust.trustCodeAt(address(didManager), 1);
   }
 
@@ -37,9 +45,10 @@ contract VMStorage is IVMStorage, Truster {
 
   function validateVM(
     bytes32 positionHash,
-    uint expiration
+    uint expiration,
+    address sender
   ) external onlyTrustedCode returns (bytes32 id) {
-    return _validateVM(positionHash, expiration);
+    return _validateVM(positionHash, expiration, sender);
   }
 
   function _createVM(
@@ -100,7 +109,11 @@ contract VMStorage is IVMStorage, Truster {
     return (vmIdHash, positionHash);
   }
 
-  function _validateVM(bytes32 positionHash, uint expiration) internal returns (bytes32 id) {
+  function _validateVM(
+    bytes32 positionHash,
+    uint expiration,
+    address sender
+  ) internal returns (bytes32 id) {
     //* Params validation
     // Optional
     if (expiration == 0) {
@@ -110,7 +123,7 @@ contract VMStorage is IVMStorage, Truster {
     VerificationMethod storage vm = _vm[positionHash];
     require(vm.id != bytes32(0), "VM not found");
     require(vm.expiration == 0, "VM already validated");
-    require(vm.thisBCAddress == msg.sender, "Cannot validate VM"); // This is the signature validation of the VM
+    require(vm.thisBCAddress == sender, "Cannot validate VM"); // This is the signature validation of the VM
     vm.expiration = expiration;
     return (vm.id);
   }

@@ -11,6 +11,32 @@ import { ENV } from "models/Configuration";
 import util from "util";
 
 /**
+ * Check if directories are present, if they aren't, create them
+ * @param reqPath path to extract directories and check them
+ */
+export const checkDirectoriesInPath = (reqPath: string) => {
+  // get all directories to be checked, including keystore root
+  const splitPath = reqPath.split("/");
+  let directories: string[] = [splitPath[0]];
+  for (let i = 1; i < splitPath.length - 1; i++) {
+    directories.push(directories[i - 1] + "/" + splitPath[i]);
+  }
+  checkDirectories(directories);
+};
+
+/**
+ * Check if directories are present, if they aren't, create them
+ * @param reqDirectories Required directories tree in hierarchical order
+ */
+export const checkDirectories = (reqDirectories: string[]) => {
+  for (const directory of reqDirectories) {
+    if (!existsSync(directory)) {
+      mkdirSync(directory);
+    }
+  }
+};
+
+/**
  * Gets the deployed contract timestamp
  * @param contract contract instance to use
  * @param deployTxHash (optional | undefined) it can be used to retrive timestamp
@@ -45,32 +71,6 @@ export const getContractTimestamp = async (
   } else {
     console.error("❌  ⛓️  Cannot get Tx Block Hash");
     return undefined;
-  }
-};
-
-/**
- * Check if directories are present, if they aren't, create them
- * @param reqPath path to extract directories and check them
- */
-export const checkDirectoriesInPath = (reqPath: string) => {
-  // get all directories to be checked, including keystore root
-  const splitPath = reqPath.split("/");
-  let directories: string[] = [splitPath[0]];
-  for (let i = 1; i < splitPath.length - 1; i++) {
-    directories.push(directories[i - 1] + "/" + splitPath[i]);
-  }
-  checkDirectories(directories);
-};
-
-/**
- * Check if directories are present, if they aren't, create them
- * @param reqDirectories Required directories tree in hierarchical order
- */
-export const checkDirectories = (reqDirectories: string[]) => {
-  for (const directory of reqDirectories) {
-    if (!existsSync(directory)) {
-      mkdirSync(directory);
-    }
   }
 };
 
@@ -120,4 +120,15 @@ export function delay(ms: number) {
  */
 export function isObjectEmpty(obj: object): boolean {
   return Object.keys(obj).length === 0;
+}
+
+/**
+ * Logs the provided arguments to the console if the condition is true.
+ * @param condition - The condition to check before logging.
+ * @param args - The arguments to log.
+ */
+export function logif(condition: boolean, ...args: any[]) {
+  if (condition) {
+    console.log(...args);
+  }
 }

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
+import {ICodeTrust} from "decentralized-code-trust/contracts/interfaces/ICodeTrust.sol";
+import {IDidManager} from "./IDidManager.sol";
+
 struct VerificationMethod {
   bytes32 id;
   bytes32[2] type_;
@@ -16,6 +19,8 @@ struct VerificationMethod {
 }
 
 interface IVMStorage {
+  function initialize(ICodeTrust codeTrust, IDidManager didManager) external;
+
   function createVM(
     bytes32 didHash,
     bytes32 id,
@@ -28,6 +33,7 @@ interface IVMStorage {
 
   function validateVM(
     bytes32 positionHash /* onlyTrusted */,
-    uint expiration
+    uint expiration,
+    address sender
   ) external returns (bytes32 id);
 }

@@ -114,6 +114,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IVMStorage__factory>;
     getContractFactory(
+      name: "SimpleInitializable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SimpleInitializable__factory>;
+    getContractFactory(
       name: "Storage",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Storage__factory>;
@@ -129,6 +133,10 @@ declare module "hardhat/types/runtime" {
       name: "VMStorage",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.VMStorage__factory>;
+    getContractFactory(
+      name: "CodeTrust",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.CodeTrust__factory>;
     getContractFactory(
       name: "ICodeTrust",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -260,6 +268,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IVMStorage>;
     getContractAt(
+      name: "SimpleInitializable",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SimpleInitializable>;
+    getContractAt(
       name: "Storage",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -279,6 +292,11 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.VMStorage>;
+    getContractAt(
+      name: "CodeTrust",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.CodeTrust>;
     getContractAt(
       name: "ICodeTrust",
       address: string | ethers.Addressable,
@@ -386,6 +404,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IVMStorage>;
     deployContract(
+      name: "SimpleInitializable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SimpleInitializable>;
+    deployContract(
       name: "Storage",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Storage>;
@@ -401,6 +423,10 @@ declare module "hardhat/types/runtime" {
       name: "VMStorage",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.VMStorage>;
+    deployContract(
+      name: "CodeTrust",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.CodeTrust>;
     deployContract(
       name: "ICodeTrust",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -532,6 +558,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IVMStorage>;
     deployContract(
+      name: "SimpleInitializable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SimpleInitializable>;
+    deployContract(
       name: "Storage",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -551,6 +582,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.VMStorage>;
+    deployContract(
+      name: "CodeTrust",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.CodeTrust>;
     deployContract(
       name: "ICodeTrust",
       args: any[],

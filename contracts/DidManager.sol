@@ -112,7 +112,7 @@ contract DidManager is IDidManager {
       msg.sender,
       1 // Just to avoid one if...
     );
-    _vmStorage.validateVM(positionHash, block.timestamp + EXPIRATION);
+    _vmStorage.validateVM(positionHash, block.timestamp + EXPIRATION, msg.sender);
     _updateExpiration(idHash);
     emit DidCreated(id, msg.sender);
   }
@@ -149,7 +149,7 @@ contract DidManager is IDidManager {
   }
 
   function validateVM(bytes32 positionHash, uint expiration) external {
-    bytes32 vmId = _vmStorage.validateVM(positionHash, expiration);
+    bytes32 vmId = _vmStorage.validateVM(positionHash, expiration, msg.sender);
     emit VMValidated(vmId);
   }
 

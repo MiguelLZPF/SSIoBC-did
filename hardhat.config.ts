@@ -8,6 +8,7 @@ import { networkNameToId } from "models/Configuration";
 import { quickTest, createSigner, deploy, upgrade } from "tasks/index";
 
 //* TASKS
+//! Comment before compile
 quickTest;
 // WALLET
 createSigner;

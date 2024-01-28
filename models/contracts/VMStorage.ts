@@ -2,18 +2,18 @@ import {
   Provider,
   Signer,
   ContractRunner,
-  BigNumberish,
   Overrides,
   BytesLike,
   encodeBytes32String,
+  keccak256,
+  AbiCoder,
 } from "ethers";
 import {
-  DidManager as DidManagerType,
-  DidManager__factory,
+  VMStorage as VMStorageType,
+  VMStorage__factory,
 } from "typechain-types";
 import CustomContract, { CCDeployResult } from "models/CustomContract";
 import { GAS_OPT } from "configuration";
-import { randomUUID } from "crypto";
 
 const GAS = {
   undefined: GAS_OPT,
@@ -45,125 +45,54 @@ const GAS = {
 };
 
 /**
- * Represents a DidManager contract.
+ * Represents a VMStorage contract.
  */
-export default class DidManager extends CustomContract<DidManagerType> {
+export default class VMStorage extends CustomContract<VMStorageType> {
   gas = GAS;
 
   constructor(address: string, signer: Signer);
   constructor(address: string, provider: Provider);
   constructor(address: string, runner: ContractRunner);
   constructor(address: string, runner: ContractRunner) {
-    super(address, DidManager__factory.abi, runner);
+    super(address, VMStorage__factory.abi, runner);
   }
 
-  static async deployDidManager(
+  static async deployVMStorage(
     signer: Signer,
-    vmStorage: string,
-    serviceStorage: string,
     overrides: Overrides = GAS.deploy,
-  ): Promise<DidManagerDeployResult> {
-    const deployResult = await super.deploy<
-      DidManager__factory,
-      DidManagerType
-    >(
-      new DidManager__factory(signer),
+  ): Promise<VMStorageDeployResult> {
+    const deployResult = await super.deploy<VMStorage__factory, VMStorageType>(
+      new VMStorage__factory(signer),
       undefined,
-      [vmStorage, serviceStorage],
+      undefined,
       overrides,
     );
     return {
-      contract: new DidManager(deployResult.contract.address, signer),
+      contract: new VMStorage(deployResult.contract.address, signer),
       receipt: deployResult.receipt,
     };
   }
 
   //* Custom contract functions
-  /**
-   * Creates a new DID (Decentralized Identifier).
-   *
-   * @param didMethod The DID method to use for creating the DID.
-   * @param random A random string used as a parameter for creating the DID.
-   * @param verificationMethodId The ID of the verification method associated with the DID.
-   * @param overrides Overrides for the transaction.
-   * @returns An object containing the transaction receipt and the first event associated with the transaction.
-   * @throws An error if the DID creation fails or the execution event is not found.
-   */
-  async createDid(
-    didMethod?: string,
-    random?: string,
-    verificationMethodId: string = "vm-0",
+  // SimpleInitializable
+  async initialize(
+    codeTrust: string,
+    didManager: string,
     overrides: Overrides = GAS_OPT.max,
   ) {
-    // Check if valid signer
-    this._checkSigner();
-    // Extract DID methods
-    let did: string | undefined;
-    let method0: string | undefined;
-    let method1: string | undefined;
-    let method2: string | undefined;
-    if (didMethod) {
-      [did, method0, method1, method2] = didMethod.split(":");
-      if (did !== "did") {
-        method0 = did;
-        method1 = method0;
-        method2 = method1;
-      }
-    }
-    // Random material
-    if (!random) {
-      // Generate random UUID string without hyphens
-      random = `0x${randomUUID().replace(/-/g, "")}${randomUUID().replace(/-/g, "")}`;
-    } else {
-      random = encodeBytes32String(random.substring(0, 32 - 1));
-    }
-    console.log(random.length);
-    // Actual transaction
+    this._checkAddress(codeTrust, didManager);
+    //* Actual transaction
     const receipt = await (
-      await this.contract.createDid(
-        method0 ? encodeBytes32String(method0) : new Uint8Array(32),
-        method1 ? encodeBytes32String(method1) : new Uint8Array(32),
-        method2 ? encodeBytes32String(method2) : new Uint8Array(32),
-        random,
-        encodeBytes32String(verificationMethodId),
-        { ...overrides },
-      )
+      await this.contract.initialize(codeTrust, didManager, { ...overrides })
     ).wait();
     if (!receipt) {
-      throw new Error(`❌  ⛓️  Cannot create DID. Receipt is undefined`);
+      throw new Error(`❌  ⛓️  Cannot validate VM. Receipt is undefined`);
     }
-    // Search for events to secure execution
-    let events = await this.contract.queryFilter(
-      this.contract.filters.DidCreated(
-        undefined,
-        await this.signer.getAddress(),
-      ),
-      receipt.blockNumber,
-      receipt.blockNumber,
-    );
-    if ((await this._checkExecutionEvent(events)) !== true) {
-      throw new Error(`❌  ⛓️  Cannot create DID. Execution event not found`);
-    }
-    // All OK Transacction executed
-    return {
-      receipt: receipt,
-      event: events[0],
-    };
   }
-
-  /**
-   * Creates a Verification Method (VM) for a given DID.
-   * @param did The DID (Decentralized Identifier) associated with the VM.
-   * @param verificationMethodId The ID of the verification method for the VM. Default value is "vm-0".
-   * @param type The type of the verification key. Optional.
-   * @param publicKeyHex The public key in hexadecimal format. Optional.
-   * @param blockchainAccountId The blockchain account ID. Optional.
-   * @param thisBlockchainAccountAddress The address of the blockchain account. Optional.
-   * @param expiration The expiration date of the VM. Optional.
-   * @param overrides The transaction overrides. Default value is GAS_OPT.max.
-   * @returns An object containing the transaction receipt and the VM creation event.
-   * @throws Error if the signer is invalid, the DID format is invalid, the VM format is invalid, the publicKeyHex, blockchainAccountId, and thisBlockchainAccountAddress are all undefined, the receipt is undefined, or the execution event is not found.
-   */
+  async isInitialized() {
+    return await this.contract.isInitialized();
+  }
+  // VMStorage
   async createVM(
     did: string,
     verificationMethodId: string = "vm-0",
@@ -206,9 +135,23 @@ export default class DidManager extends CustomContract<DidManagerType> {
       !thisBlockchainAccountAddress
     ) {
       throw new Error(
-        `❌  ⛓️  Cannot create VM. publicKeyHex, blockchainAccountId and thisBlockchainAccountAddress cannot be all undefined`,
+        `❌  ⛓️  Cannot create VM. Invalid VM format: ${did}. publicKeyHex, blockchainAccountId and thisBlockchainAccountAddress cannot be all undefined`,
       );
     }
+    const method0Encoded = encodeBytes32String(method0);
+    const method1Encoded = method1
+      ? encodeBytes32String(method1)
+      : new Uint8Array(32);
+    const method2Encoded = method2
+      ? encodeBytes32String(method2)
+      : new Uint8Array(32);
+    const idEncoded = encodeBytes32String(id);
+    const didHash = keccak256(
+      new AbiCoder().encode(
+        ["bytes32", "bytes32", "bytes32", "bytes32"],
+        [method0Encoded, method1Encoded, method2Encoded, idEncoded],
+      ),
+    );
     const typeEncoded = type
       ? this._encodeBytes32String(type, 2)
       : this._encodeBytes32String("", 2);
@@ -221,10 +164,7 @@ export default class DidManager extends CustomContract<DidManagerType> {
     //* Actual transaction
     const receipt = await (
       await this.contract.createVM(
-        encodeBytes32String(method0),
-        method1 ? encodeBytes32String(method1) : new Uint8Array(32),
-        method2 ? encodeBytes32String(method2) : new Uint8Array(32),
-        encodeBytes32String(id),
+        didHash,
         encodeBytes32String(verificationMethodId),
         [typeEncoded[0], typeEncoded[1]],
         [
@@ -260,38 +200,24 @@ export default class DidManager extends CustomContract<DidManagerType> {
     if (!receipt) {
       throw new Error(`❌  ⛓️  Cannot create VM. Receipt is undefined`);
     }
-    // Search for events to secure execution
-    let events = await this.contract.queryFilter(
-      this.contract.filters.VMCreated(
-        undefined,
-        encodeBytes32String(verificationMethodId),
-      ),
-      receipt.blockNumber,
-      receipt.blockNumber,
-    );
-    if ((await this._checkExecutionEvent(events)) !== true) {
-      throw new Error(`❌  ⛓️  Cannot create VM. Execution event not found`);
-    }
     // All OK Transacction executed
     return {
       receipt: receipt,
-      event: events[0],
     };
   }
 
   /**
-   * Validates a Verification Method (VM) for a given position hash.
-   *
-   * @param positionHash - The position hash to validate.
-   * @param verificationMethodId - The ID of the verification method. Default value is "vm-0".
-   * @param expiration - The expiration date for the validation. Optional.
-   * @returns An object containing the transaction receipt and the validated event.
-   * @throws Error if the VM validation fails or the execution event is not found.
+   * Validates a VM with the given parameters.
+   * @param positionHash - The position hash of the VM.
+   * @param expiration - The expiration date of the VM. Optional.
+   * @returns An object containing the receipt of the transaction.
+   * @throws An error if the receipt is undefined.
    */
   async validateVM(
     positionHash: BytesLike,
-    verificationMethodId: string = "vm-0",
     expiration?: Date,
+    sender?: string,
+    overrides?: Overrides,
   ) {
     // Check if valid signer
     this._checkSigner();
@@ -300,26 +226,16 @@ export default class DidManager extends CustomContract<DidManagerType> {
       await this.contract.validateVM(
         positionHash,
         expiration ? Math.floor(expiration.getTime() / 1000) : 0,
+        sender ?? (await this.signer.getAddress()),
+        { ...overrides },
       )
     ).wait();
     if (!receipt) {
       throw new Error(`❌  ⛓️  Cannot validate VM. Receipt is undefined`);
     }
-    // Search for events to secure execution
-    let events = await this.contract.queryFilter(
-      this.contract.filters.VMValidated(
-        encodeBytes32String(verificationMethodId),
-      ),
-      receipt.blockNumber,
-      receipt.blockNumber,
-    );
-    if ((await this._checkExecutionEvent(events)) !== true) {
-      throw new Error(`❌  ⛓️  Cannot validate VM. Execution event not found`);
-    }
     // All OK Transacction executed
     return {
       receipt: receipt,
-      event: events[0],
     };
   }
 
@@ -365,7 +281,7 @@ export default class DidManager extends CustomContract<DidManagerType> {
   }
 }
 
-export interface DidManagerDeployResult
-  extends Omit<CCDeployResult<DidManagerType>, "contract"> {
-  contract: DidManager;
+export interface VMStorageDeployResult
+  extends Omit<CCDeployResult<VMStorageType>, "contract"> {
+  contract: VMStorage;
 }

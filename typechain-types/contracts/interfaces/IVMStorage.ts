@@ -22,7 +22,9 @@ import type {
 } from "../../common";
 
 export interface IVMStorageInterface extends Interface {
-  getFunction(nameOrSignature: "createVM" | "validateVM"): FunctionFragment;
+  getFunction(
+    nameOrSignature: "createVM" | "initialize" | "validateVM"
+  ): FunctionFragment;
 
   encodeFunctionData(
     functionFragment: "createVM",
@@ -37,11 +39,16 @@ export interface IVMStorageInterface extends Interface {
     ]
   ): string;
   encodeFunctionData(
+    functionFragment: "initialize",
+    values: [AddressLike, AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "validateVM",
-    values: [BytesLike, BigNumberish]
+    values: [BytesLike, BigNumberish, AddressLike]
   ): string;
 
   decodeFunctionResult(functionFragment: "createVM", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "initialize", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "validateVM", data: BytesLike): Result;
 }
 
@@ -108,8 +115,14 @@ export interface IVMStorage extends BaseContract {
     "nonpayable"
   >;
 
+  initialize: TypedContractMethod<
+    [codeTrust: AddressLike, didManager: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
   validateVM: TypedContractMethod<
-    [positionHash: BytesLike, expiration: BigNumberish],
+    [positionHash: BytesLike, expiration: BigNumberish, sender: AddressLike],
     [string],
     "nonpayable"
   >;
@@ -140,9 +153,16 @@ export interface IVMStorage extends BaseContract {
     "nonpayable"
   >;
   getFunction(
+    nameOrSignature: "initialize"
+  ): TypedContractMethod<
+    [codeTrust: AddressLike, didManager: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "validateVM"
   ): TypedContractMethod<
-    [positionHash: BytesLike, expiration: BigNumberish],
+    [positionHash: BytesLike, expiration: BigNumberish, sender: AddressLike],
     [string],
     "nonpayable"
   >;

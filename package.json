@@ -1,8 +1,7 @@
 {
-  "name": "hardhat-base",
-  "version": "3.2.1",
-  "description": "This is a base hardhat project for development, testing and deployment of Smart Contracts. It adds scripts and hardhat tasks for Off-Chain deployments.",
-  "main": "index.js",
+  "name": "SSIoBC-did",
+  "version": "0.1.0",
+  "description": "SSIoBC-did",
   "scripts": {
     "test": "npx hardhat test"
   },
@@ -10,7 +9,7 @@
   "license": "BSD-3-Clause",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MiguelLZPF/hardhat-base.git"
+    "url": "https://github.com/MiguelLZPF/SSIoBC-did.git"
   },
   "keywords": [
     "solidity",
@@ -20,9 +19,9 @@
     "proxy"
   ],
   "bugs": {
-    "url": "https://github.com/MiguelLZPF/hardhat-base/issues"
+    "url": "https://github.com/MiguelLZPF/SSIoBC-did/issues"
   },
-  "homepage": "https://github.com/MiguelLZPF/hardhat-base",
+  "homepage": "https://github.com/MiguelLZPF/SSIoBC-did",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@openzeppelin/contracts": "^5.0.1",
