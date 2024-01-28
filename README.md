@@ -1,277 +1,90 @@
-# 1. Hardhat Off-Chain Deployments Base - HHoffCDB
+# Self-Sovereign Identity Over BlockChain [SSIoBC-DID]
 
 Before running anything, make sure you run `npm install`.
 
-This project aims to provide an easy-to-use _Hardhat base project_ that can be used to develop new smart contracts and deploy them using the _new tasks provided on top_ of a basic Hardhat project. It offers two main features: _Encrypted JSON wallet management_ and _automated off-chain deployments_ (regular and UUPS Upgradeable (EIP-1822)). This project is designed for use in private and public-permissioned networks but can also be used in public networks by adjusting a few gas options.
-
-The project structure follows a Hardhat environment using **ethers**, **waffle**, and **chai**. It also utilizes **TypeScript** and generates smart contract types using **Typechain**. The `--network` parameter refers to the network defined in the [hardhat config file](./hardhat.config.ts).
-
-- [1. Hardhat Off-Chain Deployments Base - HHoffCDB](#1-hardhat-off-chain-deployments-base---hhoffcdb)
-  - [1.1. Custom Tasks added](#11-custom-tasks-added)
-    - [AVAILABLE TASKS:](#available-tasks)
-  - [1.2. Configuration file constants](#12-configuration-file-constants)
-  - [1.3. Manage Encryped JSON Wallets](#13-manage-encryped-json-wallets)
-    - [1.3.1. Relevant Constants](#131-relevant-constants)
-    - [1.3.2. Generate one Random Wallet](#132-generate-one-random-wallet)
-    - [1.3.3. Generate Batch Wallets](#133-generate-batch-wallets)
-    - [1.3.4. Generate Wallet from mnemonic phrase](#134-generate-wallet-from-mnemonic-phrase)
-    - [1.3.5. Get Wallet mnemonic phrase](#135-get-wallet-mnemonic-phrase)
-    - [1.3.6. Get Wallet Information](#136-get-wallet-information)
-  - [1.4. Deploy Smart contracts](#14-deploy-smart-contracts)
-    - [1.4.1. Relevant Constants](#141-relevant-constants)
-    - [1.3.2. Regular Deployment](#132-regular-deployment)
-    - [1.3.3. Upgradeable deployment](#133-upgradeable-deployment)
-    - [1.3.4. Upgrade deployed Smart Contract](#134-upgrade-deployed-smart-contract)
-  - [1.4. Unit Test](#14-unit-test)
-
-## 1.1. Custom Tasks added
-
-Marked **tasks** are the ones provided by this project:
-
-**PLEASE USE: `npx hardhat --help` and `npx hardat {{TASK_NAME}} --help`**
+https://github.com/MiguelLZPF/hardhat-base
 
-### AVAILABLE TASKS:
-  - **call-contract**: Call a contract function (this does not change contract storage or state)
-  - **change-logic**: change the actual logic|implementation smart contract of a TUP proxy
-  - check                 Check whatever you need
-  - clean                 Clears the cache and deletes all artifacts
-  - compile               Compiles the entire project, building all artifacts
-  - console               Opens a hardhat console
-  - coverage              Generates a code coverage report for tests
-  - **deploy**                Deploy smart contracts on '--network'
-  - flatten               Flattens and prints contracts and their dependencies. If no file is passed, all the contracts in the project will be flattened.
-  - gas-reporter:merge
-  - **generate-wallets**      Generates Encryped JSON persistent wallets
-  - **get-logic**             Check what logic|implementation smart contract address is currently using a given proxy
-  - **get-mnemonic**          Recover mnemonic phrase from an encrypted wallet
-  - **get-timestamp**         get the current timestamp in seconds
-  - **get-wallet-info**       Recover all information from an encrypted wallet or an HD Wallet
-  - help                  Prints this message
-  - node                  Starts a JSON-RPC server on top of Hardhat Network
-  - **quick-test**            Random quick testing function
-  - run                   Runs a user-defined script after compiling the project
-  - size-contracts        Output the size of compiled contracts
-  - test                  Runs mocha tests
-  - typechain             Generate Typechain typings for compiled contracts
-  - **upgrade**               Upgrade smart contracts on '--network'
-  - verify                Verifies contract on Etherscan
+- [1. Project Overview](#1-project-overview)
+- [2. Contract Architecture](#2-contract-architecture)
+  - [2.1. DidManager.sol](#21-didmanagersol)
+  - [2.2. VMStorage.sol](#22-vmstoragesol)
+  - [2.3. ServiceStorage.sol](#23-servicestoragesol)
+  - [2.4. System Architecture](#24-system-architecture)
+- [3. Creating a New DID](#3-creating-a-new-did)
+- [4. Advantages of this Implementation](#4-advantages-of-this-implementation)
+- [5. Getting Started](#5-getting-started)
+- [6. Conclusion](#6-conclusion)
 
-## 1.2. Configuration file constants
+## 1. Project Overview
 
-Environmental variables and constants are defined in the configuration.ts file. Simple and easy to use due to it aims to provide a development local envionment and it is not supposed to be deployed anyware.
+This project focuses on the creation and management of Decentralized Identifiers (DIDs) using the `DidManager` contract. DIDs provide a decentralized and self-sovereign identity solution, allowing individuals and entities to have control over their digital identities. This readme provides an overview of the process of creating a new DID and highlights the advantages of this implementation compared to other solutions.
 
-## 1.3. Manage Encryped JSON Wallets
+## 2. Contract Architecture
 
-Automatize the management of Encryped JSON wallets using Hardhat tasks and scripts.
+This project consists of several contracts that work together to form a system. The main contracts involved are `DidManager`, `VMStorage`, and `ServiceStorage`. In this architecture, `DidManager` is the only contract accessible to addresses other than `VMStorage` or `ServiceStorage`. Let's take a closer look at each of these contracts:
 
-```text
-npx hardhat generate-wallets --help
-Hardhat version 2.11.0
+### 2.1. DidManager.sol
+The `DidManager` contract is responsible for managing Decentralized Identifiers (DIDs). It stores DIDs in a mapping of mappings of mappings, representing the structure `did:method0:method1:method2:id`. DIDs are created using the `createDid` function, which takes method identifiers and a random value as inputs. The method identifiers can be optionally provided, and if not provided, default method identifiers are used. The `createDid` function generates a unique DID and emits a `DidCreated` event with the generated DID and the address of the caller.
 
-Usage: hardhat [GLOBAL OPTIONS] generate-wallets [--batch-size <INT>] [--entropy <STRING>] [--mnemonic-path <STRING>] [--mnemonic-phrase <STRING>] [--password <STRING>] [--private-key <STRING>] --relative-path <STRING> [type]
+### 2.2. VMStorage.sol
+The `VMStorage` contract is a storage contract that is only accessible to the Verification Method (VM). It provides a secure and isolated storage space for the VM to store data. The contract contains internal functions and variables that are used by the VM for storage operations. It is not directly accessible by other addresses in the system.
 
-OPTIONS:
+### 2.3. ServiceStorage.sol
+The `ServiceStorage` contract is another storage contract that is only accessible to a specific service in the system. Similar to `VMStorage`, it provides a dedicated storage space for the service to store data. The contract contains internal functions and variables specific to the service's storage needs. It is not directly accessible by other addresses in the system.
 
-  --batch-size          Number of user wallets to be generated in batch 
-  --entropy             Wallet entropy 
-  --mnemonic-path       Mnemonic path to generate wallet from 
-  --mnemonic-phrase     Mnemonic phrase to generate wallet from 
-  --password            Wallet password 
-  --private-key         Private key to generate wallet from. Hexadecimal String format expected 
-  --relative-path       Path relative to KEYSTORE.root to store the wallets 
+### 2.4. System Architecture
+The system architecture revolves around the `DidManager` contract, which acts as the entry point for managing DIDs. Other contracts, such as `VMStorage` and `ServiceStorage`, provide specialized storage capabilities for the Virtual Machine and a specific service, respectively. The contracts work together to enable the system's functionality, with `DidManager` coordinating the creation and management of DIDs, and the storage contracts providing secure and isolated storage spaces.
 
-POSITIONAL ARGUMENTS:
+## 3. Creating a New DID
 
-  type  Type of generation [single, batch] (default: "single")
+The process of creating a new DID involves calling the `createDid` function in the `DidManager` contract. Here's an overview of the steps involved:
 
-generate-wallets: Generates Encryped JSON persistent wallets
-```
+1. Input Validation: The function validates the provided method identifiers and random value. If any of them are not provided, default values are used.
 
-### 1.3.1. Relevant Constants
+2. DID Generation: The function generates a unique DID by hashing together the method identifiers, random value, sender's address, current timestamp, miner's address, and block hash.
 
-All detailed in configuration.ts KEYSTORE constant group.
+3. Expiration Check: The function checks if the generated DID is already in use or expired. It calls the internal `_isExpired` function to perform the check.
 
-- KEYSTORE.root: defines the main keystore path to store the Encryped JSON wallets
-- KEYSTORE.default.password: default password to be used to symetric encryption & decryption of the Encryped JSON wallets
-- KEYSTORE.default.batchSize: default number of wallets to generate if not specified and useing the batch mode
+4. Expiration Update: If the generated DID is valid, the function updates the expiration date for the corresponding ID hash by calling the internal `_updateExpiration` function.
 
-### 1.3.2. Generate one Random Wallet
+5. Event Emission: Finally, the function emits a `DidCreated` event with the generated DID and the address of the caller.
 
-Use hardhat task to generate random Encryped JSON wallet:
+## 4. Advantages of this Implementation
 
-```bash
-npx hardhat generate-wallets single --relative-path "/new-wallet/another_path/name.json"
+Compared to other DID solutions, this implementation offers several advantages:
 
-Generating Wallet...
-WARN: No password specified, using default password
-New Wallet created and stored with address: 0xf85FaB8ca3aE307980E1B1e8BF1258B1aED9EDB9 as keystore/new-wallet/another_path/name.json
-```
+1. **Decentralization**: The system is built on a decentralized blockchain network, ensuring that DIDs are not controlled by any central authority.
 
-### 1.3.3. Generate Batch Wallets
+2. **Self-Sovereign Identity**: Individuals and entities have full control over their DIDs, allowing them to manage and use their digital identities as they see fit.
 
-Use hardhat task to generate multiple Encryped JSON wallets at once:
+3. **Secure Storage**: The system utilizes dedicated storage contracts (`Storage.sol` and `VMStorage.sol`) to securely store and retrieve data related to DIDs and services.
 
-```bash
-npx hardhat generate-wallets batch --relative-path /new-wallets/example --password myPassword --entropy whatever --batch-size 5
+4. **Flexibility**: The `DidManager` contract provides a flexible framework for managing DIDs, allowing for customization and integration with other services in the system.
 
-Generating Wallets...
-New Wallet created and stored with address: 0x620f3A7da61156B3629b3dffC59e680b1FbD55C7 as keystore/new-wallets/example00.json
-New Wallet created and stored with address: 0x3F99425f19DADd37433099Fc2104dCcd59699464 as keystore/new-wallets/example01.json
-New Wallet created and stored with address: 0xE5B3836211Ac74ceB63F1Dbf5FeB9bb55822e413 as keystore/new-wallets/example02.json
-New Wallet created and stored with address: 0x79fe0Eb3E352E68F2CDc6D81E6109b5Fb355C24f as keystore/new-wallets/example03.json
-New Wallet created and stored with address: 0x46866650c2DAFb25Aabad5c965efCD6602A89Db5 as keystore/new-wallets/example04.json
-```
+5. **Efficiency**: The use of hashed identifiers and expiration date tracking ensures efficient and reliable management of DIDs.
 
-### 1.3.4. Generate Wallet from mnemonic phrase
+For more detailed information about the project structure, contracts, and functionality, please refer to the corresponding source code files in the project repository.
 
-Use hardhat task to generate Encryped JSON wallet from mnemonic phrase:
+## 5. Getting Started
 
-```bash
-npx hardhat generate-wallets single --relative-path "other.json" --mnemonic "public shaft female city humor annual beauty razor club mix trip blossom"
+To get started with the project, follow these steps:
 
-Generating Wallet...
-WARN: No password specified, using default password
-New Wallet created and stored with address: 0x3e69BB8Fa07D831334E679cCEbBaB36DC42C4834 as keystore/other.json
-```
+1. Install the required dependencies by running `npm install`.
 
-### 1.3.5. Get Wallet mnemonic phrase
+2. Configure the project settings in [`configuration.ts`](command:_github.copilot.openRelativePath?%5B%22configuration.ts%22%5D "configuration.ts") and [`hardhat.config.ts`](command:_github.copilot.openRelativePath?%5B%22hardhat.config.ts%22%5D "hardhat.config.ts") files.
 
-Recover mnemonic phrase from an encrypted wallet:
+3. Compile the contracts using the Hardhat framework by running `npx hardhat compile`.
 
-```text
-Usage: hardhat [GLOBAL OPTIONS] get-mnemonic path password
+4. Deploy the contracts to the desired network using the deployment scripts in the [`scripts/`](command:_github.copilot.openRelativePath?%5B%22scripts%2F%22%5D "scripts/") directory.
 
-POSITIONAL ARGUMENTS:
+5. Interact with the deployed `DidManager` contract to create and manage DIDs.
 
-  path          Full path where the encrypted wallet is located
-  password      Password to decrypt the wallet
+For more detailed instructions and additional tasks, please refer to the project's documentation and the [`README.md`](command:_github.copilot.openRelativePath?%5B%22README.md%22%5D "README.md") file.
 
-get-mnemonic: Recover mnemonic phrase from an encrypted wallet
-```
+## 6. Conclusion
 
-```bash
-npx hardhat get-mnemonic keystore/other.json
+The project provides a robust and decentralized solution for creating and managing DIDs. By leveraging the `DidManager` contract and associated contracts, users can have control over their digital identities while benefiting from secure and efficient storage capabilities. The advantages of this implementation make it a compelling choice for decentralized identity management.
 
-{
-  phrase: 'public shaft female city humor annual beauty razor club mix trip blossom',
-  path: "m/44'/60'/0'/0/0",
-  locale: 'en'
-}
-```
+For any further questions or assistance, please refer to the project documentation or reach out to the project maintainers.
 
-### 1.3.6. Get Wallet Information
-
-Recover relevant iformation from an encrypted wallet:
-
-```text
-Usage: hardhat [GLOBAL OPTIONS] get-wallet-info [--show-private] path [password]
-
-OPTIONS:
-
-  --show-private        set to true if you want to show the private key and mnemonic phrase
-
-POSITIONAL ARGUMENTS:
-
-  path          Full path where the encrypted wallet is located
-  password      Password to decrypt the wallet
-
-get-wallet-info: Recover all information from an encrypted wallet
-```
-
-```text
-npx hardhat get-wallet-info keystore/example.json
-
-    Wallet information:
-      - Address: 0x47dfA49b8E6d0DF593340856F3A6a2216b77D477,
-      - Public Key: 0x0477cdbd8a79163f27211c64ec6f23476a3b86b224ff011ed42cd98f40bf59fb1d05d56339099957b398d6b801079b9c88ac6501d434e95099b4c3c1501e02d80b,
-      - Private Key: ***********,
-      - Mnemonic: ***********
-```
-
-## 1.4. Deploy Smart contracts
-
-The deployment of smart contracts is managed using Hardhat Tasks. It can be deployed as regular deployments or following the Transparent Proxy upgradeable pattern. The relevant information is recorded in the _deployments.json_ file at the root of project. It is recommended that this file is copied to other location to be able to access them or remember the addresses.
-
-```text
-Usage: hardhat [GLOBAL OPTIONS] deploy [--args <JSON>] --password <STRING> [--proxy-admin <STRING>] --relative-path <STRING> [--upgradeable] [contractName]
-
-OPTIONS:
-
-  --args                Contract initialize function's arguments if any
-  --password            Password to decrypt the wallet
-  --proxy-admin         Address of a deloyed Proxy Admin. Only if --upgradeable deployment
-  --relative-path       Path relative to KEYSTORE.root to store the wallets
-  --tx-value            Contract creation transaction value if any
-  --upgradeable         Deploy as upgradeable
-
-POSITIONAL ARGUMENTS:
-
-  contractName  Name of the contract to deploy (default: "Example_Contract")
-
-deploy: Deploy smart contracts on '--network'
-```
-
-### 1.4.1. Relevant Constants
-
-- PATH_DEPLOYMENTS: defines the deployments.json file path
-- PROXY_ADMIN_NAME: if for some reason you want to change the proxy admin SC name
-- PROXY_ADMIN_ADDRESS: this is important. Defines the default already deployed ProxyAdmin to use in upgradeable deployments
-
-### 1.3.2. Regular Deployment
-
-```bash
-npx hardhat deploy Lock --relative-path "/example.json" --password "PaSs_W0Rd" --args '["1662402606"]' --network ganache
-
-    Regular contract deployed:
-      - Address: 0x01b2026B2027040aC93E0C40Cd28A7262Ffa5040
-      - Arguments: 1662402606
-```
-
-### 1.3.3. Upgradeable deployment
-
-```bash
-npx hardhat deploy LockUpgr --upgradeable --relative-path "/example.json" --password "PaSs_W0Rd" --args '["1662402606"]' --network ganache
-
-WARN: no proxy admin provided, deploying new Proxy Admin
-
-    Upgradeable contract deployed:
-      - Proxy Admin: 0xc50933547aEf3a0EA766897f8D7D8F7243e342b4,
-      - Proxy: 0x00Be6D2b46b5Ea72F3e9a3Afec1429C63EB47F21,
-      - Logic: 0x01B3E77F9f4b7FA8E125eEC5b2f8c3EB14cA3b27
-      - Arguments: 1662402606
-```
-
-### 1.3.4. Upgrade deployed Smart Contract
-
-```text
-Usage: hardhat [GLOBAL OPTIONS] upgrade [--args <JSON>] --password <STRING> [--proxy <STRING>] [--proxy-admin <STRING>] --relative-path <STRING> [contractName]
-
-OPTIONS:
-
-  --args                Contract initialize function's arguments if any 
-  --password            Password to decrypt the wallet 
-  --proxy               Address of the TUP proxy 
-  --proxy-admin         Address of a deloyed Proxy Admin 
-  --relative-path       Path relative to KEYSTORE.root to store the wallets 
-
-POSITIONAL ARGUMENTS:
-
-  contractName  Name of the contract to deploy (default: "Example_Storage")
-
-upgrade: Upgrade smart contracts on '--network'
-```
-
-```bash
-npx hardhat upgrade ContractName --relative-path "/example.json" --password "PaSs_W0Rd" --proxy "0x00Be6D2b46b5Ea72F3e9a3Afec1429C63EB47F21" --network ganache
-
-    Contract upgraded:
-      - Proxy Admin: 0xc50933547aEf3a0EA766897f8D7D8F7243e342b4,
-      - Proxy: 0x00Be6D2b46b5Ea72F3e9a3Afec1429C63EB47F21,
-      - Previous Logic: 0x01B3E77F9f4b7FA8E125eEC5b2f8c3EB14cA3b27
-      - New Logic: 0x5E0f18F0f36e4FB17CDe93f3f7faaf9073356e25
-      - Arguments:
-```
-
-## 1.4. Unit Test
-
-There is one unit test for each Smart Contract located in "test/{ContractName}.test.ts". It's tested the deployment, initialization and behavior. By default it does not store wallets.
+**Note:** This readme provides a high-level overview of the project. For more detailed information, please refer to the project's documentation and source code files.

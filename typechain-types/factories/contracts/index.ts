@@ -2,6 +2,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as interfaces from "./interfaces";
+export { Create2Deployable__factory } from "./Create2Deployable__factory";
+export { DidManager__factory } from "./DidManager__factory";
+export { SimpleInitializable__factory } from "./SimpleInitializable__factory";
 export { Storage__factory } from "./Storage__factory";
 export { StorageUpgr__factory } from "./StorageUpgr__factory";
 export { StorageUpgrV1__factory } from "./StorageUpgrV1__factory";
+export { VMStorage__factory } from "./VMStorage__factory";

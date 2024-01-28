@@ -8,12 +8,15 @@ import { networkNameToId } from "models/Configuration";
 import { quickTest, createSigner, deploy, upgrade } from "tasks/index";
 
 //* TASKS
+//! Comment before compile
 quickTest;
 // WALLET
 createSigner;
 // DEPLOY
 deploy;
 upgrade;
+// Testing
+quickTest;
 
 //* Config
 // You need to export an object to set up your config
@@ -53,10 +56,11 @@ const config: HardhatUserConfig = {
       },
     },
     ganache: {
-      url: `${BLOCKCHAIN.networks.get(networkNameToId.ganache.bi)
-        ?.protocol}://${BLOCKCHAIN.networks.get(networkNameToId.ganache.bi)
-        ?.hostname}:${BLOCKCHAIN.networks.get(networkNameToId.ganache.bi)
-        ?.port}`,
+      url: `${
+        BLOCKCHAIN.networks.get(networkNameToId.ganache.bi)?.protocol
+      }://${BLOCKCHAIN.networks.get(networkNameToId.ganache.bi)?.hostname}:${
+        BLOCKCHAIN.networks.get(networkNameToId.ganache.bi)?.port
+      }`,
       chainId: networkNameToId.ganache.num,
       blockGasLimit: BLOCKCHAIN.default.gasLimit,
       gasPrice: BLOCKCHAIN.default.gasPrice,

@@ -78,6 +78,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Address__factory>;
     getContractFactory(
+      name: "Create2",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Create2__factory>;
+    getContractFactory(
       name: "ERC165",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC165__factory>;
@@ -86,6 +90,18 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC165__factory>;
     getContractFactory(
+      name: "Create2Deployable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Create2Deployable__factory>;
+    getContractFactory(
+      name: "DidManager",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.DidManager__factory>;
+    getContractFactory(
+      name: "IDidManager",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IDidManager__factory>;
+    getContractFactory(
       name: "IPayableOwner",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IPayableOwner__factory>;
@@ -93,6 +109,14 @@ declare module "hardhat/types/runtime" {
       name: "IStorage",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IStorage__factory>;
+    getContractFactory(
+      name: "IVMStorage",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IVMStorage__factory>;
+    getContractFactory(
+      name: "SimpleInitializable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SimpleInitializable__factory>;
     getContractFactory(
       name: "Storage",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -105,6 +129,18 @@ declare module "hardhat/types/runtime" {
       name: "StorageUpgrV1",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.StorageUpgrV1__factory>;
+    getContractFactory(
+      name: "VMStorage",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.VMStorage__factory>;
+    getContractFactory(
+      name: "CodeTrust",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.CodeTrust__factory>;
+    getContractFactory(
+      name: "ICodeTrust",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ICodeTrust__factory>;
 
     getContractAt(
       name: "AccessControlUpgradeable",
@@ -187,6 +223,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Address>;
     getContractAt(
+      name: "Create2",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Create2>;
+    getContractAt(
       name: "ERC165",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -197,6 +238,21 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC165>;
     getContractAt(
+      name: "Create2Deployable",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Create2Deployable>;
+    getContractAt(
+      name: "DidManager",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.DidManager>;
+    getContractAt(
+      name: "IDidManager",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IDidManager>;
+    getContractAt(
       name: "IPayableOwner",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -206,6 +262,16 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.IStorage>;
+    getContractAt(
+      name: "IVMStorage",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IVMStorage>;
+    getContractAt(
+      name: "SimpleInitializable",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SimpleInitializable>;
     getContractAt(
       name: "Storage",
       address: string | ethers.Addressable,
@@ -221,6 +287,21 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.StorageUpgrV1>;
+    getContractAt(
+      name: "VMStorage",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.VMStorage>;
+    getContractAt(
+      name: "CodeTrust",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.CodeTrust>;
+    getContractAt(
+      name: "ICodeTrust",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ICodeTrust>;
 
     deployContract(
       name: "AccessControlUpgradeable",
@@ -287,6 +368,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Address>;
     deployContract(
+      name: "Create2",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Create2>;
+    deployContract(
       name: "ERC165",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ERC165>;
@@ -295,6 +380,18 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC165>;
     deployContract(
+      name: "Create2Deployable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Create2Deployable>;
+    deployContract(
+      name: "DidManager",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.DidManager>;
+    deployContract(
+      name: "IDidManager",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IDidManager>;
+    deployContract(
       name: "IPayableOwner",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IPayableOwner>;
@@ -302,6 +399,14 @@ declare module "hardhat/types/runtime" {
       name: "IStorage",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IStorage>;
+    deployContract(
+      name: "IVMStorage",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IVMStorage>;
+    deployContract(
+      name: "SimpleInitializable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SimpleInitializable>;
     deployContract(
       name: "Storage",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -314,6 +419,18 @@ declare module "hardhat/types/runtime" {
       name: "StorageUpgrV1",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.StorageUpgrV1>;
+    deployContract(
+      name: "VMStorage",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.VMStorage>;
+    deployContract(
+      name: "CodeTrust",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.CodeTrust>;
+    deployContract(
+      name: "ICodeTrust",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ICodeTrust>;
 
     deployContract(
       name: "AccessControlUpgradeable",
@@ -396,6 +513,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Address>;
     deployContract(
+      name: "Create2",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Create2>;
+    deployContract(
       name: "ERC165",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -406,6 +528,21 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IERC165>;
     deployContract(
+      name: "Create2Deployable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Create2Deployable>;
+    deployContract(
+      name: "DidManager",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.DidManager>;
+    deployContract(
+      name: "IDidManager",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IDidManager>;
+    deployContract(
       name: "IPayableOwner",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -415,6 +552,16 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IStorage>;
+    deployContract(
+      name: "IVMStorage",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IVMStorage>;
+    deployContract(
+      name: "SimpleInitializable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SimpleInitializable>;
     deployContract(
       name: "Storage",
       args: any[],
@@ -430,6 +577,21 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.StorageUpgrV1>;
+    deployContract(
+      name: "VMStorage",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.VMStorage>;
+    deployContract(
+      name: "CodeTrust",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.CodeTrust>;
+    deployContract(
+      name: "ICodeTrust",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.ICodeTrust>;
 
     // default types
     getContractFactory(

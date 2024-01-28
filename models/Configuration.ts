@@ -7,7 +7,12 @@ export type Hardfork = "london" | "berlin" | "byzantium";
 export type NetworkProtocol = "http" | "https" | "ws";
 
 // Project contract names allowed
-export const CONTRACT_NAMES = ["Storage", "StorageUpgr"] as const;
+export const CONTRACT_NAMES = [
+  "CREATE2",
+  "DidManager",
+  "VMStorage",
+  "Service",
+] as const;
 export type ContractName = typeof CONTRACT_NAMES;
 
 export type NetworkName = "hardhat" | "ganache" | "mainTest"; // you can add whatever Network name here
