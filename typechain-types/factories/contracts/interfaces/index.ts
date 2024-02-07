@@ -4,4 +4,3 @@
 export { IDidManager__factory } from "./IDidManager__factory";
 export { IPayableOwner__factory } from "./IPayableOwner__factory";
 export { IStorage__factory } from "./IStorage__factory";
-export { IVMStorage__factory } from "./IVMStorage__factory";

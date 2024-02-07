@@ -7,8 +7,6 @@ import CustomWallet from "models/Wallet";
 import DidManager from "models/contracts/DidManager";
 import Environment, { Network } from "models/Configuration";
 import { logif } from "scripts/utils";
-import VMStorage from "models/contracts/VMStorage";
-import { CodeTrust, CodeTrust__factory } from "typechain-types";
 
 //* Generic Constants
 const ENABLE_LOG = true; // set to true to see logs
@@ -28,8 +26,6 @@ let deployer: CustomWallet;
 let deployer1: CustomWallet;
 let defaultUser: CustomWallet;
 // Contracts
-let codeTrust: CodeTrust;
-let vmStorage: VMStorage;
 let didManager: DidManager;
 describe("DidManager", () => {
   before("Generate test Accounts", async () => {
@@ -70,32 +66,8 @@ describe("DidManager", () => {
         );
       });
     } else {
-      step("Should deploy CodeTrust contract", async () => {
-        codeTrust = await new CodeTrust__factory(deployer).deploy();
-        expect(isAddress(await codeTrust.getAddress())).to.be.true;
-        expect(await codeTrust.getAddress()).not.to.equal(ZeroAddress);
-        logif(
-          ENABLE_LOG,
-          `NEW CodeTrust contract deployed at: ${await codeTrust.getAddress()}`,
-        );
-      });
-      step("Should deploy VMStorage contract", async () => {
-        const deployResult = await VMStorage.deployVMStorage(deployer);
-        vmStorage = deployResult.contract;
-        expect(isAddress(vmStorage.address)).to.be.true;
-        expect(vmStorage.address).not.to.equal(ZeroAddress);
-        logif(
-          ENABLE_LOG,
-          `NEW VMStorage contract deployed at: ${vmStorage.address}`,
-        );
-      });
-      // TODO: ServiceStorage
       step("Should deploy contract", async () => {
-        const deployResult = await DidManager.deployDidManager(
-          deployer,
-          vmStorage.address,
-          ZeroAddress,
-        );
+        const deployResult = await DidManager.deployDidManager(deployer);
         didManager = deployResult.contract;
         expect(isAddress(didManager.address)).to.be.true;
         expect(didManager.address).not.to.equal(ZeroAddress);
@@ -103,20 +75,6 @@ describe("DidManager", () => {
           ENABLE_LOG,
           `NEW ${CONTRACT_NAME} contract deployed at: ${didManager.address}`,
         );
-      });
-      step("Should initialize VMStorage contract", async () => {
-        await vmStorage.initialize(
-          await codeTrust.getAddress(),
-          didManager.address,
-        );
-        expect(await vmStorage.isInitialized()).to.be.true;
-        expect(
-          await codeTrust.isTrustedCode(
-            didManager.address,
-            vmStorage.address,
-            0,
-          ),
-        ).to.be.true;
       });
     }
   });

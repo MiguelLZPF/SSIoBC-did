@@ -18,22 +18,4 @@ struct VerificationMethod {
   uint expiration;
 }
 
-interface IVMStorage {
-  function initialize(ICodeTrust codeTrust, IDidManager didManager) external;
-
-  function createVM(
-    bytes32 didHash,
-    bytes32 id,
-    bytes32[2] calldata type_,
-    bytes32[16] calldata publicKey,
-    bytes32[5] calldata blockchainAccountId,
-    address thisBCAddress,
-    uint expiration /* onlyTrusted */
-  ) external returns (bytes32 vmIdHash, bytes32 positionHash);
-
-  function validateVM(
-    bytes32 positionHash /* onlyTrusted */,
-    uint expiration,
-    address sender
-  ) external returns (bytes32 id);
-}
+interface IVMStorage {}

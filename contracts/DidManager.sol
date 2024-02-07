@@ -2,21 +2,17 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import {IDidManager} from "./interfaces/IDidManager.sol";
-import {IVMStorage} from "./interfaces/IVMStorage.sol";
-import {IServiceStorage} from "./interfaces/IServiceStorage.sol";
+import {VMStorage} from "./VMStorage.sol";
 
-contract DidManager is IDidManager {
+// import {ServiceStorage} from "./ServiceStorage.sol";
+
+contract DidManager is VMStorage, IDidManager {
   bytes32 private constant METHOD0 =
     bytes32(0x6c7a706600000000000000000000000000000000000000000000000000000000); // "lzpf"
   bytes32 private constant METHOD1 =
     bytes32(0x6d61696e00000000000000000000000000000000000000000000000000000000); // "main"
   bytes32 private constant METHOD2 = bytes32(0); // not used by default
   uint private constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
-  // System contracts
-  IVMStorage private _vmStorage;
-  IServiceStorage private _serviceStorage;
-  ////      method0    -->     method1    -->     method2 -->   id
-  //// mapping(bytes32 => mapping(bytes32 => mapping(bytes32 => bytes32))) private dids;
   // DIDs are stored in a mapping that maps a bytes32 key (representing the hash of the DID) to its expiration date.
   // hash(method0:method1:method2:id) --> expirationDate
   mapping(bytes32 => uint) private _expirationDate;
@@ -24,10 +20,7 @@ contract DidManager is IDidManager {
   // hash(method0:method1:method2:id | didHash&vmId) --> controller[0..4]
   mapping(bytes32 => bytes32[5]) private _controllers;
 
-  constructor(IVMStorage vmStorage, IServiceStorage serviceStorage) {
-    _vmStorage = vmStorage;
-    _serviceStorage = serviceStorage;
-  }
+  constructor() {}
 
   /**
    * @dev Creates a new Decentralized Identifier (DID) using the specified method identifiers and a random value.
@@ -80,7 +73,7 @@ contract DidManager is IDidManager {
     );
     bytes32 idHash = keccak256(abi.encodePacked(method0, method1, method2, id));
     require(_isExpired(idHash), "DID in use");
-    (, bytes32 positionHash) = _vmStorage.createVM(
+    (, bytes32 positionHash) = _createVM(
       idHash,
       vmId,
       [bytes32(0), bytes32(0)], // type
@@ -112,7 +105,7 @@ contract DidManager is IDidManager {
       msg.sender,
       1 // Just to avoid one if...
     );
-    _vmStorage.validateVM(positionHash, block.timestamp + EXPIRATION, msg.sender);
+    _validateVM(positionHash, block.timestamp + EXPIRATION, msg.sender);
     _updateExpiration(idHash);
     emit DidCreated(id, msg.sender);
   }
@@ -136,7 +129,7 @@ contract DidManager is IDidManager {
     //* Implementation
     bytes32 didHash = keccak256(abi.encodePacked(method0, method1, method2, id));
     require(!_isExpired(didHash), "DID expired");
-    (bytes32 vmIdHash, bytes32 positionHash) = _vmStorage.createVM(
+    (bytes32 vmIdHash, bytes32 positionHash) = _createVM(
       didHash,
       vmId,
       type_,
@@ -149,7 +142,7 @@ contract DidManager is IDidManager {
   }
 
   function validateVM(bytes32 positionHash, uint expiration) external {
-    bytes32 vmId = _vmStorage.validateVM(positionHash, expiration, msg.sender);
+    bytes32 vmId = _validateVM(positionHash, expiration, msg.sender);
     emit VMValidated(vmId);
   }
 

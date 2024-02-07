@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import {ICodeTrust, IDidManager, IVMStorage, VerificationMethod} from "./interfaces/IVMStorage.sol";
-import {SimpleInitializable as Initializable} from "./SimpleInitializable.sol";
-import {Truster} from "decentralized-code-trust/contracts/Truster.sol";
+import {VerificationMethod} from "./interfaces/IVMStorage.sol";
 
-contract VMStorage is IVMStorage, Truster, Initializable {
+abstract contract VMStorage {
   bytes32 private constant VM_ID =
     bytes32(0x766d2d3000000000000000000000000000000000000000000000000000000000); // "vm-0"
   bytes32 private constant VM_TYPE_0 =
@@ -19,44 +17,12 @@ contract VMStorage is IVMStorage, Truster, Initializable {
   // DIDHash --> VM length
   mapping(bytes32 => uint8) private _vmLength;
 
-  constructor() {}
-
-  /**
-   *! @dev Its not meant to be used as a Upgradeable contract
-   * @dev Initializes the contract by setting the trust code for the specified DID manager.
-   * @param didManager The address of the DID manager contract.
-   */
-  function initialize(ICodeTrust codeTrust, IDidManager didManager) external initializer {
-    _codeTrust = codeTrust;
-    _codeTrust.trustCodeAt(address(didManager), 1);
-  }
-
-  function createVM(
-    bytes32 didHash,
-    bytes32 id,
-    bytes32[2] calldata type_,
-    bytes32[16] calldata publicKey,
-    bytes32[5] calldata blockchainAccountId,
-    address thisBCAddress,
-    uint expiration
-  ) external onlyTrustedCode returns (bytes32 vmIdHash, bytes32 positionHash) {
-    return _createVM(didHash, id, type_, publicKey, blockchainAccountId, thisBCAddress, expiration);
-  }
-
-  function validateVM(
-    bytes32 positionHash,
-    uint expiration,
-    address sender
-  ) external onlyTrustedCode returns (bytes32 id) {
-    return _validateVM(positionHash, expiration, sender);
-  }
-
   function _createVM(
     bytes32 didHash,
     bytes32 id,
     bytes32[2] memory type_,
-    bytes32[16] calldata publicKey,
-    bytes32[5] calldata blockchainAccountId,
+    bytes32[16] memory publicKey,
+    bytes32[5] memory blockchainAccountId,
     address thisBCAddress,
     uint expiration
   ) internal returns (bytes32 vmIdHash, bytes32 positionHash) {
