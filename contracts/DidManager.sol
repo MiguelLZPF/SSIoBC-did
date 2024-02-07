@@ -3,9 +3,10 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import {IDidManager} from "./interfaces/IDidManager.sol";
 import {VMStorage} from "./VMStorage.sol";
-import {ServiceStorage} from "./ServiceStorage.sol";
 
-contract DidManager is IDidManager, VMStorage {
+// import {ServiceStorage} from "./ServiceStorage.sol";
+
+contract DidManager is VMStorage, IDidManager {
   bytes32 private constant METHOD0 =
     bytes32(0x6c7a706600000000000000000000000000000000000000000000000000000000); // "lzpf"
   bytes32 private constant METHOD1 =
@@ -18,6 +19,8 @@ contract DidManager is IDidManager, VMStorage {
   // DID controllers are stored in a mapping that maps a bytes32 key (representing the hash of the DID or the hash of a specific VM) to an array of 5 bytes32 values (representing the actual controllers).
   // hash(method0:method1:method2:id | didHash&vmId) --> controller[0..4]
   mapping(bytes32 => bytes32[5]) private _controllers;
+
+  constructor() {}
 
   /**
    * @dev Creates a new Decentralized Identifier (DID) using the specified method identifiers and a random value.

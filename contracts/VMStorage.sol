@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import {IVMStorage, VerificationMethod} from "./interfaces/IVMStorage.sol";
+import {VerificationMethod} from "./interfaces/IVMStorage.sol";
 
-contract VMStorage is IVMStorage {
+abstract contract VMStorage {
   bytes32 private constant VM_ID =
     bytes32(0x766d2d3000000000000000000000000000000000000000000000000000000000); // "vm-0"
   bytes32 private constant VM_TYPE_0 =

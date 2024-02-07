@@ -59,19 +59,12 @@ export default class DidManager extends CustomContract<DidManagerType> {
 
   static async deployDidManager(
     signer: Signer,
-    vmStorage: string,
-    serviceStorage: string,
     overrides: Overrides = GAS.deploy,
   ): Promise<DidManagerDeployResult> {
     const deployResult = await super.deploy<
       DidManager__factory,
       DidManagerType
-    >(
-      new DidManager__factory(signer),
-      undefined,
-      [vmStorage, serviceStorage],
-      overrides,
-    );
+    >(new DidManager__factory(signer), undefined, undefined, overrides);
     return {
       contract: new DidManager(deployResult.contract.address, signer),
       receipt: deployResult.receipt,

@@ -3,8 +3,8 @@
   "contractName": "VMStorage",
   "sourceName": "contracts/VMStorage.sol",
   "abi": [],
-  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea2646970667358221220b125883910c28c469920a2d1222448c1ab4c0deb30b7f2f4f4771135cad444b564736f6c63430008140033",
-  "deployedBytecode": "0x6080604052600080fdfea2646970667358221220b125883910c28c469920a2d1222448c1ab4c0deb30b7f2f4f4771135cad444b564736f6c63430008140033",
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
   "linkReferences": {},
   "deployedLinkReferences": {}
 }
