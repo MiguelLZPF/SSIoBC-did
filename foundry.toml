@@ -1,0 +1,46 @@
+#* See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+## Sets the concrete solc version to use, this overrides the `auto_detect_solc` value
+solc = '0.8.24'
+evm_version = 'shanghai'
+# auto_detect_solc = true
+optimizer = true
+optimizer_runs = 20_000
+# These are the default callers, generated using `address(uint160(uint256(keccak256("foundry default caller"))))`
+# Changed to the default address of the mnemonic "test test test test test test test test test test test junk"
+sender = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
+tx_origin = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
+initial_balance = '0xffffffffffffffffffffffff'
+
+build_info = true
+extra_output = ["storageLayout"]
+
+remappings = [
+  # Foundry remappings
+  "@src/=src/",
+  "@interfaces/=src/interfaces/",
+  "@script/=script/",
+  "@lib/=lib/",
+  "@test/=test/",
+  # OpenZeppelin remappings
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/",
+  "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+]
+
+# Configures permissions for cheatcodes that touch the filesystem like `vm.writeFile`
+# `access` restricts how the `path` can be accessed via cheatcodes
+#    `read-write` | `true`   => `read` + `write` access allowed (`vm.readFile` + `vm.writeFile`)
+#    `none`| `false` => no access
+#    `read` => only read access (`vm.readFile`)
+#    `write` => only write access (`vm.writeFile`)
+# The `allowed_paths` further lists the paths that are considered, e.g. `./` represents the project root directory
+# By default _no_ fs access permission is granted, and _no_ paths are allowed
+# following example enables read access for the project dir _only_:
+#       `fs_permissions = [{ access = "read", path = "./"}]`
+fs_permissions = [
+  { access = "read-write", path = "./" },
+] # default: all file cheat codes are disabled
