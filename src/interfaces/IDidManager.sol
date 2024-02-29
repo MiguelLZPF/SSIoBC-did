@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
+pragma solidity >=0.8.0 <0.9.0;
 
 /**
  * @title IDidManager
  * @dev Interface for managing Decentralized Identifiers (DIDs).
  */
-pragma solidity >=0.8.0 <0.9.0;
-
 interface IDidManager {
   /**
    * @dev Emitted when a new DID is created.
@@ -46,6 +45,7 @@ interface IDidManager {
     bytes32[16] calldata publicKey,
     bytes32[5] calldata blockchainAccountId,
     address thisBCAddress,
+    bytes1 relationships,
     uint expiration
   ) external;
 

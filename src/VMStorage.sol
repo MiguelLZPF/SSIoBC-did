@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import {VerificationMethod} from "./interfaces/IVMStorage.sol";
+import { VerificationMethod } from "./interfaces/IVMStorage.sol";
 
 abstract contract VMStorage {
   bytes32 private constant VM_ID =
@@ -24,6 +24,7 @@ abstract contract VMStorage {
     bytes32[16] memory publicKey,
     bytes32[5] memory blockchainAccountId,
     address thisBCAddress,
+    bytes1 relationships,
     uint expiration
   ) internal returns (bytes32 vmIdHash, bytes32 positionHash) {
     //* Params validation
@@ -62,11 +63,7 @@ abstract contract VMStorage {
     vm.publicKey = publicKey;
     vm.blockchainAccountId = blockchainAccountId;
     vm.thisBCAddress = thisBCAddress;
-    vm.authentication = true;
-    vm.assertionMethod = true;
-    vm.keyAgreement = true;
-    vm.capabilityInvocation = true;
-    vm.capabilityDelegation = true;
+    vm.relationships = relationships;
     vm.expiration = expiration;
     // Mappings
     _vmPositionById[vmIdHash] = _vmLength[didHash];

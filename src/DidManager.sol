@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import {IDidManager} from "./interfaces/IDidManager.sol";
-import {VMStorage} from "./VMStorage.sol";
+import { IDidManager } from "./interfaces/IDidManager.sol";
+import { VMStorage } from "./VMStorage.sol";
 
 // import {ServiceStorage} from "./ServiceStorage.sol";
 
@@ -103,6 +103,7 @@ contract DidManager is VMStorage, IDidManager {
         bytes32(0)
       ],
       msg.sender,
+      bytes1(0x01), // relationships
       1 // Just to avoid one if...
     );
     _validateVM(positionHash, block.timestamp + EXPIRATION, msg.sender);
@@ -120,6 +121,7 @@ contract DidManager is VMStorage, IDidManager {
     bytes32[16] calldata publicKey,
     bytes32[5] calldata blockchainAccountId,
     address thisBCAddress,
+    bytes1 relationships,
     uint expiration
   ) external {
     //* Params validation
@@ -136,6 +138,7 @@ contract DidManager is VMStorage, IDidManager {
       publicKey,
       blockchainAccountId,
       thisBCAddress,
+      relationships,
       expiration
     );
     emit VMCreated(didHash, vmId, vmIdHash, positionHash);
