@@ -17,7 +17,7 @@ struct VerificationMethod {
   bytes32[5] blockchainAccountId; // firstPart:secondPart:thirdPart = 32:32:32x3 // External blockchain account ID
   address thisBCAddress; // An address (account ID) of the blockchain where the VM is stored
   bytes1 relationships; // Relationships XX00000
-  uint expiration;
+  uint256 expiration; // The expiration date of the VM
 }
 
 interface IVMStorage {}

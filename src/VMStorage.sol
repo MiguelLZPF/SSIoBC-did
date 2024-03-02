@@ -91,6 +91,20 @@ abstract contract VMStorage {
     return (vm.id);
   }
 
+  function _isAuthenticated(
+    bytes32 didHash,
+    bytes32 vmId,
+    address sender
+  ) internal view returns (bool) {
+    (, bytes32 positionHash) = _calculateHashes(didHash, vmId);
+    // Get VM
+    VerificationMethod memory vm = _vm[positionHash];
+    // Check if the VM exists and is not expired
+    require(vm.expiration > block.timestamp, "VM expired");
+    // Check if the sender is in the authentication relationship
+    return (vm.thisBCAddress == sender && vm.relationships & 0x01 == 0x01);
+  }
+
   function _calculateHashes(
     bytes32 didHash,
     bytes32 id
