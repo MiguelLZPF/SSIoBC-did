@@ -12,13 +12,13 @@ interface IDidManager {
    * @param creator The address of the account that created the DID.
    */
   event DidCreated(bytes32 indexed idHash, address indexed creator);
-  event VMCreated(
+  event VmCreated(
     bytes32 indexed didIdHash,
     bytes32 indexed id,
     bytes32 indexed vmIdHash,
     bytes32 positionHash
   );
-  event VMValidated(bytes32 indexed id);
+  event VmValidated(bytes32 indexed id);
 
   /**
    * @dev Creates a new DID.

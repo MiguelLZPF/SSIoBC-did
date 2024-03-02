@@ -73,7 +73,7 @@ contract DidManager is VMStorage, IDidManager {
     );
     bytes32 idHash = keccak256(abi.encodePacked(method0, method1, method2, id));
     require(_isExpired(idHash), "DID in use");
-    (, bytes32 positionHash) = _createVM(
+    (bytes32 vmIdHash, bytes32 positionHash) = _createVM(
       idHash,
       vmId,
       [bytes32(0), bytes32(0)], // type
@@ -106,7 +106,9 @@ contract DidManager is VMStorage, IDidManager {
       bytes1(0x01), // relationships
       1 // Just to avoid one if...
     );
+    emit VmCreated(id, vmId, vmIdHash, positionHash);
     _validateVM(positionHash, block.timestamp + EXPIRATION, msg.sender);
+    emit VmValidated(vmId);
     _updateExpiration(idHash);
     emit DidCreated(id, msg.sender);
   }
@@ -141,12 +143,12 @@ contract DidManager is VMStorage, IDidManager {
       relationships,
       expiration
     );
-    emit VMCreated(didHash, vmId, vmIdHash, positionHash);
+    emit VmCreated(didHash, vmId, vmIdHash, positionHash);
   }
 
   function validateVM(bytes32 positionHash, uint expiration) external {
     bytes32 vmId = _validateVM(positionHash, expiration, msg.sender);
-    emit VMValidated(vmId);
+    emit VmValidated(vmId);
   }
 
   function addController(
