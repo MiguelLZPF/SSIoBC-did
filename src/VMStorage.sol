@@ -1,15 +1,49 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { VerificationMethod } from "./interfaces/IVMStorage.sol";
+// Verification Method Relationships    binary  => hex  => dec
+// None                             => 00000000 => 0x00 => 0
+// Authentication                   => 00000001 => 0x01 => 1
+// AssertionMethod                  => 00000010 => 0x02 => 2
+// KeyAgreement                     => 00000100 => 0x04 => 4
+// CapabilityInvocation             => 00001000 => 0x08 => 8
+// CapabilityDelegation             => 00010000 => 0x10 => 16
+
+struct VerificationMethod {
+  bytes32 id;
+  bytes32[2] type_;
+  bytes32[16] publicKey;
+  bytes32[5] blockchainAccountId; // firstPart:secondPart:thirdPart = 32:32:32x3 // External blockchain account ID
+  address thisBCAddress; // An address (account ID) of the blockchain where the VM is stored
+  bytes1 relationships; // Relationships XX00000
+  uint256 expiration; // The expiration date of the VM
+}
 
 abstract contract VMStorage {
-  bytes32 private constant VM_ID =
-    bytes32(0x766d2d3000000000000000000000000000000000000000000000000000000000); // "vm-0"
-  bytes32 private constant VM_TYPE_0 =
-    bytes32(0x4563647361536563703235366b31566572696669636174696f6e4b6579323000); // "EcdsaSecp256k1VerificationKey20"
-  bytes32 private constant VM_TYPE_1 =
-    bytes32(0x3139000000000000000000000000000000000000000000000000000000000000); // "19"
+  //* Events
+  /**
+   * @dev Emitted when a new Verification Method (VM) is created for a DID.
+   * @param didIdHash The unique identifier of the DID.
+   * @param id The unique identifier of the VM.
+   * @param vmIdHash The unique identifier hash of the VM.
+   * @param positionHash The hash of the position of the VM.
+   */
+  event VmCreated(
+    bytes32 indexed didIdHash,
+    bytes32 indexed id,
+    bytes32 indexed vmIdHash,
+    bytes32 positionHash
+  );
+
+  /**
+   * @dev Emitted when a VM is validated.
+   * @param id The unique identifier of the VM.
+   */
+  event VmValidated(bytes32 indexed id);
+  //* Storage
+  bytes32 private constant VM_ID = bytes32("vm-0");
+  bytes32 private constant VM_TYPE_0 = bytes32("EcdsaSecp256k1VerificationKey20");
+  bytes32 private constant VM_TYPE_1 = bytes32("19");
   // hash(DIDHash, position) --> VerificationMethod Details
   mapping(bytes32 => VerificationMethod) private _vm;
   // hash(DIDHash, VM ID) --> position
@@ -30,7 +64,6 @@ abstract contract VMStorage {
     //* Params validation
     // Required
     require(didHash != bytes32(0), "1st param required"); // "DID hash cannot be 0"
-    require(id != bytes32(0), "2nd param required"); // "VM ID cannot be 0"
     require(
       publicKey[0] != bytes32(0) ||
         blockchainAccountId[0] != bytes32(0) ||
@@ -69,6 +102,7 @@ abstract contract VMStorage {
     _vmPositionById[vmIdHash] = _vmLength[didHash];
     _vmLength[didHash]++;
     //Event
+    emit VmCreated(didHash, id, vmIdHash, positionHash);
     return (vmIdHash, positionHash);
   }
 
@@ -88,7 +122,23 @@ abstract contract VMStorage {
     require(vm.expiration == 0, "VM already validated");
     require(vm.thisBCAddress == sender, "Cannot validate VM"); // This is the signature validation of the VM
     vm.expiration = expiration;
+    //Event
+    emit VmValidated(vm.id);
     return (vm.id);
+  }
+
+  function _isAuthenticated(
+    bytes32 didHash,
+    bytes32 vmId,
+    address sender
+  ) internal view returns (bool) {
+    (, bytes32 positionHash) = _calculateHashes(didHash, vmId);
+    // Get VM
+    VerificationMethod memory vm = _vm[positionHash];
+    // Check if the VM exists and is not expired
+    require(vm.expiration > block.timestamp, "VM expired");
+    // Check if the sender is in the authentication relationship
+    return (vm.thisBCAddress == sender && vm.relationships & 0x01 == 0x01);
   }
 
   function _calculateHashes(
