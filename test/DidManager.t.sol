@@ -5,7 +5,8 @@ import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager } from "@src/DidManager.sol";
+import { IDidManager } from "@src/interfaces/IDidManager.sol";
+// import { IVMStorage } from "@src/interfaces/IVMStorage.sol";
 
 struct CreateExampleDidParams {
   bytes32 method0;
@@ -18,6 +19,9 @@ struct CreateExampleDidParams {
 contract DidManagerTest is Test {
   // Constants
   uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
+  bytes32 private constant DEFAULT_DID_METHOD0 = bytes32("lzpf");
+  bytes32 private constant DEFAULT_DID_METHOD1 = bytes32("main");
+  bytes32 private constant DEFAULT_DID_METHOD2 = bytes32(0);
   bytes32 private constant DEFAULT_VM_ID = bytes32("vm-0");
   CreateExampleDidParams DEFAULT_CREATE_EXAMPLE_DID_PARAMS =
     CreateExampleDidParams(
@@ -33,6 +37,7 @@ contract DidManagerTest is Test {
   address payable[] users = [payable(address(10)), payable(address(11)), payable(address(12))];
 
   function setUp() public {
+    console.logBytes32(DEFAULT_DID_METHOD1);
     Deployment memory deployment;
     // Transfer some ether to users
     for (uint i = 0; i < users.length; i++) {
@@ -57,7 +62,7 @@ contract DidManagerTest is Test {
       bytes32(0),
       bytes32(0),
       bytes32(uint256(uint160(msg.sender))),
-      bytes32(DEFAULT_VM_ID)
+      bytes32(0)
     );
     // Get logs from previous transaction
     Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -71,12 +76,25 @@ contract DidManagerTest is Test {
     bytes32 VmValidated_id = entries[1].topics[1];
     assertEq(VmValidated_id, bytes32(DEFAULT_VM_ID));
     assertEq(VmCreated_id, VmValidated_id);
-    // DidCreated(bytes32 indexed idHash, address indexed creator);
+    // DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
     bytes32 DidCreated_id = entries[2].topics[1];
-    address DidCreated_creator = address(uint160(uint256((entries[2].topics[2]))));
+    bytes32 DidCreated_idHash = entries[2].topics[2];
+    address DidCreated_creator = address(uint160(uint256((entries[2].topics[3]))));
     assertGt(uint256(DidCreated_id), uint256(100));
+    assertGt(uint256(DidCreated_idHash), uint256(100));
+    assertEq(
+      DidCreated_idHash,
+      keccak256(
+        abi.encodePacked(
+          DEFAULT_DID_METHOD0,
+          DEFAULT_DID_METHOD1,
+          DEFAULT_DID_METHOD2,
+          DidCreated_id
+        )
+      )
+    );
     assertEq(DidCreated_creator, users[0]);
-    assertEq(VmCreated_didIdHash, DidCreated_id);
+    assertEq(VmCreated_didIdHash, DidCreated_idHash);
     // // Final state check
   }
 
@@ -106,12 +124,25 @@ contract DidManagerTest is Test {
     bytes32 VmValidated_id = entries[1].topics[1];
     assertEq(VmValidated_id, bytes32(DEFAULT_CREATE_EXAMPLE_DID_PARAMS.vmId));
     assertEq(VmCreated_id, VmValidated_id);
-    // DidCreated(bytes32 indexed idHash, address indexed creator);
+    // DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
     bytes32 DidCreated_id = entries[2].topics[1];
-    address DidCreated_creator = address(uint160(uint256((entries[2].topics[2]))));
+    bytes32 DidCreated_idHash = entries[2].topics[2];
+    address DidCreated_creator = address(uint160(uint256((entries[2].topics[3]))));
     assertGt(uint256(DidCreated_id), uint256(100));
+    assertGt(uint256(DidCreated_idHash), uint256(100));
+    assertEq(
+      DidCreated_idHash,
+      keccak256(
+        abi.encodePacked(
+          DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method0,
+          DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method1,
+          DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method2,
+          DidCreated_id
+        )
+      )
+    );
     assertEq(DidCreated_creator, users[0]);
-    assertEq(VmCreated_didIdHash, DidCreated_id);
+    assertEq(VmCreated_didIdHash, DidCreated_idHash);
     // // Final state check
   }
 }

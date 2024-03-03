@@ -7,10 +7,8 @@ import { VMStorage } from "./VMStorage.sol";
 // import {ServiceStorage} from "./ServiceStorage.sol";
 
 contract DidManager is VMStorage, IDidManager {
-  bytes32 private constant METHOD0 =
-    bytes32(0x6c7a706600000000000000000000000000000000000000000000000000000000); // "lzpf"
-  bytes32 private constant METHOD1 =
-    bytes32(0x6d61696e00000000000000000000000000000000000000000000000000000000); // "main"
+  bytes32 private constant METHOD0 = bytes32("lzpf");
+  bytes32 private constant METHOD1 = bytes32("main");
   bytes32 private constant METHOD2 = bytes32(0); // not used by default
   uint private constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
   uint8 private constant CONTROLLERS_MAX_LENGTH = 5;
@@ -50,20 +48,21 @@ contract DidManager is VMStorage, IDidManager {
     // Required
     require(random != bytes32(0), "Random cannot be 0");
     // Optional
-    if (method0 == bytes32(0)) {
-      method0 = METHOD0;
+    // reverse order to check method0 before is changed
+    if (method0 == bytes32(0) && method2 == bytes32(0)) {
+      method2 = METHOD2;
     }
-    if (method1 == bytes32(0)) {
+    if (method0 == bytes32(0) && method1 == bytes32(0)) {
       method1 = METHOD1;
     }
-    if (method2 == bytes32(0)) {
-      method2 = METHOD2;
+    if (method0 == bytes32(0)) {
+      method0 = METHOD0;
     }
     //* Implementation
     bytes32 id = _calculateId(method0, method1, method2, random, msg.sender, block.timestamp);
     bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
     require(_isExpired(idHash), "DID in use");
-    (bytes32 vmIdHash, bytes32 positionHash) = _createVM(
+    (, bytes32 positionHash) = _createVM(
       idHash,
       vmId,
       [bytes32(0), bytes32(0)], // type
@@ -96,11 +95,9 @@ contract DidManager is VMStorage, IDidManager {
       bytes1(0x01), // relationships
       1 // Just to avoid one if...
     );
-    emit VmCreated(id, vmId, vmIdHash, positionHash);
     _validateVM(positionHash, block.timestamp + EXPIRATION, msg.sender);
-    emit VmValidated(vmId);
     _updateExpiration(idHash);
-    emit DidCreated(id, msg.sender);
+    emit DidCreated(id, idHash, msg.sender);
   }
 
   function createVM(
@@ -123,7 +120,7 @@ contract DidManager is VMStorage, IDidManager {
     //* Implementation
     bytes32 didHash = keccak256(abi.encodePacked(method0, method1, method2, id));
     require(!_isExpired(didHash), "DID expired");
-    (bytes32 vmIdHash, bytes32 positionHash) = _createVM(
+    _createVM(
       didHash,
       vmId,
       type_,
@@ -133,12 +130,10 @@ contract DidManager is VMStorage, IDidManager {
       relationships,
       expiration
     );
-    emit VmCreated(didHash, vmId, vmIdHash, positionHash);
   }
 
   function validateVM(bytes32 positionHash, uint expiration) external {
-    bytes32 vmId = _validateVM(positionHash, expiration, msg.sender);
-    emit VmValidated(vmId);
+    _validateVM(positionHash, expiration, msg.sender);
   }
 
   function updateController(UpdateControllerCommand memory command) external {
@@ -157,6 +152,7 @@ contract DidManager is VMStorage, IDidManager {
       "ID cannot be 0"
     );
     //* Implementation
+    // Calculate the hash of the from and to DIDs
     bytes32 fromDidHash = _calculateIdHash(
       command.fromMethod0,
       command.fromMmethod1,
@@ -169,31 +165,38 @@ contract DidManager is VMStorage, IDidManager {
       command.toMethod2,
       command.toId
     );
+    // Check if the DIDs are expired
     require(!_isExpired(fromDidHash), "From DID expired");
     require(!_isExpired(toDidHash), "To DID expired");
+    // Check if the sender is a controller of the from DID
     require(_isControllerFor(fromDidHash, command.fromVmId, toDidHash), "Not a controller of To");
+    // Check if the sender is authenticated as the from DID
     require(
       _isAuthenticated(fromDidHash, command.fromVmId, msg.sender),
       "Not authenticated as From"
     );
     // Sender can make changes to this DID
+    // Calculate the hash of the controller DID
     bytes32 controllerDidOrDidVmIdHash = _calculateIdHash(
       command.controllerMethod0,
       command.controllerMethod1,
       command.controllerMethod2,
       command.controllerId
     );
+    // If the controller VM ID is provided, calculate the hash of the controller VM ID
     if (command.controllerVmId != bytes32(0)) {
       controllerDidOrDidVmIdHash = keccak256(
         abi.encodePacked(controllerDidOrDidVmIdHash, command.controllerVmId)
       );
     }
+    // If controller position is greater than MAX_LENGTH, always overwrite the last controller
     if (command.controllerPosition > CONTROLLERS_MAX_LENGTH - 1) {
       command.controllerPosition = CONTROLLERS_MAX_LENGTH - 1;
     }
+    // Update the controllers mapping
     _controllers[toDidHash][command.controllerPosition] = controllerDidOrDidVmIdHash;
-
-    emit ControllerUpgdated(
+    // Emit the ControllerUpdated event
+    emit ControllerUpdated(
       fromDidHash,
       toDidHash,
       controllerDidOrDidVmIdHash,
