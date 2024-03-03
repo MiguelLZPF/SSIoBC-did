@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-// Verification Method Relationships
-// None                 => 00000000 => 0x00 => 0
-// Authentication       => 00000001 => 0x01 => 1
-// AssertionMethod      => 00000010 => 0x02 => 2
-// KeyAgreement         => 00000100 => 0x04 => 4
-// CapabilityInvocation => 00001000 => 0x08 => 8
-// CapabilityDelegation => 00010000 => 0x10 => 16
+// Verification Method Relationships    binary  => hex  => dec
+// None                             => 00000000 => 0x00 => 0
+// Authentication                   => 00000001 => 0x01 => 1
+// AssertionMethod                  => 00000010 => 0x02 => 2
+// KeyAgreement                     => 00000100 => 0x04 => 4
+// CapabilityInvocation             => 00001000 => 0x08 => 8
+// CapabilityDelegation             => 00010000 => 0x10 => 16
 
 struct VerificationMethod {
   bytes32 id;

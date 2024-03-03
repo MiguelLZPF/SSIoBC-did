@@ -39,15 +39,13 @@ interface IDidManager {
    * @dev Emitted when the controller of a DID is updated.
    * @param fromDidHash The unique identifier hash of the current DID.
    * @param toDidHash The unique identifier hash of the new DID.
-   * @param controllerIdHash The unique identifier hash of the controller.
-   * @param controllerVmIdHash The unique identifier hash of the controller's VM.
+   * @param controllerDidOrDidVmIdHash The unique identifier hash of the controller's DID or VM.
    * @param controllerPosition The position of the controller.
    */
   event ControllerUpdated(
     bytes32 indexed fromDidHash,
     bytes32 indexed toDidHash,
-    bytes32 indexed controllerIdHash,
-    bytes32 controllerVmIdHash,
+    bytes32 indexed controllerDidOrDidVmIdHash,
     uint8 controllerPosition
   );
 

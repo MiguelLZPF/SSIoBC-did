@@ -200,7 +200,6 @@ contract DidManager is VMStorage, IDidManager {
       fromDidHash,
       toDidHash,
       controllerDidOrDidVmIdHash,
-      command.controllerVmId,
       command.controllerPosition
     );
   }
