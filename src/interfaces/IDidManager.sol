@@ -24,6 +24,12 @@ struct UpdateControllerCommand {
   uint8 controllerPosition; // The position of the new controller's VM. if > CONTROLLER_MAX_LENGTH, it will overwrite the last controller.
 }
 
+bytes32 constant METHOD0 = bytes32("lzpf");
+bytes32 constant METHOD1 = bytes32("main");
+bytes32 constant METHOD2 = bytes32(0); // not used by default
+uint constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
+uint8 constant CONTROLLERS_MAX_LENGTH = 5;
+
 /**
  * @title IDidManager
  * @dev Interface for managing Decentralized Identifiers (DIDs).
@@ -89,6 +95,13 @@ interface IDidManager {
    * @param command The command containing parameters.
    */
   function updateController(UpdateControllerCommand memory command) external;
+
+  function getControllerList(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id
+  ) external view returns (bytes32[CONTROLLERS_MAX_LENGTH] memory controllerList);
 
   /**
    * @dev Creates a new Verification Method (VM) with the specified parameters.

@@ -1,17 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManager, UpdateControllerCommand } from "./interfaces/IDidManager.sol";
+import { IDidManager, UpdateControllerCommand, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "./interfaces/IDidManager.sol";
 import { VMStorage, VerificationMethod } from "./VMStorage.sol";
 
 // import {ServiceStorage} from "./ServiceStorage.sol";
 
 contract DidManager is VMStorage, IDidManager {
-  bytes32 private constant METHOD0 = bytes32("lzpf");
-  bytes32 private constant METHOD1 = bytes32("main");
-  bytes32 private constant METHOD2 = bytes32(0); // not used by default
-  uint private constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
-  uint8 private constant CONTROLLERS_MAX_LENGTH = 5;
   // DIDs are stored in a mapping that maps a bytes32 key (representing the hash of the DID) to its expiration date.
   // hash(method0:method1:method2:id) --> expirationDate
   mapping(bytes32 => uint) private _expirationDate;
@@ -219,6 +214,15 @@ contract DidManager is VMStorage, IDidManager {
     } else {
       return _expirationDate[didHash];
     }
+  }
+
+  function getControllerList(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id
+  ) external view returns (bytes32[CONTROLLERS_MAX_LENGTH] memory controllers) {
+    return _controllers[_calculateIdHash(method0, method1, method2, id)];
   }
 
   function getVM(
