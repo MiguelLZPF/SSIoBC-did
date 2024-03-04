@@ -93,6 +93,11 @@ interface IDidManager {
     uint expiration
   ) external;
 
+  /**
+   * @dev Validates a  (VM) by checking its position hash and expiration.
+   * @param positionHash The position hash of the VM.
+   * @param expiration The expiration timestamp of the VM.
+   */
   function validateVM(bytes32 positionHash, uint expiration) external;
 
   /**
