@@ -127,6 +127,31 @@ abstract contract VMStorage {
     return (vm.id);
   }
 
+  /**
+   * @dev Retrieves a specific verification method (VM) associated with a given DID hash and VM ID.
+   * @param didHash The hash of the decentralized identifier (DID).
+   * @param vmId The identifier of the verification method (VM).
+   * @return vm The VerificationMethod struct representing the VM.
+   */
+  function _getVM(
+    bytes32 didHash,
+    bytes32 vmId
+  ) internal view returns (VerificationMethod memory vm) {
+    (, bytes32 positionHash) = _calculateHashes(didHash, vmId);
+    return _vm[positionHash];
+  }
+
+  /**
+   * @dev Returns the expiration timestamp of a specific verification method (VM) associated with a given DID hash and VM ID.
+   * @param didHash The hash of the decentralized identifier (DID).
+   * @param vmId The identifier of the verification method (VM).
+   * @return exp The expiration timestamp of the VM.
+   */
+  function _expirationVM(bytes32 didHash, bytes32 vmId) internal view returns (uint256 exp) {
+    (, bytes32 positionHash) = _calculateHashes(didHash, vmId);
+    return _vm[positionHash].expiration;
+  }
+
   function _isAuthenticated(
     bytes32 didHash,
     bytes32 vmId,

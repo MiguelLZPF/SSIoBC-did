@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
+import { VerificationMethod } from "@src/VMStorage.sol";
+
 /**
  * @dev Struct representing a command to update the controller of a DID.
  */
@@ -66,6 +68,29 @@ interface IDidManager {
   ) external;
 
   /**
+   * @dev Returns the expiration timestamp for a given DID or VM ID.
+   * @param method0 The first method identifier.
+   * @param method1 The second method identifier.
+   * @param method2 The third method identifier.
+   * @param id The ID.
+   * @param vmId (optional) The VM ID.
+   * @return exp The expiration timestamp.
+   */
+  function expiration(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId
+  ) external view returns (uint256 exp);
+
+  /**
+   * @dev Updates the controller of the DID manager.
+   * @param command The command containing parameters.
+   */
+  function updateController(UpdateControllerCommand memory command) external;
+
+  /**
    * @dev Creates a new Verification Method (VM) with the specified parameters.
    * @param method0 The first method of the VM.
    * @param method1 (optional) The second method of the VM.
@@ -100,9 +125,11 @@ interface IDidManager {
    */
   function validateVM(bytes32 positionHash, uint expiration) external;
 
-  /**
-   * @dev Updates the controller of the DID manager.
-   * @param command The command containing parameters.
-   */
-  function updateController(UpdateControllerCommand memory command) external;
+  function getVM(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId
+  ) external view returns (VerificationMethod memory vm);
 }
