@@ -206,7 +206,7 @@ contract DidManager is VMStorage, IDidManager {
 
   //* View functions
 
-  function expiration(
+  function getExpiration(
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
@@ -215,7 +215,7 @@ contract DidManager is VMStorage, IDidManager {
   ) external view returns (uint exp) {
     bytes32 didHash = _calculateIdHash(method0, method1, method2, id);
     if (vmId != bytes32(0)) {
-      return _expirationVM(didHash, vmId);
+      return _getExpirationVM(didHash, vmId);
     } else {
       return _expirationDate[didHash];
     }

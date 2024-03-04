@@ -76,7 +76,7 @@ interface IDidManager {
    * @param vmId (optional) The VM ID.
    * @return exp The expiration timestamp.
    */
-  function expiration(
+  function getExpiration(
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,

@@ -147,7 +147,7 @@ abstract contract VMStorage {
    * @param vmId The identifier of the verification method (VM).
    * @return exp The expiration timestamp of the VM.
    */
-  function _expirationVM(bytes32 didHash, bytes32 vmId) internal view returns (uint256 exp) {
+  function _getExpirationVM(bytes32 didHash, bytes32 vmId) internal view returns (uint256 exp) {
     (, bytes32 positionHash) = _calculateHashes(didHash, vmId);
     return _vm[positionHash].expiration;
   }
