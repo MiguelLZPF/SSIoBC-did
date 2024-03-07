@@ -152,6 +152,13 @@ abstract contract VMStorage {
     return _vm[positionHash].expiration;
   }
 
+  /**
+   * @dev Checks if the given sender is authenticated for the specified DID hash and VM ID.
+   * @param didHash The hash of the Decentralized Identifier (DID).
+   * @param vmId The ID of the Verification Method (VM).
+   * @param sender The address of the sender.
+   * @return A boolean indicating whether the sender is authenticated or not. That means that the sender's address is in the authentication relationship of the VM.
+   */
   function _isAuthenticated(
     bytes32 didHash,
     bytes32 vmId,

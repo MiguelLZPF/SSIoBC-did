@@ -91,11 +91,36 @@ interface IDidManager {
   ) external view returns (uint256 exp);
 
   /**
+   * @dev Authenticates a DID or VM.
+   * @param method0 The first method identifier.
+   * @param method1 The second method identifier.
+   * @param method2 The third method identifier.
+   * @param id The ID.
+   * @param vmId (optional) The VM ID.
+   * @return true if the authentication is successful, false otherwise.
+   */
+  function authenticate(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId
+  ) external view returns (bool);
+
+  /**
    * @dev Updates the controller of the DID manager.
    * @param command The command containing parameters.
    */
   function updateController(UpdateControllerCommand memory command) external;
 
+  /**
+   * @dev Returns the list of controllers for a given DID.
+   * @param method0 The first method identifier.
+   * @param method1 The second method identifier.
+   * @param method2 The third method identifier.
+   * @param id The ID.
+   * @return controllerList The list of controllers.
+   */
   function getControllerList(
     bytes32 method0,
     bytes32 method1,
@@ -132,12 +157,21 @@ interface IDidManager {
   ) external;
 
   /**
-   * @dev Validates a  (VM) by checking its position hash and expiration.
+   * @dev Validates a Verification Method (VM) by checking its position hash and expiration.
    * @param positionHash The position hash of the VM.
    * @param expiration The expiration timestamp of the VM.
    */
   function validateVM(bytes32 positionHash, uint expiration) external;
 
+  /**
+   * @dev Returns the Verification Method (VM) for a given DID and VM ID.
+   * @param method0 The first method identifier.
+   * @param method1 The second method identifier.
+   * @param method2 The third method identifier.
+   * @param id The ID.
+   * @param vmId The VM ID.
+   * @return vm The Verification Method.
+   */
   function getVM(
     bytes32 method0,
     bytes32 method1,

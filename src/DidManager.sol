@@ -216,6 +216,17 @@ contract DidManager is VMStorage, IDidManager {
     }
   }
 
+  function authenticate(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId
+  ) external view returns (bool) {
+    bytes32 didHash = _calculateIdHash(method0, method1, method2, id);
+    return _isAuthenticated(didHash, vmId, msg.sender);
+  }
+
   function getControllerList(
     bytes32 method0,
     bytes32 method1,
