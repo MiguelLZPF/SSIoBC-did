@@ -5,7 +5,7 @@ import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager, UpdateControllerCommand, VerificationMethod } from "@src/interfaces/IDidManager.sol";
+import { IDidManager, VerificationMethod } from "@src/interfaces/IDidManager.sol";
 // import { IVMStorage } from "@src/interfaces/IVMStorage.sol";
 
 struct CreateExampleDidParams {
@@ -193,29 +193,21 @@ contract DidManagerTest is Test {
       bytes32(0)
     );
     // TODO // Initial state check
-
-    UpdateControllerCommand memory updateControllerCommand = UpdateControllerCommand(
-      defaultDid.method0,
-      defaultDid.method1,
-      defaultDid.method2,
-      defaultDid.id,
-      DEFAULT_VM_ID,
-      defaultDid.method0,
-      defaultDid.method1,
-      defaultDid.method2,
-      defaultDid.id,
-      defaultDid.method0,
-      defaultDid.method1,
-      defaultDid.method2,
-      defaultDid.id,
-      DEFAULT_VM_ID,
-      0
-    );
     //* Update controller
     (
       bytes32 ControllerUpdated_fromDidHash,
       bytes32 ControllerUpdated_toDidHash
-    ) = _updateController(updateControllerCommand);
+    ) = _updateController(
+        defaultDid.method0,
+        defaultDid.method1,
+        defaultDid.method2,
+        defaultDid.id,
+        DEFAULT_VM_ID,
+        defaultDid.id,
+        defaultDid.id,
+        DEFAULT_VM_ID,
+        0
+      );
     //* Check Events
     // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, uint8 controllerPosition, bytes32 method0, bytes32 method1, bytes32 method2, bytes32 id, bytes32 vmId)
     assertGt(uint256(ControllerUpdated_fromDidHash), uint256(100));
@@ -274,12 +266,30 @@ contract DidManagerTest is Test {
   }
 
   function _updateController(
-    UpdateControllerCommand memory command
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 fromId,
+    bytes32 fromVmId,
+    bytes32 toId,
+    bytes32 controllerId,
+    bytes32 controllerVmId,
+    uint8 controllerPosition
   ) internal returns (bytes32 ControllerUpdated_fromDidHash, bytes32 ControllerUpdated_toDidHash) {
     // Event recording
     vm.recordLogs();
     //* Update controller call
-    didManager.updateController(command);
+    didManager.updateController(
+      method0,
+      method1,
+      method2,
+      fromId,
+      fromVmId,
+      toId,
+      controllerId,
+      controllerVmId,
+      controllerPosition
+    );
     // Get logs from previous transaction
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Get the event values

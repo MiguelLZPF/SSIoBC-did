@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManager, Controller, UpdateControllerCommand, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "./interfaces/IDidManager.sol";
+import { IDidManager, Controller, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "./interfaces/IDidManager.sol";
 import { VMStorage, VerificationMethod } from "./VMStorage.sol";
 
 // import {ServiceStorage} from "./ServiceStorage.sol";
@@ -131,68 +131,55 @@ contract DidManager is VMStorage, IDidManager {
     _validateVM(positionHash, expiration, msg.sender);
   }
 
-  function updateController(UpdateControllerCommand memory command) external {
+  function updateController(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 fromId,
+    bytes32 fromVmId,
+    bytes32 toId,
+    bytes32 controllerId,
+    bytes32 controllerVmId,
+    uint8 controllerPosition
+  ) external {
     //* Params validation
     // Required
+    require(method0 != bytes32(0), "Method0 cannot be 0");
     require(
-      command.fromMethod0 != bytes32(0) &&
-        command.toMethod0 != bytes32(0) &&
-        command.controllerMethod0 != bytes32(0),
-      "Method0 cannot be 0"
-    );
-    require(
-      command.fromId != bytes32(0) &&
-        command.toId != bytes32(0) &&
-        command.controllerId != bytes32(0),
+      fromId != bytes32(0) && toId != bytes32(0) && controllerId != bytes32(0),
       "ID cannot be 0"
     );
     //* Implementation
     // Calculate the hash of the from and to DIDs
-    bytes32 fromDidHash = _calculateIdHash(
-      command.fromMethod0,
-      command.fromMethod1,
-      command.fromMethod2,
-      command.fromId
-    );
-    bytes32 toDidHash = _calculateIdHash(
-      command.toMethod0,
-      command.toMethod1,
-      command.toMethod2,
-      command.toId
-    );
+    bytes32 fromDidHash = _calculateIdHash(method0, method1, method2, fromId);
+    bytes32 toDidHash = _calculateIdHash(method0, method1, method2, toId);
     // Check if the DIDs are expired
     require(!_isExpired(fromDidHash), "From DID expired");
     require(!_isExpired(toDidHash), "To DID expired");
     // Check if the sender is a controller of the from DID
-    require(_isControllerFor(fromDidHash, command.fromVmId, toDidHash), "Not a controller of To");
-    // Check if the sender is authenticated as the from DID
     require(
-      _isAuthenticated(fromDidHash, command.fromVmId, msg.sender),
-      "Not authenticated as From"
+      _isControllerFor(method0, method1, method2, fromDidHash, fromVmId, toDidHash),
+      "Not a controller of To"
     );
+    // Check if the sender is authenticated as the from DID
+    require(_isAuthenticated(fromDidHash, fromVmId, msg.sender), "Not authenticated as From");
     // Sender can make changes to this DID
     // If controller position is greater than MAX_LENGTH, always overwrite the last controller
-    if (command.controllerPosition > CONTROLLERS_MAX_LENGTH - 1) {
-      command.controllerPosition = CONTROLLERS_MAX_LENGTH - 1;
+    if (controllerPosition > CONTROLLERS_MAX_LENGTH - 1) {
+      controllerPosition = CONTROLLERS_MAX_LENGTH - 1;
     }
     // Update the controllers mapping
-    _controllers[toDidHash][command.controllerPosition] = Controller(
-      command.controllerMethod0,
-      command.controllerMethod1,
-      command.controllerMethod2,
-      command.controllerId,
-      command.controllerVmId
-    );
+    _controllers[toDidHash][controllerPosition] = Controller(controllerId, controllerVmId);
     // Emit the ControllerUpdated event
     emit ControllerUpdated(
       fromDidHash,
       toDidHash,
-      command.controllerPosition,
-      command.controllerMethod0,
-      command.controllerMethod1,
-      command.controllerMethod2,
-      command.controllerId,
-      command.controllerVmId
+      controllerPosition,
+      method0,
+      method1,
+      method2,
+      controllerId,
+      controllerVmId
     );
   }
 
@@ -271,6 +258,9 @@ contract DidManager is VMStorage, IDidManager {
   //* Internal functions
 
   function _isControllerFor(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
     bytes32 fromDid,
     bytes32 fromVmId,
     bytes32 toDid
@@ -287,12 +277,7 @@ contract DidManager is VMStorage, IDidManager {
         controllersIsEmpty = false;
         // Execute only if not empty
         // Generate Hashes
-        bytes32 idHash = _calculateIdHash(
-          controllers[i].method0,
-          controllers[i].method1,
-          controllers[i].method2,
-          controllers[i].id
-        );
+        bytes32 idHash = _calculateIdHash(method0, method1, method2, controllers[i].id);
         // Check if the controller is the same as the sender
         if (controllers[i].vmId != bytes32(0)) {
           // Use the controller VM ID
