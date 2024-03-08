@@ -8,6 +8,7 @@ pragma solidity >=0.8.0 <0.9.0;
 // KeyAgreement                     => 00000100 => 0x04 => 4
 // CapabilityInvocation             => 00001000 => 0x08 => 8
 // CapabilityDelegation             => 00010000 => 0x10 => 16
+// All                              => 00011111 => 0x1F => 31
 
 struct VerificationMethod {
   bytes32 id;
@@ -51,6 +52,19 @@ abstract contract VMStorage {
   // DIDHash --> VM length
   mapping(bytes32 => uint8) private _vmLength;
 
+  /**
+   * @dev Creates a new Verification Method (VM) and stores it in the contract.
+   * @param didHash The hash of the decentralized identifier (DID).
+   * @param id The identifier of the verification method (VM).
+   * @param type_ The type of the verification method (VM).
+   * @param publicKey The public key associated with the verification method (VM).
+   * @param blockchainAccountId The blockchain account ID associated with the verification method (VM).
+   * @param thisBCAddress The address of the blockchain associated with the verification method (VM).
+   * @param relationships The relationships associated with the verification method (VM).
+   * @param expiration The expiration timestamp of the verification method (VM).
+   * @return vmIdHash The hash of the verification method (VM) ID.
+   * @return positionHash The hash of the verification method (VM) position.
+   */
   function _createVM(
     bytes32 didHash,
     bytes32 id,
@@ -106,6 +120,13 @@ abstract contract VMStorage {
     return (vmIdHash, positionHash);
   }
 
+  /**
+   * @dev Validates a specific verification method (VM) by setting its expiration timestamp.
+   * @param positionHash The hash of the verification method (VM) position.
+   * @param expiration The expiration timestamp to set.
+   * @param sender The address of the sender.
+   * @return id The identifier of the validated verification method (VM).
+   */
   function _validateVM(
     bytes32 positionHash,
     uint expiration,
@@ -164,15 +185,47 @@ abstract contract VMStorage {
     bytes32 vmId,
     address sender
   ) internal view returns (bool) {
+    return _isVmRelationship(didHash, vmId, 0x01, sender);
+  }
+
+  /**
+   * @dev Checks if the given sender is in the specified relationship for the specified DID hash and VM ID.
+   * @param didHash The hash of the Decentralized Identifier (DID).
+   * @param vmId The ID of the Verification Method (VM).
+   * @param relationship The relationship to check.
+   * @param sender The address of the sender.
+   * @return A boolean indicating whether the sender is in the specified relationship or not.
+   */
+  function _isVmRelationship(
+    bytes32 didHash,
+    bytes32 vmId,
+    bytes1 relationship,
+    address sender
+  ) internal view returns (bool) {
+    require(vmId != bytes32(0), "VM ID cannot be 0");
+    require(relationship != bytes1(0), "Relationship cannot be 0");
+    require(relationship > bytes1(0x1F), "Invalid relationship");
+    require(sender != address(0), "Invalid sender");
     (, bytes32 positionHash) = _calculateHashes(didHash, vmId);
     // Get VM
     VerificationMethod memory vm = _vm[positionHash];
     // Check if the VM exists and is not expired
     require(vm.expiration > block.timestamp, "VM expired");
-    // Check if the sender is in the authentication relationship
-    return (vm.thisBCAddress == sender && vm.relationships & 0x01 == 0x01);
+    // Check if the sender is in the VM and if the VM relationship is the same as the one provided
+    if (sender != address(0)) {
+      return (vm.thisBCAddress == sender && vm.relationships & relationship == relationship);
+    }
+    // else
+    return (vm.relationships & relationship == relationship);
   }
 
+  /**
+   * @dev Calculates the hashes for a given DID hash and VM ID.
+   * @param didHash The hash of the decentralized identifier (DID).
+   * @param id The identifier of the verification method (VM).
+   * @return vmIdHash The hash of the verification method (VM) ID.
+   * @return positionHash The hash of the verification method (VM) position.
+   */
   function _calculateHashes(
     bytes32 didHash,
     bytes32 id

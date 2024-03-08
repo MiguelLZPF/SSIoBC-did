@@ -104,7 +104,28 @@ interface IDidManager {
     bytes32 method1,
     bytes32 method2,
     bytes32 id,
-    bytes32 vmId
+    bytes32 vmId,
+    address sender
+  ) external view returns (bool);
+
+  /**
+   * @dev Checks if there is a VM relationship.
+   * @param method0 The first method identifier.
+   * @param method1 The second method identifier.
+   * @param method2 The third method identifier.
+   * @param id The ID.
+   * @param vmId The VM ID.
+   * @param relationship The relationship identifier.
+   * @return true if there is a VM relationship, false otherwise.
+   */
+  function isVmRelationship(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId,
+    bytes1 relationship,
+    address sender
   ) external view returns (bool);
 
   /**

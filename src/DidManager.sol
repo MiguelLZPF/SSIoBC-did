@@ -221,10 +221,26 @@ contract DidManager is VMStorage, IDidManager {
     bytes32 method1,
     bytes32 method2,
     bytes32 id,
-    bytes32 vmId
+    bytes32 vmId,
+    address sender
   ) external view returns (bool) {
+    return isVmRelationship(method0, method1, method2, id, vmId, 0x01, sender);
+  }
+
+  function isVmRelationship(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId,
+    bytes1 relationship,
+    address sender
+  ) public view returns (bool) {
+    require(method0 != bytes32(0), "Method0 cannot be 0");
+    require(id != bytes32(0), "ID cannot be 0");
+    require(sender != address(0), "Sender cannot be 0");
     bytes32 didHash = _calculateIdHash(method0, method1, method2, id);
-    return _isAuthenticated(didHash, vmId, msg.sender);
+    return _isVmRelationship(didHash, vmId, relationship, sender);
   }
 
   function getControllerList(
