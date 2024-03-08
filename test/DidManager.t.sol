@@ -5,7 +5,7 @@ import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager, UpdateControllerCommand } from "@src/interfaces/IDidManager.sol";
+import { IDidManager, UpdateControllerCommand, VerificationMethod } from "@src/interfaces/IDidManager.sol";
 // import { IVMStorage } from "@src/interfaces/IVMStorage.sol";
 
 struct CreateExampleDidParams {
@@ -30,11 +30,17 @@ contract DidManagerTest is Test {
   // General
   uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
   // Specific
+  bytes1 private constant VM_RELATIONSHIPS_NONE = bytes1(0x00);
+  bytes1 private constant VM_RELATIONSHIPS_AUTHENTICATION = bytes1(0x01);
+  bytes1 private constant VM_RELATIONSHIPS_ASSERTION_METHOD = bytes1(0x02);
+  bytes1 private constant VM_RELATIONSHIPS_KEY_AGREEMENT = bytes1(0x04);
+  bytes1 private constant VM_RELATIONSHIPS_CAPABILITY_INVOCATION = bytes1(0x08);
+  bytes1 private constant VM_RELATIONSHIPS_CAPABILITY_DELEGATION = bytes1(0x10);
   bytes32 private constant DEFAULT_DID_METHOD0 = bytes32("lzpf");
   bytes32 private constant DEFAULT_DID_METHOD1 = bytes32("main");
   bytes32 private constant DEFAULT_DID_METHOD2 = bytes32(0);
   bytes32 private constant DEFAULT_VM_ID = bytes32("vm-0");
-  CreateExampleDidParams DEFAULT_CREATE_EXAMPLE_DID_PARAMS =
+  CreateExampleDidParams CREATE_EXAMPLE_DID_PARAMS =
     CreateExampleDidParams(
       bytes32("my-method0"),
       bytes32("my-method1"),
@@ -58,14 +64,12 @@ contract DidManagerTest is Test {
     (didManager, deployment) = new DidManagerScript().deploy(
       DeployCommand({ storeInfo: DeploymentStoreInfo({ store: false, tag: bytes32(0) }) })
     );
-    // Check the initial state
+    // Check the initial state (nothing to check)
   }
 
   //* TESTS
   function test_should_createDefaultDid() public {
     vm.startPrank(users[0]);
-    // TODO // Initial state check
-
     // Create DID
     (
       ,
@@ -105,7 +109,20 @@ contract DidManagerTest is Test {
     );
     assertEq(DidCreated_creator, users[0]);
     assertEq(VmCreated_didIdHash, DidCreated_idHash);
-    // TODO // Final state check
+    //* Final state check
+    VerificationMethod memory verificationMethod = didManager.getVM(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      DidCreated_id,
+      DEFAULT_VM_ID
+    );
+    assertEq(verificationMethod.id, DEFAULT_VM_ID);
+    assertEq(verificationMethod.thisBCAddress, users[0]);
+    assertEq(verificationMethod.relationships, VM_RELATIONSHIPS_AUTHENTICATION);
+    assertGt(verificationMethod.expiration, block.timestamp);
+    // end
+    vm.stopPrank();
   }
 
   function test_should_createDid() public {
@@ -122,16 +139,16 @@ contract DidManagerTest is Test {
       bytes32 DidCreated_idHash,
       address DidCreated_creator
     ) = _createDid(
-        DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method0,
-        DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method1,
-        DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method2,
-        DEFAULT_CREATE_EXAMPLE_DID_PARAMS.random,
-        DEFAULT_CREATE_EXAMPLE_DID_PARAMS.vmId
+        CREATE_EXAMPLE_DID_PARAMS.method0,
+        CREATE_EXAMPLE_DID_PARAMS.method1,
+        CREATE_EXAMPLE_DID_PARAMS.method2,
+        CREATE_EXAMPLE_DID_PARAMS.random,
+        CREATE_EXAMPLE_DID_PARAMS.vmId
       );
     //* Check Events
     // VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed vmIdHash, bytes32 positionHash);
     assertGt(uint256(VmCreated_didIdHash), uint256(100));
-    assertEq(VmCreated_id, DEFAULT_CREATE_EXAMPLE_DID_PARAMS.vmId);
+    assertEq(VmCreated_id, CREATE_EXAMPLE_DID_PARAMS.vmId);
     // VmValidated(bytes32 indexed id);
     assertEq(VmCreated_id, VmValidated_id);
     // DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
@@ -141,16 +158,29 @@ contract DidManagerTest is Test {
       DidCreated_idHash,
       keccak256(
         abi.encodePacked(
-          DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method0,
-          DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method1,
-          DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method2,
+          CREATE_EXAMPLE_DID_PARAMS.method0,
+          CREATE_EXAMPLE_DID_PARAMS.method1,
+          CREATE_EXAMPLE_DID_PARAMS.method2,
           DidCreated_id
         )
       )
     );
     assertEq(DidCreated_creator, users[0]);
     assertEq(VmCreated_didIdHash, DidCreated_idHash);
-    // TODO // Final state check
+    //* Final state check
+    VerificationMethod memory verificationMethod = didManager.getVM(
+      CREATE_EXAMPLE_DID_PARAMS.method0,
+      CREATE_EXAMPLE_DID_PARAMS.method1,
+      CREATE_EXAMPLE_DID_PARAMS.method2,
+      DidCreated_id,
+      CREATE_EXAMPLE_DID_PARAMS.vmId
+    );
+    assertEq(verificationMethod.id, CREATE_EXAMPLE_DID_PARAMS.vmId);
+    assertEq(verificationMethod.thisBCAddress, users[0]);
+    assertEq(verificationMethod.relationships, VM_RELATIONSHIPS_AUTHENTICATION);
+    assertGt(verificationMethod.expiration, block.timestamp);
+    // end
+    vm.stopPrank();
   }
 
   function test_should_updateSameController() public {
