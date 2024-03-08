@@ -214,20 +214,14 @@ contract DidManagerTest is Test {
     //* Update controller
     (
       bytes32 ControllerUpdated_fromDidHash,
-      bytes32 ControllerUpdated_toDidHash,
-      bytes32 ControllerUpdated_controllerDidOrDidVmIdHash
+      bytes32 ControllerUpdated_toDidHash
     ) = _updateController(updateControllerCommand);
     //* Check Events
-    // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, bytes32 indexed controllerDidOrDidVmIdHash, uint8 controllerPosition)
+    // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, uint8 controllerPosition, bytes32 method0, bytes32 method1, bytes32 method2, bytes32 id, bytes32 vmId)
     assertGt(uint256(ControllerUpdated_fromDidHash), uint256(100));
     assertGt(uint256(ControllerUpdated_toDidHash), uint256(100));
-    assertGt(uint256(ControllerUpdated_controllerDidOrDidVmIdHash), uint256(100));
     assertEq(ControllerUpdated_fromDidHash, defaultDid.idHash);
     assertEq(ControllerUpdated_toDidHash, defaultDid.idHash);
-    assertEq(
-      ControllerUpdated_controllerDidOrDidVmIdHash,
-      keccak256(abi.encodePacked(defaultDid.idHash, DEFAULT_VM_ID))
-    );
     vm.stopPrank();
     // TODO // Final state check
   }
@@ -281,14 +275,7 @@ contract DidManagerTest is Test {
 
   function _updateController(
     UpdateControllerCommand memory command
-  )
-    internal
-    returns (
-      bytes32 ControllerUpdated_fromDidHash,
-      bytes32 ControllerUpdated_toDidHash,
-      bytes32 ControllerUpdated_controllerDidOrDidVmIdHash
-    )
-  {
+  ) internal returns (bytes32 ControllerUpdated_fromDidHash, bytes32 ControllerUpdated_toDidHash) {
     // Event recording
     vm.recordLogs();
     //* Update controller call
@@ -296,9 +283,9 @@ contract DidManagerTest is Test {
     // Get logs from previous transaction
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Get the event values
-    // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, bytes32 indexed controllerDidOrDidVmIdHash, uint8 controllerPosition)
+    // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, uint8 controllerPosition, bytes32 method0, bytes32 method1, bytes32 method2, bytes32 id, bytes32 vmId)
     ControllerUpdated_fromDidHash = entries[0].topics[1];
     ControllerUpdated_toDidHash = entries[0].topics[2];
-    ControllerUpdated_controllerDidOrDidVmIdHash = entries[0].topics[3];
+    // TODO: check entries[0].data
   }
 }
