@@ -200,4 +200,19 @@ interface IDidManager {
     bytes32 id,
     bytes32 vmId
   ) external view returns (VerificationMethod memory vm);
+
+  /**
+   * @dev Returns the length of the Verification Method (VM) list for a given DID.
+   * @param method0 The first method identifier.
+   * @param method1 The second method identifier.
+   * @param method2 The third method identifier.
+   * @param id The ID.
+   * @return length The length of the VM list.
+   */
+  function getVmListLength(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id
+  ) external view returns (uint8);
 }

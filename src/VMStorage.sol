@@ -163,6 +163,15 @@ abstract contract VMStorage {
   }
 
   /**
+   * @dev Retrieves the length of the verification methods (VMs) associated with a given DID hash.
+   * @param didHash The hash of the decentralized identifier (DID).
+   * @return The length of the VMs array.
+   */
+  function _getVmListLength(bytes32 didHash) internal view returns (uint8) {
+    return _vmLength[didHash];
+  }
+
+  /**
    * @dev Returns the expiration timestamp of a specific verification method (VM) associated with a given DID hash and VM ID.
    * @param didHash The hash of the decentralized identifier (DID).
    * @param vmId The identifier of the verification method (VM).

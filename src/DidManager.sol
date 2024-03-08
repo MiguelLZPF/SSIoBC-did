@@ -262,6 +262,15 @@ contract DidManager is VMStorage, IDidManager {
     return _getVM(_calculateIdHash(method0, method1, method2, id), vmId);
   }
 
+  function getVmListLength(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id
+  ) external view returns (uint8) {
+    return _getVmListLength(_calculateIdHash(method0, method1, method2, id));
+  }
+
   //* Internal functions
 
   function _isControllerFor(
