@@ -213,7 +213,7 @@ abstract contract VMStorage {
   ) internal view returns (bool) {
     require(vmId != bytes32(0), "VM ID cannot be 0");
     require(relationship != bytes1(0), "Relationship cannot be 0");
-    require(relationship > bytes1(0x1F), "Invalid relationship");
+    require(relationship <= bytes1(0x1F), "Invalid relationship");
     require(sender != address(0), "Invalid sender");
     (, bytes32 positionHash) = _calculateHashes(didHash, vmId);
     // Get VM
