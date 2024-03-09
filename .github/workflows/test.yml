@@ -4,7 +4,7 @@ on: [workflow_dispatch, pull_request]
 
 env:
   FOUNDRY_PROFILE: ci
-  PORT: ${{ vars.PORT }}
+  PORT: 8545
 
 jobs:
   check:
@@ -25,7 +25,7 @@ jobs:
 
       - name: Run Forge build
         run: |
-          echo ${{ vars.PORT }}
+          echo $PORT
           forge --version
           forge build --sizes
         id: build
