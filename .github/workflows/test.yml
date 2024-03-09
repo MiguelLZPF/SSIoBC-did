@@ -17,6 +17,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      
+      - name: Use variables
+        run: |
+          echo "repository variable : $PORT"
+        env:
+          PORT: ${{ vars.PORT }}
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
