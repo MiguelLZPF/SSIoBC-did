@@ -4,24 +4,11 @@ pragma solidity >=0.8.0 <0.9.0;
 import { VerificationMethod } from "@src/VMStorage.sol";
 
 /**
- * @dev Struct representing a command to update the controller of a DID.
+ * @dev Struct representing a controller of a DID.
  */
-struct UpdateControllerCommand {
-  bytes32 fromMethod0; // The first method component of the sender's DID.
-  bytes32 fromMmethod1; // (optional) The second method component of the sender's DID.
-  bytes32 fromMmethod2; // (optional) The third method component of the sender's DID.
-  bytes32 fromId; // The unique identifier of the sender's DID.
-  bytes32 fromVmId; // The unique identifier of the sender's VM.
-  bytes32 toMethod0; // The first method component of the new to's DID to be modified.
-  bytes32 toMethod1; // (optional) The second method component of the new to's DID to be modified.
-  bytes32 toMethod2; // (optional) The third method component of the new to's DID to be modified.
-  bytes32 toId; // The unique identifier of the new to's DID to be modified.
-  bytes32 controllerMethod0; // The first method component of the new controller's DID.
-  bytes32 controllerMethod1; // (optional) The second method component of the new controller's DID.
-  bytes32 controllerMethod2; // (optional) The third method component of the new controller's DID.
-  bytes32 controllerId; // The unique identifier of the new controller's DID.
-  bytes32 controllerVmId; // (optional) The unique identifier of the new controller's VM.
-  uint8 controllerPosition; // The position of the new controller's VM. if > CONTROLLER_MAX_LENGTH, it will overwrite the last controller.
+struct Controller {
+  bytes32 id; // The unique identifier of the controller's DID.
+  bytes32 vmId; // (optional) The unique identifier of the controller's VM.
 }
 
 bytes32 constant METHOD0 = bytes32("lzpf");
@@ -47,14 +34,22 @@ interface IDidManager {
    * @dev Emitted when the controller of a DID is updated.
    * @param fromDidHash The unique identifier hash of the current DID.
    * @param toDidHash The unique identifier hash of the new DID.
-   * @param controllerDidOrDidVmIdHash The unique identifier hash of the controller's DID or VM.
    * @param controllerPosition The position of the controller.
+   * @param method0 The first method component of the controller's DID.
+   * @param method1 (optional) The second method component of the controller's DID.
+   * @param method2 (optional) The third method component of the controller's DID.
+   * @param id The unique identifier of the controller's DID.
+   * @param vmId (optional) The unique identifier of the controller's VM.
    */
   event ControllerUpdated(
     bytes32 indexed fromDidHash,
     bytes32 indexed toDidHash,
-    bytes32 indexed controllerDidOrDidVmIdHash,
-    uint8 controllerPosition
+    uint8 controllerPosition,
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId
   );
 
   /**
@@ -130,9 +125,27 @@ interface IDidManager {
 
   /**
    * @dev Updates the controller of the DID manager.
-   * @param command The command containing parameters.
+   * @param method0 The first method component of the DIDs.
+   * @param method1 (optional) The second method component of the DIDs.
+   * @param method2 (optional) The third method component of the DIDs.
+   * @param fromId The unique identifier of the sender's DID.
+   * @param fromVmId The unique identifier of the sender's VM.
+   * @param toId The unique identifier of the new to's DID to be modified.
+   * @param controllerId The unique identifier of the new controller's DID.
+   * @param controllerVmId (optional) The unique identifier of the new controller's VM.
+   * @param controllerPosition The position of the new controller's VM. If greater than CONTROLLER_MAX_LENGTH, it will overwrite the last controller.
    */
-  function updateController(UpdateControllerCommand memory command) external;
+  function updateController(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 fromId,
+    bytes32 fromVmId,
+    bytes32 toId,
+    bytes32 controllerId,
+    bytes32 controllerVmId,
+    uint8 controllerPosition
+  ) external;
 
   /**
    * @dev Returns the list of controllers for a given DID.
@@ -147,7 +160,7 @@ interface IDidManager {
     bytes32 method1,
     bytes32 method2,
     bytes32 id
-  ) external view returns (bytes32[CONTROLLERS_MAX_LENGTH] memory controllerList);
+  ) external view returns (Controller[CONTROLLERS_MAX_LENGTH] memory controllerList);
 
   /**
    * @dev Creates a new Verification Method (VM) with the specified parameters.
