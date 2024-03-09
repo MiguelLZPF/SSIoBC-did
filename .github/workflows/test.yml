@@ -1,9 +1,16 @@
 name: test
 
-on: workflow_dispatch
+on: [workflow_dispatch, pull_request]
 
 env:
   FOUNDRY_PROFILE: ci
+  PORT: ${{ vars.PORT }}
+  CHAIN_ID: ${{ vars.CHAIN_ID }}
+  HARDFORK: ${{ vars.HARDFORK }}
+  ACCOUNT_NUMBER: ${{ vars.ACCOUNT_NUMBER }}
+  MNEMONIC: ${{ secrets.MNEMONIC }}
+  ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
+  LAST_DEPLOYMENT_PATH: ${{ vars.LAST_DEPLOYMENT_PATH }}
 
 jobs:
   check:

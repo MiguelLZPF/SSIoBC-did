@@ -1,23 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManager, UpdateControllerCommand } from "./interfaces/IDidManager.sol";
-import { VMStorage } from "./VMStorage.sol";
+import { IDidManager, Controller, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "./interfaces/IDidManager.sol";
+import { VMStorage, VerificationMethod } from "./VMStorage.sol";
 
 // import {ServiceStorage} from "./ServiceStorage.sol";
 
 contract DidManager is VMStorage, IDidManager {
-  bytes32 private constant METHOD0 = bytes32("lzpf");
-  bytes32 private constant METHOD1 = bytes32("main");
-  bytes32 private constant METHOD2 = bytes32(0); // not used by default
-  uint private constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
-  uint8 private constant CONTROLLERS_MAX_LENGTH = 5;
   // DIDs are stored in a mapping that maps a bytes32 key (representing the hash of the DID) to its expiration date.
   // hash(method0:method1:method2:id) --> expirationDate
   mapping(bytes32 => uint) private _expirationDate;
   // DID controllers are stored in a mapping that maps a bytes32 key (representing the hash of the DID or the hash of a specific VM) to an array of 5 bytes32 values (representing the actual controllers).
   // hash(method0:method1:method2:id | didHash&vmId) --> controller[0..4]
-  mapping(bytes32 => bytes32[CONTROLLERS_MAX_LENGTH]) private _controllers;
+  mapping(bytes32 => Controller[CONTROLLERS_MAX_LENGTH]) private _controllers;
 
   constructor() {}
 
@@ -92,7 +87,7 @@ contract DidManager is VMStorage, IDidManager {
         bytes32(0)
       ],
       msg.sender,
-      bytes1(0x01), // relationships
+      bytes1(0x01), // relationships = 0x01 (Authentication)
       1 // Just to avoid one if...
     );
     _validateVM(positionHash, block.timestamp + EXPIRATION, msg.sender);
@@ -136,95 +131,164 @@ contract DidManager is VMStorage, IDidManager {
     _validateVM(positionHash, expiration, msg.sender);
   }
 
-  function updateController(UpdateControllerCommand memory command) external {
+  function updateController(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 fromId,
+    bytes32 fromVmId,
+    bytes32 toId,
+    bytes32 controllerId,
+    bytes32 controllerVmId,
+    uint8 controllerPosition
+  ) external {
     //* Params validation
     // Required
+    require(method0 != bytes32(0), "Method0 cannot be 0");
     require(
-      command.fromMethod0 != bytes32(0) &&
-        command.toMethod0 != bytes32(0) &&
-        command.controllerMethod0 != bytes32(0),
-      "Method0 cannot be 0"
-    );
-    require(
-      command.fromId != bytes32(0) &&
-        command.toId != bytes32(0) &&
-        command.controllerId != bytes32(0),
+      fromId != bytes32(0) && toId != bytes32(0) && controllerId != bytes32(0),
       "ID cannot be 0"
     );
     //* Implementation
     // Calculate the hash of the from and to DIDs
-    bytes32 fromDidHash = _calculateIdHash(
-      command.fromMethod0,
-      command.fromMmethod1,
-      command.fromMmethod2,
-      command.fromId
-    );
-    bytes32 toDidHash = _calculateIdHash(
-      command.toMethod0,
-      command.toMethod1,
-      command.toMethod2,
-      command.toId
-    );
+    bytes32 fromDidHash = _calculateIdHash(method0, method1, method2, fromId);
+    bytes32 toDidHash = _calculateIdHash(method0, method1, method2, toId);
     // Check if the DIDs are expired
     require(!_isExpired(fromDidHash), "From DID expired");
     require(!_isExpired(toDidHash), "To DID expired");
     // Check if the sender is a controller of the from DID
-    require(_isControllerFor(fromDidHash, command.fromVmId, toDidHash), "Not a controller of To");
-    // Check if the sender is authenticated as the from DID
     require(
-      _isAuthenticated(fromDidHash, command.fromVmId, msg.sender),
-      "Not authenticated as From"
+      _isControllerFor(method0, method1, method2, fromDidHash, fromVmId, toDidHash),
+      "Not a controller of To"
     );
+    // Check if the sender is authenticated as the from DID
+    require(_isAuthenticated(fromDidHash, fromVmId, msg.sender), "Not authenticated as From");
     // Sender can make changes to this DID
-    // Calculate the hash of the controller DID
-    bytes32 controllerDidOrDidVmIdHash = _calculateIdHash(
-      command.controllerMethod0,
-      command.controllerMethod1,
-      command.controllerMethod2,
-      command.controllerId
-    );
-    // If the controller VM ID is provided, calculate the hash of the controller VM ID
-    if (command.controllerVmId != bytes32(0)) {
-      controllerDidOrDidVmIdHash = keccak256(
-        abi.encodePacked(controllerDidOrDidVmIdHash, command.controllerVmId)
-      );
-    }
     // If controller position is greater than MAX_LENGTH, always overwrite the last controller
-    if (command.controllerPosition > CONTROLLERS_MAX_LENGTH - 1) {
-      command.controllerPosition = CONTROLLERS_MAX_LENGTH - 1;
+    if (controllerPosition > CONTROLLERS_MAX_LENGTH - 1) {
+      controllerPosition = CONTROLLERS_MAX_LENGTH - 1;
     }
     // Update the controllers mapping
-    _controllers[toDidHash][command.controllerPosition] = controllerDidOrDidVmIdHash;
+    _controllers[toDidHash][controllerPosition] = Controller(controllerId, controllerVmId);
     // Emit the ControllerUpdated event
     emit ControllerUpdated(
       fromDidHash,
       toDidHash,
-      controllerDidOrDidVmIdHash,
-      command.controllerPosition
+      controllerPosition,
+      method0,
+      method1,
+      method2,
+      controllerId,
+      controllerVmId
     );
+  }
+
+  //* View functions
+
+  function getExpiration(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId
+  ) external view returns (uint exp) {
+    bytes32 didHash = _calculateIdHash(method0, method1, method2, id);
+    if (vmId != bytes32(0)) {
+      return _getExpirationVM(didHash, vmId);
+    } else {
+      return _expirationDate[didHash];
+    }
+  }
+
+  function authenticate(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId,
+    address sender
+  ) external view returns (bool) {
+    return isVmRelationship(method0, method1, method2, id, vmId, 0x01, sender);
+  }
+
+  function isVmRelationship(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId,
+    bytes1 relationship,
+    address sender
+  ) public view returns (bool) {
+    require(method0 != bytes32(0), "Method0 cannot be 0");
+    require(id != bytes32(0), "ID cannot be 0");
+    require(sender != address(0), "Sender cannot be 0");
+    bytes32 didHash = _calculateIdHash(method0, method1, method2, id);
+    return _isVmRelationship(didHash, vmId, relationship, sender);
+  }
+
+  function getControllerList(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id
+  ) external view returns (Controller[CONTROLLERS_MAX_LENGTH] memory controllers) {
+    return _controllers[_calculateIdHash(method0, method1, method2, id)];
+  }
+
+  function getVM(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 vmId
+  ) external view returns (VerificationMethod memory vm) {
+    return _getVM(_calculateIdHash(method0, method1, method2, id), vmId);
+  }
+
+  function getVmListLength(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id
+  ) external view returns (uint8) {
+    return _getVmListLength(_calculateIdHash(method0, method1, method2, id));
   }
 
   //* Internal functions
 
   function _isControllerFor(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
     bytes32 fromDid,
     bytes32 fromVmId,
     bytes32 toDid
   ) internal view returns (bool) {
     // Copy the controllers of ID from storage to memory
-    bytes32[CONTROLLERS_MAX_LENGTH] memory controllers = _controllers[toDid];
+    Controller[CONTROLLERS_MAX_LENGTH] memory controllers = _controllers[toDid];
     // Set the from ID with the from VM ID
     bytes32 fromDidWithVm = keccak256(abi.encodePacked(fromDid, fromVmId));
     // Check if the controllers array is empty or matches the ID
     bool controllersIsEmpty = true;
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
-      // Check if the controller is not empty (used)
-      if (controllers[i] != bytes32(0)) {
+      // Check if the controller NOT empty (used)
+      if (controllers[i].id != bytes32(0)) {
         controllersIsEmpty = false;
-      }
-      // Check if the controller matches the sender
-      if (controllers[i] == fromDid || controllers[i] == fromDidWithVm) {
-        return true;
+        // Execute only if not empty
+        // Generate Hashes
+        bytes32 idHash = _calculateIdHash(method0, method1, method2, controllers[i].id);
+        // Check if the controller is the same as the sender
+        if (controllers[i].vmId != bytes32(0)) {
+          // Use the controller VM ID
+          bytes32 controllerVmHash = keccak256(abi.encodePacked(idHash, controllers[i].vmId));
+          if (controllerVmHash == fromDidWithVm) {
+            return true;
+          }
+        } // else Use the controller ID
+        if (idHash == fromDid) {
+          return true;
+        }
       }
     }
     // If the controllers array is empty, return true (controllers not used)

@@ -5,7 +5,7 @@ import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager, UpdateControllerCommand } from "@src/interfaces/IDidManager.sol";
+import { IDidManager, VerificationMethod } from "@src/interfaces/IDidManager.sol";
 // import { IVMStorage } from "@src/interfaces/IVMStorage.sol";
 
 struct CreateExampleDidParams {
@@ -30,11 +30,17 @@ contract DidManagerTest is Test {
   // General
   uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
   // Specific
+  bytes1 private constant VM_RELATIONSHIPS_NONE = bytes1(0x00);
+  bytes1 private constant VM_RELATIONSHIPS_AUTHENTICATION = bytes1(0x01);
+  bytes1 private constant VM_RELATIONSHIPS_ASSERTION_METHOD = bytes1(0x02);
+  bytes1 private constant VM_RELATIONSHIPS_KEY_AGREEMENT = bytes1(0x04);
+  bytes1 private constant VM_RELATIONSHIPS_CAPABILITY_INVOCATION = bytes1(0x08);
+  bytes1 private constant VM_RELATIONSHIPS_CAPABILITY_DELEGATION = bytes1(0x10);
   bytes32 private constant DEFAULT_DID_METHOD0 = bytes32("lzpf");
   bytes32 private constant DEFAULT_DID_METHOD1 = bytes32("main");
   bytes32 private constant DEFAULT_DID_METHOD2 = bytes32(0);
   bytes32 private constant DEFAULT_VM_ID = bytes32("vm-0");
-  CreateExampleDidParams DEFAULT_CREATE_EXAMPLE_DID_PARAMS =
+  CreateExampleDidParams CREATE_EXAMPLE_DID_PARAMS =
     CreateExampleDidParams(
       bytes32("my-method0"),
       bytes32("my-method1"),
@@ -47,8 +53,10 @@ contract DidManagerTest is Test {
   address admin = DEFAULT_SENDER;
   address payable[] users = [payable(address(10)), payable(address(11)), payable(address(12))];
 
+  /**
+   * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
+   */
   function setUp() public {
-    console.logBytes32(DEFAULT_DID_METHOD1);
     Deployment memory deployment;
     // Transfer some ether to users
     for (uint i = 0; i < users.length; i++) {
@@ -58,14 +66,14 @@ contract DidManagerTest is Test {
     (didManager, deployment) = new DidManagerScript().deploy(
       DeployCommand({ storeInfo: DeploymentStoreInfo({ store: false, tag: bytes32(0) }) })
     );
-    // Check the initial state
+    // Check the initial state (nothing to check)
   }
 
   //* TESTS
   function test_should_createDefaultDid() public {
+    //* 🗂️ Arrange ⬇
     vm.startPrank(users[0]);
-    // TODO // Initial state check
-
+    //* 🎬 Act ⬇
     // Create DID
     (
       ,
@@ -82,7 +90,8 @@ contract DidManagerTest is Test {
         bytes32(uint256(uint160(msg.sender))),
         bytes32(0)
       );
-    //* Check Events
+    //* ☑️ Assert ⬇
+    // Check Events
     // VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed vmIdHash, bytes32 positionHash);
     assertGt(uint256(VmCreated_didIdHash), uint256(100));
     assertEq(VmCreated_id, DEFAULT_VM_ID);
@@ -105,13 +114,27 @@ contract DidManagerTest is Test {
     );
     assertEq(DidCreated_creator, users[0]);
     assertEq(VmCreated_didIdHash, DidCreated_idHash);
-    // TODO // Final state check
+    // Final state check
+    VerificationMethod memory verificationMethod = didManager.getVM(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      DidCreated_id,
+      DEFAULT_VM_ID
+    );
+    assertEq(verificationMethod.id, DEFAULT_VM_ID);
+    assertEq(verificationMethod.thisBCAddress, users[0]);
+    assertEq(verificationMethod.relationships, VM_RELATIONSHIPS_AUTHENTICATION);
+    assertGt(verificationMethod.expiration, block.timestamp);
+    // end
+    vm.stopPrank();
   }
 
   function test_should_createDid() public {
+    //* 🗂️ Arrange ⬇
     vm.startPrank(users[0]);
     // TODO // Initial state check
-
+    //* 🎬 Act ⬇
     // Create DID
     (
       ,
@@ -122,16 +145,17 @@ contract DidManagerTest is Test {
       bytes32 DidCreated_idHash,
       address DidCreated_creator
     ) = _createDid(
-        DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method0,
-        DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method1,
-        DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method2,
-        DEFAULT_CREATE_EXAMPLE_DID_PARAMS.random,
-        DEFAULT_CREATE_EXAMPLE_DID_PARAMS.vmId
+        CREATE_EXAMPLE_DID_PARAMS.method0,
+        CREATE_EXAMPLE_DID_PARAMS.method1,
+        CREATE_EXAMPLE_DID_PARAMS.method2,
+        CREATE_EXAMPLE_DID_PARAMS.random,
+        CREATE_EXAMPLE_DID_PARAMS.vmId
       );
-    //* Check Events
+    //* ☑️ Assert ⬇
+    // Check Events
     // VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed vmIdHash, bytes32 positionHash);
     assertGt(uint256(VmCreated_didIdHash), uint256(100));
-    assertEq(VmCreated_id, DEFAULT_CREATE_EXAMPLE_DID_PARAMS.vmId);
+    assertEq(VmCreated_id, CREATE_EXAMPLE_DID_PARAMS.vmId);
     // VmValidated(bytes32 indexed id);
     assertEq(VmCreated_id, VmValidated_id);
     // DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
@@ -141,19 +165,33 @@ contract DidManagerTest is Test {
       DidCreated_idHash,
       keccak256(
         abi.encodePacked(
-          DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method0,
-          DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method1,
-          DEFAULT_CREATE_EXAMPLE_DID_PARAMS.method2,
+          CREATE_EXAMPLE_DID_PARAMS.method0,
+          CREATE_EXAMPLE_DID_PARAMS.method1,
+          CREATE_EXAMPLE_DID_PARAMS.method2,
           DidCreated_id
         )
       )
     );
     assertEq(DidCreated_creator, users[0]);
     assertEq(VmCreated_didIdHash, DidCreated_idHash);
-    // TODO // Final state check
+    // Final state check
+    VerificationMethod memory verificationMethod = didManager.getVM(
+      CREATE_EXAMPLE_DID_PARAMS.method0,
+      CREATE_EXAMPLE_DID_PARAMS.method1,
+      CREATE_EXAMPLE_DID_PARAMS.method2,
+      DidCreated_id,
+      CREATE_EXAMPLE_DID_PARAMS.vmId
+    );
+    assertEq(verificationMethod.id, CREATE_EXAMPLE_DID_PARAMS.vmId);
+    assertEq(verificationMethod.thisBCAddress, users[0]);
+    assertEq(verificationMethod.relationships, VM_RELATIONSHIPS_AUTHENTICATION);
+    assertGt(verificationMethod.expiration, block.timestamp);
+    // end
+    vm.stopPrank();
   }
 
   function test_should_updateSameController() public {
+    //* 🗂️ Arrange ⬇
     vm.startPrank(users[0]);
     (DidInfo memory defaultDid, , , , , , ) = _createDid(
       bytes32(0),
@@ -163,41 +201,29 @@ contract DidManagerTest is Test {
       bytes32(0)
     );
     // TODO // Initial state check
-
-    UpdateControllerCommand memory updateControllerCommand = UpdateControllerCommand(
-      defaultDid.method0,
-      defaultDid.method1,
-      defaultDid.method2,
-      defaultDid.id,
-      DEFAULT_VM_ID,
-      defaultDid.method0,
-      defaultDid.method1,
-      defaultDid.method2,
-      defaultDid.id,
-      defaultDid.method0,
-      defaultDid.method1,
-      defaultDid.method2,
-      defaultDid.id,
-      DEFAULT_VM_ID,
-      0
-    );
-    //* Update controller
+    //* 🎬 Act ⬇
+    // Update controller
     (
       bytes32 ControllerUpdated_fromDidHash,
-      bytes32 ControllerUpdated_toDidHash,
-      bytes32 ControllerUpdated_controllerDidOrDidVmIdHash
-    ) = _updateController(updateControllerCommand);
-    //* Check Events
-    // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, bytes32 indexed controllerDidOrDidVmIdHash, uint8 controllerPosition)
+      bytes32 ControllerUpdated_toDidHash
+    ) = _updateController(
+        defaultDid.method0,
+        defaultDid.method1,
+        defaultDid.method2,
+        defaultDid.id,
+        DEFAULT_VM_ID,
+        defaultDid.id,
+        defaultDid.id,
+        DEFAULT_VM_ID,
+        0
+      );
+    //* ☑️ Assert ⬇
+    // Check Events
+    // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, uint8 controllerPosition, bytes32 method0, bytes32 method1, bytes32 method2, bytes32 id, bytes32 vmId)
     assertGt(uint256(ControllerUpdated_fromDidHash), uint256(100));
     assertGt(uint256(ControllerUpdated_toDidHash), uint256(100));
-    assertGt(uint256(ControllerUpdated_controllerDidOrDidVmIdHash), uint256(100));
     assertEq(ControllerUpdated_fromDidHash, defaultDid.idHash);
     assertEq(ControllerUpdated_toDidHash, defaultDid.idHash);
-    assertEq(
-      ControllerUpdated_controllerDidOrDidVmIdHash,
-      keccak256(abi.encodePacked(defaultDid.idHash, DEFAULT_VM_ID))
-    );
     vm.stopPrank();
     // TODO // Final state check
   }
@@ -250,25 +276,36 @@ contract DidManagerTest is Test {
   }
 
   function _updateController(
-    UpdateControllerCommand memory command
-  )
-    internal
-    returns (
-      bytes32 ControllerUpdated_fromDidHash,
-      bytes32 ControllerUpdated_toDidHash,
-      bytes32 ControllerUpdated_controllerDidOrDidVmIdHash
-    )
-  {
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 fromId,
+    bytes32 fromVmId,
+    bytes32 toId,
+    bytes32 controllerId,
+    bytes32 controllerVmId,
+    uint8 controllerPosition
+  ) internal returns (bytes32 ControllerUpdated_fromDidHash, bytes32 ControllerUpdated_toDidHash) {
     // Event recording
     vm.recordLogs();
     //* Update controller call
-    didManager.updateController(command);
+    didManager.updateController(
+      method0,
+      method1,
+      method2,
+      fromId,
+      fromVmId,
+      toId,
+      controllerId,
+      controllerVmId,
+      controllerPosition
+    );
     // Get logs from previous transaction
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Get the event values
-    // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, bytes32 indexed controllerDidOrDidVmIdHash, uint8 controllerPosition)
+    // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, uint8 controllerPosition, bytes32 method0, bytes32 method1, bytes32 method2, bytes32 id, bytes32 vmId)
     ControllerUpdated_fromDidHash = entries[0].topics[1];
     ControllerUpdated_toDidHash = entries[0].topics[2];
-    ControllerUpdated_controllerDidOrDidVmIdHash = entries[0].topics[3];
+    // TODO: check entries[0].data
   }
 }
