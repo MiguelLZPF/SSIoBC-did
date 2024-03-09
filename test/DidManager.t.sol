@@ -53,8 +53,10 @@ contract DidManagerTest is Test {
   address admin = DEFAULT_SENDER;
   address payable[] users = [payable(address(10)), payable(address(11)), payable(address(12))];
 
+  /**
+   * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
+   */
   function setUp() public {
-    console.logBytes32(DEFAULT_DID_METHOD1);
     Deployment memory deployment;
     // Transfer some ether to users
     for (uint i = 0; i < users.length; i++) {
@@ -69,7 +71,9 @@ contract DidManagerTest is Test {
 
   //* TESTS
   function test_should_createDefaultDid() public {
+    //* 🗂️ Arrange ⬇
     vm.startPrank(users[0]);
+    //* 🎬 Act ⬇
     // Create DID
     (
       ,
@@ -86,7 +90,8 @@ contract DidManagerTest is Test {
         bytes32(uint256(uint160(msg.sender))),
         bytes32(0)
       );
-    //* Check Events
+    //* ☑️ Assert ⬇
+    // Check Events
     // VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed vmIdHash, bytes32 positionHash);
     assertGt(uint256(VmCreated_didIdHash), uint256(100));
     assertEq(VmCreated_id, DEFAULT_VM_ID);
@@ -109,7 +114,7 @@ contract DidManagerTest is Test {
     );
     assertEq(DidCreated_creator, users[0]);
     assertEq(VmCreated_didIdHash, DidCreated_idHash);
-    //* Final state check
+    // Final state check
     VerificationMethod memory verificationMethod = didManager.getVM(
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
@@ -126,9 +131,10 @@ contract DidManagerTest is Test {
   }
 
   function test_should_createDid() public {
+    //* 🗂️ Arrange ⬇
     vm.startPrank(users[0]);
     // TODO // Initial state check
-
+    //* 🎬 Act ⬇
     // Create DID
     (
       ,
@@ -145,7 +151,8 @@ contract DidManagerTest is Test {
         CREATE_EXAMPLE_DID_PARAMS.random,
         CREATE_EXAMPLE_DID_PARAMS.vmId
       );
-    //* Check Events
+    //* ☑️ Assert ⬇
+    // Check Events
     // VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed vmIdHash, bytes32 positionHash);
     assertGt(uint256(VmCreated_didIdHash), uint256(100));
     assertEq(VmCreated_id, CREATE_EXAMPLE_DID_PARAMS.vmId);
@@ -167,7 +174,7 @@ contract DidManagerTest is Test {
     );
     assertEq(DidCreated_creator, users[0]);
     assertEq(VmCreated_didIdHash, DidCreated_idHash);
-    //* Final state check
+    // Final state check
     VerificationMethod memory verificationMethod = didManager.getVM(
       CREATE_EXAMPLE_DID_PARAMS.method0,
       CREATE_EXAMPLE_DID_PARAMS.method1,
@@ -184,6 +191,7 @@ contract DidManagerTest is Test {
   }
 
   function test_should_updateSameController() public {
+    //* 🗂️ Arrange ⬇
     vm.startPrank(users[0]);
     (DidInfo memory defaultDid, , , , , , ) = _createDid(
       bytes32(0),
@@ -193,7 +201,8 @@ contract DidManagerTest is Test {
       bytes32(0)
     );
     // TODO // Initial state check
-    //* Update controller
+    //* 🎬 Act ⬇
+    // Update controller
     (
       bytes32 ControllerUpdated_fromDidHash,
       bytes32 ControllerUpdated_toDidHash
@@ -208,7 +217,8 @@ contract DidManagerTest is Test {
         DEFAULT_VM_ID,
         0
       );
-    //* Check Events
+    //* ☑️ Assert ⬇
+    // Check Events
     // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, uint8 controllerPosition, bytes32 method0, bytes32 method1, bytes32 method2, bytes32 id, bytes32 vmId)
     assertGt(uint256(ControllerUpdated_fromDidHash), uint256(100));
     assertGt(uint256(ControllerUpdated_toDidHash), uint256(100));
