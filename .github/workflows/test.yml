@@ -4,6 +4,7 @@ on: [workflow_dispatch, pull_request]
 
 env:
   FOUNDRY_PROFILE: ci
+  PORT: ${{ secrets.PORT }}
 
 jobs:
   check:
@@ -24,6 +25,7 @@ jobs:
 
       - name: Run Forge build
         run: |
+          echo $PORT
           forge --version
           forge build --sizes
         id: build
