@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManager, Controller, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "./interfaces/IDidManager.sol";
-import { VMStorage, VerificationMethod } from "./VMStorage.sol";
+import { IDidManager, Controller, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "src/interfaces/IDidManager.sol";
+import { VMStorage, VerificationMethod } from "src/VMStorage.sol";
+import { ServiceStorage, SERVICE_MAX_LENGTH } from "src/ServiceStorage.sol";
 
 // import {ServiceStorage} from "./ServiceStorage.sol";
 
-contract DidManager is VMStorage, IDidManager {
+contract DidManager is IDidManager, VMStorage, ServiceStorage {
   // DIDs are stored in a mapping that maps a bytes32 key (representing the hash of the DID) to its expiration date.
   // hash(method0:method1:method2:id) --> expirationDate
   mapping(bytes32 => uint) private _expirationDate;
@@ -181,6 +182,21 @@ contract DidManager is VMStorage, IDidManager {
       controllerId,
       controllerVmId
     );
+  }
+
+  function createService(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 serviceId,
+    bytes32[SERVICE_MAX_LENGTH] memory type_,
+    bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
+  ) external {
+    //* Implementation
+    bytes32 didHash = _calculateIdHash(method0, method1, method2, id);
+    require(!_isExpired(didHash), "DID expired");
+    _createService(didHash, serviceId, type_, serviceEndpoint);
   }
 
   //* View functions

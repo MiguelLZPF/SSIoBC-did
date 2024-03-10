@@ -101,7 +101,7 @@ abstract contract VMStorage {
     //* Implementation
     // vmIdHash = keccak256(abi.encodePacked(didHash, id));
     // positionHash = keccak256(abi.encodePacked(didHash, _vmLength[didHash]));
-    (vmIdHash, positionHash) = _calculateHashes(didHash, id);
+    (vmIdHash, positionHash) = _calculateVmHashes(didHash, id);
     VerificationMethod storage vm = _vm[positionHash];
     require(vm.id == bytes32(0), "VM already exists");
     // Store VM
@@ -158,7 +158,7 @@ abstract contract VMStorage {
     bytes32 didHash,
     bytes32 vmId
   ) internal view returns (VerificationMethod memory vm) {
-    (, bytes32 positionHash) = _calculateHashes(didHash, vmId);
+    (, bytes32 positionHash) = _calculateVmHashes(didHash, vmId);
     return _vm[positionHash];
   }
 
@@ -178,7 +178,7 @@ abstract contract VMStorage {
    * @return exp The expiration timestamp of the VM.
    */
   function _getExpirationVM(bytes32 didHash, bytes32 vmId) internal view returns (uint256 exp) {
-    (, bytes32 positionHash) = _calculateHashes(didHash, vmId);
+    (, bytes32 positionHash) = _calculateVmHashes(didHash, vmId);
     return _vm[positionHash].expiration;
   }
 
@@ -215,7 +215,7 @@ abstract contract VMStorage {
     require(relationship != bytes1(0), "Relationship cannot be 0");
     require(relationship <= bytes1(0x1F), "Invalid relationship");
     require(sender != address(0), "Invalid sender");
-    (, bytes32 positionHash) = _calculateHashes(didHash, vmId);
+    (, bytes32 positionHash) = _calculateVmHashes(didHash, vmId);
     // Get VM
     VerificationMethod memory vm = _vm[positionHash];
     // Check if the VM exists and is not expired
@@ -235,7 +235,7 @@ abstract contract VMStorage {
    * @return vmIdHash The hash of the verification method (VM) ID.
    * @return positionHash The hash of the verification method (VM) position.
    */
-  function _calculateHashes(
+  function _calculateVmHashes(
     bytes32 didHash,
     bytes32 id
   ) internal view returns (bytes32 vmIdHash, bytes32 positionHash) {

@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { VerificationMethod } from "@src/VMStorage.sol";
+import { Service, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 
 /**
  * @dev Struct representing a controller of a DID.
@@ -228,4 +229,24 @@ interface IDidManager {
     bytes32 method2,
     bytes32 id
   ) external view returns (uint8);
+
+  /**
+   * @dev Creates a new service for a given ID.
+   * @param method0 The first method of the service.
+   * @param method1 The second method of the service.
+   * @param method2 The third method of the service.
+   * @param id The ID associated with the service.
+   * @param serviceId The service ID.
+   * @param type_ An array of service types.
+   * @param serviceEndpoint An array of service endpoints.
+   */
+  function createService(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 serviceId,
+    bytes32[SERVICE_MAX_LENGTH] memory type_,
+    bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
+  ) external;
 }
