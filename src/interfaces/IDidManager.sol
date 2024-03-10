@@ -249,4 +249,36 @@ interface IDidManager {
     bytes32[SERVICE_MAX_LENGTH] memory type_,
     bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
   ) external;
+
+  /**
+   * @dev Returns the service for a given ID and service ID.
+   * @param method0 The first method identifier.
+   * @param method1 The second method identifier.
+   * @param method2 The third method identifier.
+   * @param id The ID.
+   * @param serviceId The service ID.
+   * @return service The service.
+   */
+  function getService(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 serviceId
+  ) external view returns (Service memory service);
+
+  /**
+   * @dev Returns the length of the service list for a given ID.
+   * @param method0 The first method identifier.
+   * @param method1 The second method identifier.
+   * @param method2 The third method identifier.
+   * @param id The ID.
+   * @return length The length of the service list.
+   */
+  function getServiceListLength(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id
+  ) external view returns (uint8);
 }

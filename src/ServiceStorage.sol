@@ -81,7 +81,7 @@ abstract contract ServiceStorage {
    * @param id The ID of the service.
    * @return service The service.
    */
-  function getService(bytes32 didHash, bytes32 id) external view returns (Service memory service) {
+  function _getService(bytes32 didHash, bytes32 id) internal view returns (Service memory service) {
     (, bytes32 positionHash) = _calculateServiceHashes(didHash, id);
     return _service[positionHash];
   }
@@ -91,7 +91,7 @@ abstract contract ServiceStorage {
    * @param didHash The hash of the decentralized identifier (DID).
    * @return length The length of the service list.
    */
-  function getServiceListLength(bytes32 didHash) external view returns (uint8 length) {
+  function _getServiceListLength(bytes32 didHash) internal view returns (uint8 length) {
     return _serviceLength[didHash];
   }
 

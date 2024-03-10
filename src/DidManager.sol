@@ -3,7 +3,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { IDidManager, Controller, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "src/interfaces/IDidManager.sol";
 import { VMStorage, VerificationMethod } from "src/VMStorage.sol";
-import { ServiceStorage, SERVICE_MAX_LENGTH } from "src/ServiceStorage.sol";
+import { ServiceStorage, Service, SERVICE_MAX_LENGTH } from "src/ServiceStorage.sol";
 
 // import {ServiceStorage} from "./ServiceStorage.sol";
 
@@ -269,6 +269,25 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32 id
   ) external view returns (uint8) {
     return _getVmListLength(_calculateIdHash(method0, method1, method2, id));
+  }
+
+  function getService(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 serviceId
+  ) external view returns (Service memory service) {
+    return _getService(_calculateIdHash(method0, method1, method2, id), serviceId);
+  }
+
+  function getServiceListLength(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id
+  ) external view returns (uint8 length) {
+    return _getServiceListLength(_calculateIdHash(method0, method1, method2, id));
   }
 
   //* Internal functions
