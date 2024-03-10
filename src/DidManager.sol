@@ -184,7 +184,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     );
   }
 
-  function createService(
+  function updateService(
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
@@ -196,7 +196,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     //* Implementation
     bytes32 didHash = _calculateIdHash(method0, method1, method2, id);
     require(!_isExpired(didHash), "DID expired");
-    _createService(didHash, serviceId, type_, serviceEndpoint);
+    _updateService(didHash, serviceId, type_, serviceEndpoint);
   }
 
   //* View functions

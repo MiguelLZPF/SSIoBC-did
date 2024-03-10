@@ -231,7 +231,7 @@ interface IDidManager {
   ) external view returns (uint8);
 
   /**
-   * @dev Creates a new service for a given ID.
+   * @dev Updates, creates or removes a service for a given ID.
    * @param method0 The first method of the service.
    * @param method1 The second method of the service.
    * @param method2 The third method of the service.
@@ -240,7 +240,7 @@ interface IDidManager {
    * @param type_ An array of service types.
    * @param serviceEndpoint An array of service endpoints.
    */
-  function createService(
+  function updateService(
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,

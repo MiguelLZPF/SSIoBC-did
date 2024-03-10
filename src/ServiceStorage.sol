@@ -27,7 +27,7 @@ abstract contract ServiceStorage {
    * @param serviceIdHash The unique identifier hash of the service.
    * @param positionHash The hash of the position of the service.
    */
-  event ServiceCreated(
+  event ServiceUpdated(
     bytes32 indexed didIdHash,
     bytes32 indexed id,
     bytes32 indexed serviceIdHash,
@@ -43,13 +43,13 @@ abstract contract ServiceStorage {
   mapping(bytes32 => uint8) private _serviceLength;
 
   /**
-   * @dev Creates a new service and stores it in the contract.
+   * @dev Updates, creates or removes a service in the contract.
    * @param didHash The hash of the decentralized identifier (DID) associated with the service.
    * @param id The unique identifier of the service.
    * @param type_ An array of service types.
    * @param serviceEndpoint An array of service endpoints.
    */
-  function _createService(
+  function _updateService(
     bytes32 didHash,
     bytes32 id,
     bytes32[SERVICE_MAX_LENGTH] memory type_,
@@ -58,12 +58,34 @@ abstract contract ServiceStorage {
     // Check parameters
     require(didHash != bytes32(0), "1st param required"); // "DID hash cannot be 0"
     require(id != bytes32(0), "2nd param required"); // "ID cannot be 0"
+    // Get service
+    (bytes32 idHash, bytes32 positionHash, uint8 position) = _calculateServiceHashes(didHash, id);
+    Service storage service = _service[positionHash];
+    //  Service.id exists and type_ and serviceEndpoint are empty ==> delete service
+    if (service.id != bytes32(0) && type_[0] == bytes32(0) && serviceEndpoint[0] == bytes32(0)) {
+      // Get latest service on array
+      uint8 lastPosition = _serviceLength[didHash] - 1;
+      bytes32 lastPositionHash = keccak256(abi.encodePacked(didHash, lastPosition));
+      Service memory lastService = _service[lastPositionHash];
+      bytes32 lastIdHash = keccak256(abi.encodePacked(didHash, lastService.id));
+      // Replace the service with the last service
+      _service[positionHash] = lastService;
+      // Update position of the previous last service
+      _servicePositionById[lastIdHash] = position;
+      // Delete the service new last service
+      delete _service[lastPositionHash];
+      // Remove position of the deleted service
+      _servicePositionById[idHash] = 0;
+      // Decrease the length
+      _serviceLength[didHash]--;
+      // Emit two events
+      emit ServiceUpdated(didHash, id, idHash, 0);
+      emit ServiceUpdated(didHash, lastService.id, lastIdHash, positionHash);
+      return;
+    }
+    // Check both are defined before updating (or create)
     require(type_[0] != bytes32(0), "3rd param required"); // "Type cannot be 0"
     require(serviceEndpoint[0] != bytes32(0), "4th param required"); // "Service endpoint cannot be 0"
-    // Get service
-    (bytes32 idHash, bytes32 positionHash) = _calculateServiceHashes(didHash, id);
-    Service storage service = _service[positionHash];
-    require(service.id == bytes32(0), "Service already exists");
     // Store the service
     service.id = id;
     service.type_ = type_;
@@ -72,7 +94,7 @@ abstract contract ServiceStorage {
     _servicePositionById[idHash] = _serviceLength[didHash];
     _serviceLength[didHash]++;
     // Emit an event
-    emit ServiceCreated(didHash, id, idHash, positionHash);
+    emit ServiceUpdated(didHash, id, idHash, positionHash);
   }
 
   /**
@@ -82,7 +104,7 @@ abstract contract ServiceStorage {
    * @return service The service.
    */
   function _getService(bytes32 didHash, bytes32 id) internal view returns (Service memory service) {
-    (, bytes32 positionHash) = _calculateServiceHashes(didHash, id);
+    (, bytes32 positionHash, ) = _calculateServiceHashes(didHash, id);
     return _service[positionHash];
   }
 
@@ -105,10 +127,10 @@ abstract contract ServiceStorage {
   function _calculateServiceHashes(
     bytes32 didHash,
     bytes32 id
-  ) internal view returns (bytes32 idHash, bytes32 positionHash) {
+  ) internal view returns (bytes32 idHash, bytes32 positionHash, uint8 position) {
     idHash = keccak256(abi.encodePacked(didHash, id));
-    uint8 position = _servicePositionById[idHash];
+    position = _servicePositionById[idHash];
     positionHash = keccak256(abi.encodePacked(didHash, position));
-    return (idHash, positionHash);
+    return (idHash, positionHash, position);
   }
 }
