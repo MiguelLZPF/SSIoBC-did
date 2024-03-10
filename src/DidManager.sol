@@ -276,9 +276,10 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32 method1,
     bytes32 method2,
     bytes32 id,
-    bytes32 serviceId
+    bytes32 serviceId,
+    uint8 position
   ) external view returns (Service memory service) {
-    return _getService(_calculateIdHash(method0, method1, method2, id), serviceId);
+    return _getService(_calculateIdHash(method0, method1, method2, id), serviceId, position);
   }
 
   function getServiceListLength(

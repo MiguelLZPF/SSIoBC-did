@@ -98,12 +98,20 @@ abstract contract ServiceStorage {
   }
 
   /**
-   * @dev Returns the service for a given DID and service ID.
+   * @dev Returns the service for a given DID and (service position or service ID).
    * @param didHash The hash of the decentralized identifier (DID).
    * @param id The ID of the service.
+   * @param position The position of the service.
    * @return service The service.
    */
-  function _getService(bytes32 didHash, bytes32 id) internal view returns (Service memory service) {
+  function _getService(
+    bytes32 didHash,
+    bytes32 id,
+    uint8 position
+  ) internal view returns (Service memory service) {
+    if (id == bytes32(0)) {
+      return _service[keccak256(abi.encodePacked(didHash, position))];
+    }
     (, bytes32 positionHash, ) = _calculateServiceHashes(didHash, id);
     return _service[positionHash];
   }

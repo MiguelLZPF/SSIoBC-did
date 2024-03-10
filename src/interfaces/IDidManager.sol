@@ -251,12 +251,13 @@ interface IDidManager {
   ) external;
 
   /**
-   * @dev Returns the service for a given ID and service ID.
+   * @dev Returns the service for a given ID and (sercice position or service ID).
    * @param method0 The first method identifier.
    * @param method1 The second method identifier.
    * @param method2 The third method identifier.
    * @param id The ID.
    * @param serviceId The service ID.
+   * @param position The position of the service.
    * @return service The service.
    */
   function getService(
@@ -264,7 +265,8 @@ interface IDidManager {
     bytes32 method1,
     bytes32 method2,
     bytes32 id,
-    bytes32 serviceId
+    bytes32 serviceId,
+    uint8 position
   ) external view returns (Service memory service);
 
   /**
