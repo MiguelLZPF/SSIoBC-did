@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { VerificationMethod } from "@src/VMStorage.sol";
+import { Service, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 
 /**
  * @dev Struct representing a controller of a DID.
@@ -223,6 +224,60 @@ interface IDidManager {
    * @return length The length of the VM list.
    */
   function getVmListLength(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id
+  ) external view returns (uint8);
+
+  /**
+   * @dev Updates, creates or removes a service for a given ID.
+   * @param method0 The first method of the service.
+   * @param method1 The second method of the service.
+   * @param method2 The third method of the service.
+   * @param id The ID associated with the service.
+   * @param serviceId The service ID.
+   * @param type_ An array of service types.
+   * @param serviceEndpoint An array of service endpoints.
+   */
+  function updateService(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 serviceId,
+    bytes32[SERVICE_MAX_LENGTH] memory type_,
+    bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
+  ) external;
+
+  /**
+   * @dev Returns the service for a given ID and (sercice position or service ID).
+   * @param method0 The first method identifier.
+   * @param method1 The second method identifier.
+   * @param method2 The third method identifier.
+   * @param id The ID.
+   * @param serviceId The service ID.
+   * @param position The position of the service.
+   * @return service The service.
+   */
+  function getService(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 id,
+    bytes32 serviceId,
+    uint8 position
+  ) external view returns (Service memory service);
+
+  /**
+   * @dev Returns the length of the service list for a given ID.
+   * @param method0 The first method identifier.
+   * @param method1 The second method identifier.
+   * @param method2 The third method identifier.
+   * @param id The ID.
+   * @return length The length of the service list.
+   */
+  function getServiceListLength(
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
