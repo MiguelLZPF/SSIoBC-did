@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
+import { HashBasedList } from "@src/HashBasedList.sol";
+
 // Example of a service:
 // {
 //   "service": [{
@@ -18,7 +20,7 @@ struct Service {
   bytes32[SERVICE_MAX_LENGTH] serviceEndpoint;
 }
 
-abstract contract ServiceStorage {
+abstract contract ServiceStorage is HashBasedList {
   //* Events
   /**
    * @dev Emitted when a new service is created for a DID.
@@ -36,11 +38,8 @@ abstract contract ServiceStorage {
 
   //* Storage
   // hash(DIDHash, position) --> Service Details
+  // positionHash --> Service Details
   mapping(bytes32 => Service) private _service;
-  // hash(DIDHash, Service ID) --> position
-  mapping(bytes32 => uint8) private _servicePositionById;
-  // DIDHash --> Service length
-  mapping(bytes32 => uint8) private _serviceLength;
 
   /**
    * @dev Updates, creates or removes a service in the contract.
@@ -59,25 +58,23 @@ abstract contract ServiceStorage {
     require(didHash != bytes32(0), "1st param required"); // "DID hash cannot be 0"
     require(id != bytes32(0), "2nd param required"); // "ID cannot be 0"
     // Get service
-    (bytes32 idHash, bytes32 positionHash, uint8 position) = _calculateServiceHashes(didHash, id);
-    Service storage service = _service[positionHash];
+    (bytes32 idHash, bytes32 positionHash, uint8 position) = _calculateHashes(didHash, id);
+    Service memory service = _service[positionHash];
     //  Service.id exists and type_ and serviceEndpoint are empty ==> delete service
     if (service.id != bytes32(0) && type_[0] == bytes32(0) && serviceEndpoint[0] == bytes32(0)) {
       // Get latest service on array
-      uint8 lastPosition = _serviceLength[didHash] - 1;
-      bytes32 lastPositionHash = keccak256(abi.encodePacked(didHash, lastPosition));
+      uint8 lastPosition = _getHblLength(didHash) - 1;
+      bytes32 lastPositionHash = _calculatePositionHash(didHash, lastPosition);
       Service memory lastService = _service[lastPositionHash];
-      bytes32 lastIdHash = keccak256(abi.encodePacked(didHash, lastService.id));
+      bytes32 lastIdHash = _calculateIdHash(didHash, lastService.id);
       // Replace the service with the last service
       _service[positionHash] = lastService;
       // Update position of the previous last service
-      _servicePositionById[lastIdHash] = position;
+      _setHblPosition(lastIdHash, position);
       // Delete the service new last service
       delete _service[lastPositionHash];
       // Remove position of the deleted service
-      _servicePositionById[idHash] = 0;
-      // Decrease the length
-      _serviceLength[didHash]--;
+      _removeHbl(idHash);
       // Emit two events
       emit ServiceUpdated(didHash, id, idHash, 0);
       emit ServiceUpdated(didHash, lastService.id, lastIdHash, positionHash);
@@ -87,12 +84,12 @@ abstract contract ServiceStorage {
     require(type_[0] != bytes32(0), "3rd param required"); // "Type cannot be 0"
     require(serviceEndpoint[0] != bytes32(0), "4th param required"); // "Service endpoint cannot be 0"
     // Store the service
-    service.id = id;
-    service.type_ = type_;
-    service.serviceEndpoint = serviceEndpoint;
-    // Mappings
-    _servicePositionById[idHash] = _serviceLength[didHash];
-    _serviceLength[didHash]++;
+    _service[positionHash] = Service(id, type_, serviceEndpoint);
+    // Only if the service is new, update the service list length and position by ID
+    // "service" is in memory, so it is not updated in the storage
+    if (service.id == bytes32(0)) {
+      _addHbl(didHash, id);
+    }
     // Emit an event
     emit ServiceUpdated(didHash, id, idHash, positionHash);
   }
@@ -112,7 +109,7 @@ abstract contract ServiceStorage {
     if (id == bytes32(0)) {
       return _service[keccak256(abi.encodePacked(didHash, position))];
     }
-    (, bytes32 positionHash, ) = _calculateServiceHashes(didHash, id);
+    bytes32 positionHash = _calculatePositionHash(didHash, id);
     return _service[positionHash];
   }
 
@@ -122,23 +119,6 @@ abstract contract ServiceStorage {
    * @return length The length of the service list.
    */
   function _getServiceListLength(bytes32 didHash) internal view returns (uint8 length) {
-    return _serviceLength[didHash];
-  }
-
-  /**
-   * @dev Calculates the hashes for a service based on the provided DID hash and service ID.
-   * @param didHash The hash of the decentralized identifier (DID).
-   * @param id The ID of the service.
-   * @return idHash The hash of the service ID combined with the DID hash.
-   * @return positionHash The hash of the service position combined with the DID hash.
-   */
-  function _calculateServiceHashes(
-    bytes32 didHash,
-    bytes32 id
-  ) internal view returns (bytes32 idHash, bytes32 positionHash, uint8 position) {
-    idHash = keccak256(abi.encodePacked(didHash, id));
-    position = _servicePositionById[idHash];
-    positionHash = keccak256(abi.encodePacked(didHash, position));
-    return (idHash, positionHash, position);
+    return _getHblLength(didHash);
   }
 }
