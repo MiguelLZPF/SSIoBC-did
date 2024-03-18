@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { HashBasedList } from "@src/HashBasedList.sol";
+import { HashBasedList } from "@lib/hash-based-list";
 
 // Example of a service:
 // {
