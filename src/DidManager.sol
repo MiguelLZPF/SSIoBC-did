@@ -12,7 +12,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   // hash(method0:method1:method2:id) --> expirationDate
   mapping(bytes32 => uint) private _expirationDate;
   // DID controllers are stored in a mapping that maps a bytes32 key (representing the hash of the DID or the hash of a specific VM) to an array of 5 bytes32 values (representing the actual controllers).
-  // hash(method0:method1:method2:id | didHash&vmId) --> controller[0..4]
+  // hash(method0:method1:method2:id) --> controller[0..4]
   mapping(bytes32 => Controller[CONTROLLERS_MAX_LENGTH]) private _controllers;
 
   constructor() {}
