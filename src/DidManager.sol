@@ -12,7 +12,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   // hash(method0:method1:method2:id) --> expirationDate
   mapping(bytes32 => uint) private _expirationDate;
   // DID controllers are stored in a mapping that maps a bytes32 key (representing the hash of the DID or the hash of a specific VM) to an array of 5 bytes32 values (representing the actual controllers).
-  // hash(method0:method1:method2:id | didHash&vmId) --> controller[0..4]
+  // hash(method0:method1:method2:id) --> controller[0..4]
   mapping(bytes32 => Controller[CONTROLLERS_MAX_LENGTH]) private _controllers;
 
   constructor() {}
@@ -116,6 +116,15 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     //* Implementation
     bytes32 didHash = keccak256(abi.encodePacked(method0, method1, method2, id));
     require(!_isExpired(didHash), "DID expired");
+    // TODO: VALIDATE CONTROLLER IF CAN EDIT
+    // // Check if the sender is a controller of the from DID
+    // require(
+    //   _isControllerFor(method0, method1, method2, fromDidHash, fromVmId, toDidHash),
+    //   "Not a controller of To"
+    // );
+    // // Check if the sender is authenticated as the from DID
+    // require(_isAuthenticated(fromDidHash, fromVmId, msg.sender), "Not authenticated as From");
+    // TODO: end
     _createVM(
       didHash,
       vmId,
