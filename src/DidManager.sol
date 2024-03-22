@@ -116,6 +116,15 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     //* Implementation
     bytes32 didHash = keccak256(abi.encodePacked(method0, method1, method2, id));
     require(!_isExpired(didHash), "DID expired");
+    // TODO: VALIDATE CONTROLLER IF CAN EDIT
+    // // Check if the sender is a controller of the from DID
+    // require(
+    //   _isControllerFor(method0, method1, method2, fromDidHash, fromVmId, toDidHash),
+    //   "Not a controller of To"
+    // );
+    // // Check if the sender is authenticated as the from DID
+    // require(_isAuthenticated(fromDidHash, fromVmId, msg.sender), "Not authenticated as From");
+    // TODO: end
     _createVM(
       didHash,
       vmId,
