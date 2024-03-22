@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { HashBasedList } from "@lib/hash-based-list";
+import { HashBasedList } from "@lib/hash-based-list/src/HashBasedList.sol";
 
 // Example of a service:
 // {
@@ -70,11 +70,11 @@ abstract contract ServiceStorage is HashBasedList {
       // Replace the service with the last service
       _service[positionHash] = lastService;
       // Update position of the previous last service
-      _setHblPosition(lastIdHash, position);
+      _setHblPosition(didHash, lastIdHash, position);
       // Delete the service new last service
       delete _service[lastPositionHash];
       // Remove position of the deleted service
-      _removeHbl(idHash);
+      _removeHbl(didHash, idHash);
       // Emit two events
       emit ServiceUpdated(didHash, id, idHash, 0);
       emit ServiceUpdated(didHash, lastService.id, lastIdHash, positionHash);

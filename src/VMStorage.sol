@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
+import { HashBasedList } from "@lib/hash-based-list/src/HashBasedList.sol";
+
 // Verification Method Relationships    binary  => hex  => dec
 // None                             => 00000000 => 0x00 => 0
 // Authentication                   => 00000001 => 0x01 => 1
@@ -20,7 +22,7 @@ struct VerificationMethod {
   uint256 expiration; // The expiration date of the VM
 }
 
-abstract contract VMStorage {
+abstract contract VMStorage is HashBasedList {
   //* Events
   /**
    * @dev Emitted when a new Verification Method (VM) is created for a DID.
@@ -47,10 +49,6 @@ abstract contract VMStorage {
   bytes32 private constant VM_TYPE_1 = bytes32("19");
   // hash(DIDHash, position) --> VerificationMethod Details
   mapping(bytes32 => VerificationMethod) private _vm;
-  // hash(DIDHash, VM ID) --> position
-  mapping(bytes32 => uint8) private _vmPositionById;
-  // DIDHash --> VM length
-  mapping(bytes32 => uint8) private _vmLength;
 
   /**
    * @dev Creates a new Verification Method (VM) and stores it in the contract.
@@ -101,7 +99,7 @@ abstract contract VMStorage {
     //* Implementation
     // vmIdHash = keccak256(abi.encodePacked(didHash, id));
     // positionHash = keccak256(abi.encodePacked(didHash, _vmLength[didHash]));
-    (vmIdHash, positionHash) = _calculateVmHashes(didHash, id);
+    (vmIdHash, positionHash, ) = _calculateHashes(didHash, id);
     VerificationMethod storage vm = _vm[positionHash];
     require(vm.id == bytes32(0), "VM already exists");
     // Store VM
@@ -113,8 +111,7 @@ abstract contract VMStorage {
     vm.relationships = relationships;
     vm.expiration = expiration;
     // Mappings
-    _vmPositionById[vmIdHash] = _vmLength[didHash];
-    _vmLength[didHash]++;
+    _addHbl(didHash, id);
     //Event
     emit VmCreated(didHash, id, vmIdHash, positionHash);
     return (vmIdHash, positionHash);
@@ -151,14 +148,14 @@ abstract contract VMStorage {
   /**
    * @dev Retrieves a specific verification method (VM) associated with a given DID hash and VM ID.
    * @param didHash The hash of the decentralized identifier (DID).
-   * @param vmId The identifier of the verification method (VM).
+   * @param id The identifier of the verification method (VM).
    * @return vm The VerificationMethod struct representing the VM.
    */
   function _getVM(
     bytes32 didHash,
-    bytes32 vmId
+    bytes32 id
   ) internal view returns (VerificationMethod memory vm) {
-    (, bytes32 positionHash) = _calculateVmHashes(didHash, vmId);
+    bytes32 positionHash = _calculatePositionHash(didHash, id);
     return _vm[positionHash];
   }
 
@@ -168,17 +165,17 @@ abstract contract VMStorage {
    * @return The length of the VMs array.
    */
   function _getVmListLength(bytes32 didHash) internal view returns (uint8) {
-    return _vmLength[didHash];
+    return _getHblLength(didHash);
   }
 
   /**
    * @dev Returns the expiration timestamp of a specific verification method (VM) associated with a given DID hash and VM ID.
    * @param didHash The hash of the decentralized identifier (DID).
-   * @param vmId The identifier of the verification method (VM).
+   * @param id The identifier of the verification method (VM).
    * @return exp The expiration timestamp of the VM.
    */
-  function _getExpirationVM(bytes32 didHash, bytes32 vmId) internal view returns (uint256 exp) {
-    (, bytes32 positionHash) = _calculateVmHashes(didHash, vmId);
+  function _getExpirationVM(bytes32 didHash, bytes32 id) internal view returns (uint256 exp) {
+    bytes32 positionHash = _calculatePositionHash(didHash, id);
     return _vm[positionHash].expiration;
   }
 
@@ -200,22 +197,22 @@ abstract contract VMStorage {
   /**
    * @dev Checks if the given sender is in the specified relationship for the specified DID hash and VM ID.
    * @param didHash The hash of the Decentralized Identifier (DID).
-   * @param vmId The ID of the Verification Method (VM).
+   * @param id The ID of the Verification Method (VM).
    * @param relationship The relationship to check.
    * @param sender The address of the sender.
    * @return A boolean indicating whether the sender is in the specified relationship or not.
    */
   function _isVmRelationship(
     bytes32 didHash,
-    bytes32 vmId,
+    bytes32 id,
     bytes1 relationship,
     address sender
   ) internal view returns (bool) {
-    require(vmId != bytes32(0), "VM ID cannot be 0");
+    require(id != bytes32(0), "VM ID cannot be 0");
     require(relationship != bytes1(0), "Relationship cannot be 0");
     require(relationship <= bytes1(0x1F), "Invalid relationship");
     require(sender != address(0), "Invalid sender");
-    (, bytes32 positionHash) = _calculateVmHashes(didHash, vmId);
+    bytes32 positionHash = _calculatePositionHash(didHash, id);
     // Get VM
     VerificationMethod memory vm = _vm[positionHash];
     // Check if the VM exists and is not expired
@@ -226,22 +223,5 @@ abstract contract VMStorage {
     }
     // else
     return (vm.relationships & relationship == relationship);
-  }
-
-  /**
-   * @dev Calculates the hashes for a given DID hash and VM ID.
-   * @param didHash The hash of the decentralized identifier (DID).
-   * @param id The identifier of the verification method (VM).
-   * @return vmIdHash The hash of the verification method (VM) ID.
-   * @return positionHash The hash of the verification method (VM) position.
-   */
-  function _calculateVmHashes(
-    bytes32 didHash,
-    bytes32 id
-  ) internal view returns (bytes32 vmIdHash, bytes32 positionHash) {
-    vmIdHash = keccak256(abi.encodePacked(didHash, id));
-    uint position = _vmPositionById[vmIdHash];
-    positionHash = keccak256(abi.encodePacked(didHash, position));
-    return (vmIdHash, positionHash);
   }
 }
