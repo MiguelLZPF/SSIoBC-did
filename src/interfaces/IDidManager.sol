@@ -168,7 +168,9 @@ interface IDidManager {
    * @param method0 The first method of the VM.
    * @param method1 (optional) The second method of the VM.
    * @param method2 (optional) The third method of the VM.
-   * @param id The ID of the VM.
+   * @param senderId The ID of the sender.
+   * @param senderVmId The ID of the sender's VM.
+   * @param targetId The ID of the target.
    * @param vmId The ID of the verification method.
    * @param type_ An array of two bytes32 values representing the type of the VM.
    * @param publicKey An array of 16 bytes32 values representing the public key of the VM.
@@ -181,7 +183,9 @@ interface IDidManager {
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
-    bytes32 id,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
     bytes32 vmId,
     bytes32[2] calldata type_,
     bytes32[16] calldata publicKey,
