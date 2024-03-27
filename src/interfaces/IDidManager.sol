@@ -12,6 +12,22 @@ struct Controller {
   bytes32 vmId; // (optional) The unique identifier of the controller's VM.
 }
 
+struct CreateVmCommand {
+  bytes32 method0; // The first method of the VM.
+  bytes32 method1; // (optional) The second method of the VM.
+  bytes32 method2; // (optional) The third method of the VM.
+  bytes32 senderId; // The ID of the sender.
+  bytes32 senderVmId; // The ID of the sender's VM.
+  bytes32 targetId; // The ID of the target.
+  bytes32 vmId; // The ID of the verification method.
+  bytes32[2] type_; // The type of the VM.
+  bytes32[16] publicKey; // The public key of the VM.
+  bytes32[5] blockchainAccountId; // The blockchain account ID of the VM.
+  address thisBCAddress; // The address of the blockchain where the VM is created.
+  bytes1 relationships; // The relationships of the VM.
+  uint expiration; // The expiration time of the VM.
+}
+
 bytes32 constant METHOD0 = bytes32("lzpf");
 bytes32 constant METHOD1 = bytes32("main");
 bytes32 constant METHOD2 = bytes32(0); // not used by default
@@ -163,33 +179,7 @@ interface IDidManager {
     bytes32 id
   ) external view returns (Controller[CONTROLLERS_MAX_LENGTH] memory controllerList);
 
-  /**
-   * @dev Creates a new Verification Method (VM) with the specified parameters.
-   * @param method0 The first method of the VM.
-   * @param method1 (optional) The second method of the VM.
-   * @param method2 (optional) The third method of the VM.
-   * @param id The ID of the VM.
-   * @param vmId The ID of the verification method.
-   * @param type_ An array of two bytes32 values representing the type of the VM.
-   * @param publicKey An array of 16 bytes32 values representing the public key of the VM.
-   * @param blockchainAccountId An array of 5 bytes32 values representing the blockchain account ID of the VM.
-   * @param thisBCAddress The address of the blockchain where the VM is created.
-   * @param relationships A bytes1 value representing the relationships of the VM.
-   * @param expiration The expiration time of the VM.
-   */
-  function createVM(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 id,
-    bytes32 vmId,
-    bytes32[2] calldata type_,
-    bytes32[16] calldata publicKey,
-    bytes32[5] calldata blockchainAccountId,
-    address thisBCAddress,
-    bytes1 relationships,
-    uint expiration
-  ) external;
+  function createVM(CreateVmCommand memory command) external;
 
   /**
    * @dev Validates a Verification Method (VM) by checking its position hash and expiration.

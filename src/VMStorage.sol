@@ -22,6 +22,17 @@ struct VerificationMethod {
   uint256 expiration; // The expiration date of the VM
 }
 
+struct CreateVmCommand {
+  bytes32 didHash; // The hash of the decentralized identifier (DID)
+  bytes32 id; // The identifier of the verification method (VM)
+  bytes32[2] type_; // The type of the verification method (VM)
+  bytes32[16] publicKey; // The public key associated with the verification method (VM)
+  bytes32[5] blockchainAccountId; // The blockchain account ID associated with the verification method (VM)
+  address thisBCAddress; // The address of the blockchain associated with the verification method (VM)
+  bytes1 relationships; // The relationships associated with the verification method (VM)
+  uint expiration; // The expiration timestamp of the verification method (VM)
+}
+
 abstract contract VMStorage is HashBasedList {
   //* Events
   /**
@@ -51,69 +62,52 @@ abstract contract VMStorage is HashBasedList {
   mapping(bytes32 => VerificationMethod) private _vm;
 
   /**
-   * @dev Creates a new Verification Method (VM) and stores it in the contract.
-   * @param didHash The hash of the decentralized identifier (DID).
-   * @param id The identifier of the verification method (VM).
-   * @param type_ The type of the verification method (VM).
-   * @param publicKey The public key associated with the verification method (VM).
-   * @param blockchainAccountId The blockchain account ID associated with the verification method (VM).
-   * @param thisBCAddress The address of the blockchain associated with the verification method (VM).
-   * @param relationships The relationships associated with the verification method (VM).
-   * @param expiration The expiration timestamp of the verification method (VM).
-   * @return vmIdHash The hash of the verification method (VM) ID.
-   * @return positionHash The hash of the verification method (VM) position.
+   * @dev Creates a new verification method.
    */
   function _createVM(
-    bytes32 didHash,
-    bytes32 id,
-    bytes32[2] memory type_,
-    bytes32[16] memory publicKey,
-    bytes32[5] memory blockchainAccountId,
-    address thisBCAddress,
-    bytes1 relationships,
-    uint expiration
+    CreateVmCommand memory command
   ) internal returns (bytes32 vmIdHash, bytes32 positionHash) {
     //* Params validation
     // Required
-    require(didHash != bytes32(0), "1st param required"); // "DID hash cannot be 0"
+    require(command.didHash != bytes32(0), "1st param required"); // "DID hash cannot be 0"
     require(
-      publicKey[0] != bytes32(0) ||
-        blockchainAccountId[0] != bytes32(0) ||
-        thisBCAddress != address(0),
+      command.publicKey[0] != bytes32(0) ||
+        command.blockchainAccountId[0] != bytes32(0) ||
+        command.thisBCAddress != address(0),
       "4th or 5th or 6th param required" // "PublicKey or blockchainAccountId or thisBCAddress must be set"
     );
     // Optional
-    if (id == bytes32(0)) {
-      id = VM_ID; // "vm-0"
+    if (command.id == bytes32(0)) {
+      command.id = VM_ID; // "vm-0"
     }
-    if (type_[0] == bytes32(0)) {
-      type_ = [VM_TYPE_0, VM_TYPE_1]; // "EcdsaSecp256k1VerificationKey20", "19"
+    if (command.type_[0] == bytes32(0)) {
+      command.type_ = [VM_TYPE_0, VM_TYPE_1]; // "EcdsaSecp256k1VerificationKey20", "19"
     }
-    if (expiration == 0) {
-      expiration = block.timestamp + 365 days;
+    if (command.expiration == 0) {
+      command.expiration = block.timestamp + 365 days;
     }
-    if (thisBCAddress != address(0)) {
+    if (command.thisBCAddress != address(0)) {
       // Need to validate thisBCAddress
-      expiration = 0;
+      command.expiration = 0;
     }
     //* Implementation
     // vmIdHash = keccak256(abi.encodePacked(didHash, id));
     // positionHash = keccak256(abi.encodePacked(didHash, _vmLength[didHash]));
-    (vmIdHash, positionHash, ) = _calculateHashes(didHash, id);
+    (vmIdHash, positionHash, ) = _calculateHashes(command.didHash, command.id);
     VerificationMethod storage vm = _vm[positionHash];
     require(vm.id == bytes32(0), "VM already exists");
     // Store VM
-    vm.id = id;
-    vm.type_ = type_;
-    vm.publicKey = publicKey;
-    vm.blockchainAccountId = blockchainAccountId;
-    vm.thisBCAddress = thisBCAddress;
-    vm.relationships = relationships;
-    vm.expiration = expiration;
+    vm.id = command.id;
+    vm.type_ = command.type_;
+    vm.publicKey = command.publicKey;
+    vm.blockchainAccountId = command.blockchainAccountId;
+    vm.thisBCAddress = command.thisBCAddress;
+    vm.relationships = command.relationships;
+    vm.expiration = command.expiration;
     // Mappings
-    _addHbl(didHash, id);
+    _addHbl(command.didHash, command.id);
     //Event
-    emit VmCreated(didHash, id, vmIdHash, positionHash);
+    emit VmCreated(command.didHash, command.id, vmIdHash, positionHash);
     return (vmIdHash, positionHash);
   }
 
@@ -143,6 +137,18 @@ abstract contract VMStorage is HashBasedList {
     //Event
     emit VmValidated(vm.id);
     return (vm.id);
+  }
+
+  /**
+   * @dev Expires a specific verification method (VM) by setting its expiration timestamp to the current block timestamp.
+   * @param didHash The hash of the decentralized identifier (DID).
+   * @param id The identifier of the verification method (VM) to expire.
+   */
+  function _expireVM(bytes32 didHash, bytes32 id) internal {
+    bytes32 positionHash = _calculatePositionHash(didHash, id);
+    VerificationMethod storage vm = _vm[positionHash];
+    require(vm.id != bytes32(0), "VM not found");
+    vm.expiration = block.timestamp;
   }
 
   /**
