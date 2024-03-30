@@ -159,16 +159,14 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       "ID cannot be 0"
     );
     //* Implementation
-    // Calculate the hash of the sender and target DIDs
-    bytes32 senderIdHash = _calculateIdHash(method0, method1, method2, senderId);
-    bytes32 targetIdHash = _calculateIdHash(method0, method1, method2, targetId);
-    // Check if the DIDs are expired
-    require(!_isExpired(senderIdHash), "Sender DID expired");
-    require(!_isExpired(targetIdHash), "Target DID expired");
-    // Check if the sender is a controller for the target DID
-    require(_isControllerFor(senderId, senderVmId, targetIdHash), "Not a controller for target");
-    // Check if the sender is authenticated as the sender DID
-    require(_isAuthenticated(senderIdHash, senderVmId, msg.sender), "Not authenticated as sender");
+    (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(
+      method0,
+      method1,
+      method2,
+      senderId,
+      senderVmId,
+      targetId
+    );
     // Sender can make changes to this DID
     // If controller position is greater than MAX_LENGTH, always overwrite the last controller
     if (controllerPosition > CONTROLLERS_MAX_LENGTH - 1) {
@@ -193,15 +191,23 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
-    bytes32 id,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
     bytes32 serviceId,
     bytes32[SERVICE_MAX_LENGTH] memory type_,
     bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
   ) external {
     //* Implementation
-    bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
-    require(!_isExpired(idHash), "DID expired");
-    _updateService(idHash, serviceId, type_, serviceEndpoint);
+    (, bytes32 targetIdHash) = _validateSenderAndTarget(
+      method0,
+      method1,
+      method2,
+      senderId,
+      senderVmId,
+      targetId
+    );
+    _updateService(targetIdHash, serviceId, type_, serviceEndpoint);
   }
 
   //* View functions
@@ -297,6 +303,26 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   }
 
   //* Internal functions
+
+  function _validateSenderAndTarget(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId
+  ) internal view returns (bytes32 senderIdHash, bytes32 targetIdHash) {
+    // Calculate the hash of the sender and target DIDs
+    senderIdHash = _calculateIdHash(method0, method1, method2, senderId);
+    targetIdHash = _calculateIdHash(method0, method1, method2, targetId);
+    // Check if the DIDs are expired
+    require(!_isExpired(senderIdHash), "Sender DID expired");
+    require(!_isExpired(targetIdHash), "Target DID expired");
+    // Check if the sender is a controller for the target DID
+    require(_isControllerFor(senderId, senderVmId, targetIdHash), "Not a controller for target");
+    // Check if the sender is authenticated as the sender DID
+    require(_isAuthenticated(senderIdHash, senderVmId, msg.sender), "Not authenticated as sender");
+  }
 
   function _isControllerFor(
     bytes32 senderDid,
