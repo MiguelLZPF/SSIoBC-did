@@ -64,7 +64,8 @@ contract DidManagerTest is Test {
     }
     // Deploy the contract
     (didManager, deployment) = new DidManagerScript().deploy(
-      DeployCommand({ storeInfo: DeploymentStoreInfo({ store: false, tag: bytes32(0) }) })
+      DeployCommand({ storeInfo: DeploymentStoreInfo({ store: false, tag: bytes32(0) }) }),
+      false
     );
     // Check the initial state (nothing to check)
   }

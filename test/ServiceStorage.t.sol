@@ -5,7 +5,7 @@ import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
+import { IDidManager, Service, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 // import { IVMStorage } from "@src/interfaces/IVMStorage.sol";
 
 struct CreateExampleDidParams {
@@ -41,6 +41,10 @@ contract ServiceStorageTest is Test {
   bytes32 private constant DEFAULT_DID_METHOD2 = bytes32(0);
   bytes32 private constant DEFAULT_VM_ID = bytes32("vm-0");
   bytes32 private constant DEFAULT_SERVICE_ID = bytes32("linked-domain");
+  bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_TYPE = [bytes32("LinkedDomains")];
+  bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_ENDPOINT = [
+    bytes32("https://bar.example.com")
+  ];
   CreateExampleDidParams CREATE_EXAMPLE_DID_PARAMS =
     CreateExampleDidParams(
       bytes32("my-method0"),
@@ -52,7 +56,7 @@ contract ServiceStorageTest is Test {
   // Variables
   // IDidManager public didManager;
   address admin = DEFAULT_SENDER;
-  address payable[] users = [payable(address(20)), payable(address(21)), payable(address(22))];
+  address payable[] users = [payable(address(10)), payable(address(11)), payable(address(12))];
 
   /**
    * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
@@ -67,10 +71,12 @@ contract ServiceStorageTest is Test {
   //* TESTS
   function test_should_addNewService() public {
     //* 🗂️ Arrange ⬇
+    console.log("block", vm.getBlockNumber());
     IDidManager didManager = _deployNewDidManager();
     vm.startPrank(users[0]);
     // Create DID
-    (DidInfo memory data, , , , , , ) = _createDid(
+    console.log("block", vm.getBlockNumber());
+    (DidInfo memory didData, , , , , , ) = _createDid(
       didManager,
       bytes32(0),
       bytes32(0),
@@ -78,6 +84,38 @@ contract ServiceStorageTest is Test {
       bytes32(uint256(uint160(msg.sender))),
       bytes32(0)
     );
+    vm.roll(2);
+    console.log("block", vm.getBlockNumber());
+    (DidInfo memory didData2, , , , , , ) = _createDid(
+      didManager,
+      bytes32(0),
+      bytes32(0),
+      bytes32(0),
+      bytes32(uint256(uint160(msg.sender))),
+      bytes32(0)
+    );
+    vm.roll(3);
+    console.log("block", vm.getBlockNumber());
+    // Check previous state
+    uint256 previousLength = didManager.getServiceListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    console.log("previousLength", previousLength);
+    Service memory service = didManager.getService(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(0)
+    );
+    console.logBytes32(service.id);
+    console.logBytes32(service.type_[0]);
+    console.logBytes32(service.serviceEndpoint[0]);
+    assertEq(previousLength, 0);
     //* 🎬 Act ⬇
     // Add new service
     (
@@ -88,59 +126,27 @@ contract ServiceStorageTest is Test {
       bytes32 ServiceUpdated_positionHash
     ) = _updateService(
         didManager,
-        data.method0,
-        data.method1,
-        data.method2,
-        data.id,
+        didData.method0,
+        didData.method1,
+        didData.method2,
+        didData.id,
         DEFAULT_VM_ID,
-        data.id,
+        didData.id,
         DEFAULT_SERVICE_ID,
-        [
-          bytes32("LinkedDomains"),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0)
-        ],
-        [
-          bytes32("https://bar.example.com"),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0)
-        ]
+        DEFAULT_SERVICE_TYPE,
+        DEFAULT_SERVICE_ENDPOINT
       );
     //* ☑️ Assert ⬇
+    uint256 finalLength = didManager.getServiceListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(didData.idHash, DEFAULT_SERVICE_ID));
+    bytes32 expectedPositionHash = keccak256(abi.encodePacked(didData.idHash, uint8(0)));
+    // Check final state
+    assertEq(finalLength, 1);
     // Check Events
     // ServiceUpdated(
     //   bytes32 indexed didIdHash,
@@ -149,7 +155,10 @@ contract ServiceStorageTest is Test {
     //   bytes32 positionHash
     // );
     assertTrue(performedAction == PerformedAction.CREATEorUPDATE);
-    // Final state check
+    // assertEq(ServiceUpdated_didIdHash, didData.idHash);
+    // assertEq(ServiceUpdated_id, DEFAULT_SERVICE_ID);
+    // assertEq(ServiceUpdated_serviceIdHash, expectedServiceIdHash);
+    // assertEq(ServiceUpdated_positionHash, expectedPositionHash);
     // end
     vm.stopPrank();
   }
@@ -158,7 +167,8 @@ contract ServiceStorageTest is Test {
 
   function _deployNewDidManager() internal returns (IDidManager didManager) {
     (didManager, ) = new DidManagerScript().deploy(
-      DeployCommand({ storeInfo: DeploymentStoreInfo({ store: false, tag: bytes32(0) }) })
+      DeployCommand({ storeInfo: DeploymentStoreInfo({ store: false, tag: bytes32(0) }) }),
+      false
     );
   }
 
