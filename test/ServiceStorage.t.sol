@@ -5,8 +5,8 @@ import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager, Service, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
-// import { IVMStorage } from "@src/interfaces/IVMStorage.sol";
+import { IDidManager } from "@src/interfaces/IDidManager.sol";
+import { ServiceStorage, Service, SERVICE_MAX_LENGTH, SERVICE_NAMESPACE } from "@src/ServiceStorage.sol";
 
 struct CreateExampleDidParams {
   bytes32 method0;
@@ -45,6 +45,7 @@ contract ServiceStorageTest is Test {
   bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_ENDPOINT = [
     bytes32("https://bar.example.com")
   ];
+
   CreateExampleDidParams CREATE_EXAMPLE_DID_PARAMS =
     CreateExampleDidParams(
       bytes32("my-method0"),
@@ -54,9 +55,15 @@ contract ServiceStorageTest is Test {
       bytes32("verifMethod_01")
     );
   // Variables
-  // IDidManager public didManager;
+  // -- users
   address admin = DEFAULT_SENDER;
-  address payable[] users = [payable(address(10)), payable(address(11)), payable(address(12))];
+  address payable[] users = [payable(address(10)), payable(address(11))];
+  address user = users[0];
+  address otherUser = users[1];
+  // -- contracts
+  IDidManager emptyDidManager;
+  DidInfo firstDidInfo;
+  IDidManager firstDidManager;
 
   /**
    * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
@@ -66,44 +73,41 @@ contract ServiceStorageTest is Test {
     for (uint i = 0; i < users.length; i++) {
       vm.deal(users[i], DEFAULT_USER_BALANCE);
     }
+    // Label users
+    vm.label(admin, "admin");
+    vm.label(user, "user");
+    vm.label(otherUser, "otherUser");
+    // Deploy initial state contracts
+    emptyDidManager = _deployNewDidManager();
+    vm.etch(address(101), address(emptyDidManager).code);
+    firstDidManager = IDidManager(address(101));
+    // -- first DID
+    vm.startPrank(users[0]);
+    (firstDidInfo, , , , , , ) = _createDid(
+      firstDidManager,
+      bytes32(0),
+      bytes32(0),
+      bytes32(0),
+      bytes32("random"),
+      bytes32(0)
+    );
+    vm.stopPrank();
   }
 
   //* TESTS
   function test_should_addNewService() public {
     //* 🗂️ Arrange ⬇
-    console.log("block", vm.getBlockNumber());
-    IDidManager didManager = _deployNewDidManager();
+    IDidManager didManager = firstDidManager;
+    DidInfo memory didData = firstDidInfo;
     vm.startPrank(users[0]);
-    // Create DID
-    console.log("block", vm.getBlockNumber());
-    (DidInfo memory didData, , , , , , ) = _createDid(
-      didManager,
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(uint256(uint160(msg.sender))),
-      bytes32(0)
-    );
-    vm.roll(2);
-    console.log("block", vm.getBlockNumber());
-    (DidInfo memory didData2, , , , , , ) = _createDid(
-      didManager,
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(uint256(uint160(msg.sender))),
-      bytes32(0)
-    );
-    vm.roll(3);
-    console.log("block", vm.getBlockNumber());
     // Check previous state
-    uint256 previousLength = didManager.getServiceListLength(
+    uint256 length = didManager.getServiceListLength(
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
       didData.id
     );
-    console.log("previousLength", previousLength);
+    assertEq(length, 0);
     Service memory service = didManager.getService(
       didData.method0,
       didData.method1,
@@ -112,10 +116,9 @@ contract ServiceStorageTest is Test {
       bytes32(0),
       uint8(0)
     );
-    console.logBytes32(service.id);
-    console.logBytes32(service.type_[0]);
-    console.logBytes32(service.serviceEndpoint[0]);
-    assertEq(previousLength, 0);
+    assertEq(service.id, bytes32(0));
+    assertEq(service.type_[0], bytes32(0));
+    assertEq(service.serviceEndpoint[0], bytes32(0));
     //* 🎬 Act ⬇
     // Add new service
     (
@@ -137,16 +140,42 @@ contract ServiceStorageTest is Test {
         DEFAULT_SERVICE_ENDPOINT
       );
     //* ☑️ Assert ⬇
-    uint256 finalLength = didManager.getServiceListLength(
+    // Final length
+    length = didManager.getServiceListLength(
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
       didData.id
     );
-    bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(didData.idHash, DEFAULT_SERVICE_ID));
-    bytes32 expectedPositionHash = keccak256(abi.encodePacked(didData.idHash, uint8(0)));
+    bytes32 serviceDidHash = keccak256(abi.encodePacked(didData.idHash, SERVICE_NAMESPACE));
+    bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(serviceDidHash, DEFAULT_SERVICE_ID));
+    bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(0)));
     // Check final state
-    assertEq(finalLength, 1);
+    assertEq(length, 1);
+    // -- final "first service"
+    service = didManager.getService(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(0)
+    );
+    assertEq(service.id, DEFAULT_SERVICE_ID);
+    assertEq(service.type_[0], DEFAULT_SERVICE_TYPE[0]);
+    assertEq(service.serviceEndpoint[0], DEFAULT_SERVICE_ENDPOINT[0]);
+    // -- final service by ID
+    service = didManager.getService(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      DEFAULT_SERVICE_ID,
+      uint8(0)
+    );
+    assertEq(service.id, DEFAULT_SERVICE_ID);
+    assertEq(service.type_[0], DEFAULT_SERVICE_TYPE[0]);
+    assertEq(service.serviceEndpoint[0], DEFAULT_SERVICE_ENDPOINT[0]);
     // Check Events
     // ServiceUpdated(
     //   bytes32 indexed didIdHash,
@@ -155,16 +184,15 @@ contract ServiceStorageTest is Test {
     //   bytes32 positionHash
     // );
     assertTrue(performedAction == PerformedAction.CREATEorUPDATE);
-    // assertEq(ServiceUpdated_didIdHash, didData.idHash);
-    // assertEq(ServiceUpdated_id, DEFAULT_SERVICE_ID);
-    // assertEq(ServiceUpdated_serviceIdHash, expectedServiceIdHash);
-    // assertEq(ServiceUpdated_positionHash, expectedPositionHash);
+    assertEq(ServiceUpdated_didIdHash, didData.idHash);
+    assertEq(ServiceUpdated_id, DEFAULT_SERVICE_ID);
+    assertEq(ServiceUpdated_serviceIdHash, expectedServiceIdHash);
+    assertEq(ServiceUpdated_positionHash, expectedPositionHash);
     // end
     vm.stopPrank();
   }
 
   // * Internal functions
-
   function _deployNewDidManager() internal returns (IDidManager didManager) {
     (didManager, ) = new DidManagerScript().deploy(
       DeployCommand({ storeInfo: DeploymentStoreInfo({ store: false, tag: bytes32(0) }) }),
@@ -269,6 +297,6 @@ contract ServiceStorageTest is Test {
     ServiceUpdated_didIdHash = entries[0].topics[1];
     ServiceUpdated_id = entries[0].topics[2];
     ServiceUpdated_serviceIdHash = entries[0].topics[3];
-    ServiceUpdated_positionHash = entries[0].data[0];
+    ServiceUpdated_positionHash = bytes32(entries[0].data);
   }
 }
