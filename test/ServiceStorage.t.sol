@@ -7,23 +7,7 @@ import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
 import { IDidManager } from "@src/interfaces/IDidManager.sol";
 import { ServiceStorage, Service, SERVICE_MAX_LENGTH, SERVICE_NAMESPACE } from "@src/ServiceStorage.sol";
-
-struct CreateExampleDidParams {
-  bytes32 method0;
-  bytes32 method1;
-  bytes32 method2;
-  bytes32 random;
-  bytes32 vmId;
-}
-
-struct DidInfo {
-  bytes32 method0;
-  bytes32 method1;
-  bytes32 method2;
-  bytes32 id;
-  bytes32 idHash;
-  address creator;
-}
+import { SharedTest, DidInfo } from "@test/SharedTest.sol";
 
 enum PerformedAction {
   CREATEorUPDATE,
@@ -31,16 +15,12 @@ enum PerformedAction {
   UNDEFINED
 }
 
-contract ServiceStorageTest is Test {
+contract ServiceStorageTest is SharedTest {
   //* Constants
   // General
   uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
-  uint256 private constant INIT_CONTRACTS = 10;
+  uint256 private constant INIT_CONTRACTS = 6;
   // Specific
-  bytes32 private constant DEFAULT_DID_METHOD0 = bytes32("lzpf");
-  bytes32 private constant DEFAULT_DID_METHOD1 = bytes32("main");
-  bytes32 private constant DEFAULT_DID_METHOD2 = bytes32(0);
-  bytes32 private constant DEFAULT_VM_ID = bytes32("vm-0");
   bytes32 private constant DEFAULT_SERVICE_ID = bytes32("linked-domain");
   bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_TYPE = [bytes32("LinkedDomains")];
   bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_ENDPOINT = [
@@ -57,14 +37,6 @@ contract ServiceStorageTest is Test {
   bytes32[SERVICE_MAX_LENGTH] private EMPTY_SERVICE_TYPE = [bytes32(0)];
   bytes32[SERVICE_MAX_LENGTH] private EMPTY_SERVICE_ENDPOINT = [bytes32(0)];
 
-  CreateExampleDidParams CREATE_EXAMPLE_DID_PARAMS =
-    CreateExampleDidParams(
-      bytes32("my-method0"),
-      bytes32("my-method1"),
-      bytes32("my-method2"),
-      keccak256("randomString"),
-      bytes32("verifMethod_01")
-    );
   // Variables
   // -- users
   address admin = DEFAULT_SENDER;
@@ -93,7 +65,7 @@ contract ServiceStorageTest is Test {
       IDidManager didManager = _deployNewDidManager();
       initDidManagers.push(didManager);
       vm.label(address(didManager), string(abi.encodePacked("initDidManager_", i)));
-      startHoax(user);
+      startHoax(user, DEFAULT_USER_BALANCE);
       (firstDidInfo, , , , , , ) = _createDid(
         didManager,
         bytes32(0),
@@ -111,7 +83,7 @@ contract ServiceStorageTest is Test {
     //* 🗂️ Arrange ⬇
     IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didData = firstDidInfo;
-    startHoax(user);
+    startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
     uint256 length = didManager.getServiceListLength(
       DEFAULT_DID_METHOD0,
@@ -208,7 +180,7 @@ contract ServiceStorageTest is Test {
     //* 🗂️ Arrange ⬇
     IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didData = firstDidInfo;
-    startHoax(user);
+    startHoax(user, DEFAULT_USER_BALANCE);
     // Add new service
     (
       PerformedAction performedAction,
@@ -322,7 +294,7 @@ contract ServiceStorageTest is Test {
     //* 🗂️ Arrange ⬇
     IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didData = firstDidInfo;
-    startHoax(user);
+    startHoax(user, DEFAULT_USER_BALANCE);
     // Add new service
     (
       PerformedAction performedAction,
@@ -425,59 +397,10 @@ contract ServiceStorageTest is Test {
   }
 
   // * Internal functions
-  function _deployNewDidManager() internal returns (IDidManager didManager) {
-    (didManager, ) = new DidManagerScript().deploy(
-      DeployCommand({ storeInfo: DeploymentStoreInfo({ store: false, tag: bytes32(0) }) }),
-      false
-    );
-  }
 
-  function _createDid(
-    IDidManager didManager,
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 random,
-    bytes32 vmId
-  )
-    internal
-    returns (
-      DidInfo memory didInfo,
-      bytes32 VmCreated_didIdHash,
-      bytes32 VmCreated_id,
-      bytes32 VmValidated_id,
-      bytes32 DidCreated_id,
-      bytes32 DidCreated_idHash,
-      address DidCreated_creator
-    )
-  {
-    // Event recording
-    vm.recordLogs();
-    //* Create DID call
-    didManager.createDid(method0, method1, method2, random, vmId);
-    // Get logs from previous transaction
-    Vm.Log[] memory entries = vm.getRecordedLogs();
-    // Get the event values
-    // VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed vmIdHash, bytes32 positionHash);
-    VmCreated_didIdHash = entries[0].topics[1];
-    VmCreated_id = entries[0].topics[2];
-    // VmValidated(bytes32 indexed id);
-    VmValidated_id = entries[1].topics[1];
-    // DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
-    DidCreated_id = entries[2].topics[1];
-    DidCreated_idHash = entries[2].topics[2];
-    DidCreated_creator = address(uint160(uint256((entries[2].topics[3]))));
-    // Return structured Data
-    didInfo = DidInfo({
-      method0: DEFAULT_DID_METHOD0,
-      method1: DEFAULT_DID_METHOD1,
-      method2: DEFAULT_DID_METHOD2,
-      id: DidCreated_id,
-      idHash: DidCreated_idHash,
-      creator: DidCreated_creator
-    });
-  }
-
+  /**
+   * @dev Updates a service.
+   */
   function _updateService(
     IDidManager didManager,
     bytes32 method0,

@@ -6,7 +6,7 @@ import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
 import { IDidManager, VerificationMethod } from "@src/interfaces/IDidManager.sol";
-// import { IVMStorage } from "@src/interfaces/IVMStorage.sol";
+import { SharedTest, DidInfo } from "@test/SharedTest.sol";
 
 struct CreateExampleDidParams {
   bytes32 method0;
@@ -16,16 +16,7 @@ struct CreateExampleDidParams {
   bytes32 vmId;
 }
 
-struct DidInfo {
-  bytes32 method0;
-  bytes32 method1;
-  bytes32 method2;
-  bytes32 id;
-  bytes32 idHash;
-  address creator;
-}
-
-contract DidManagerTest is Test {
+contract DidManagerTest is SharedTest {
   //* Constants
   // General
   uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
@@ -36,11 +27,7 @@ contract DidManagerTest is Test {
   bytes1 private constant VM_RELATIONSHIPS_KEY_AGREEMENT = bytes1(0x04);
   bytes1 private constant VM_RELATIONSHIPS_CAPABILITY_INVOCATION = bytes1(0x08);
   bytes1 private constant VM_RELATIONSHIPS_CAPABILITY_DELEGATION = bytes1(0x10);
-  bytes32 private constant DEFAULT_DID_METHOD0 = bytes32("lzpf");
-  bytes32 private constant DEFAULT_DID_METHOD1 = bytes32("main");
-  bytes32 private constant DEFAULT_DID_METHOD2 = bytes32(0);
-  bytes32 private constant DEFAULT_VM_ID = bytes32("vm-0");
-  CreateExampleDidParams CREATE_EXAMPLE_DID_PARAMS =
+  CreateExampleDidParams CREATE_EXAMPLE_00_DID_PARAMS =
     CreateExampleDidParams(
       bytes32("my-method0"),
       bytes32("my-method1"),
@@ -146,17 +133,17 @@ contract DidManagerTest is Test {
       bytes32 DidCreated_idHash,
       address DidCreated_creator
     ) = _createDid(
-        CREATE_EXAMPLE_DID_PARAMS.method0,
-        CREATE_EXAMPLE_DID_PARAMS.method1,
-        CREATE_EXAMPLE_DID_PARAMS.method2,
-        CREATE_EXAMPLE_DID_PARAMS.random,
-        CREATE_EXAMPLE_DID_PARAMS.vmId
+        CREATE_EXAMPLE_00_DID_PARAMS.method0,
+        CREATE_EXAMPLE_00_DID_PARAMS.method1,
+        CREATE_EXAMPLE_00_DID_PARAMS.method2,
+        CREATE_EXAMPLE_00_DID_PARAMS.random,
+        CREATE_EXAMPLE_00_DID_PARAMS.vmId
       );
     //* ☑️ Assert ⬇
     // Check Events
     // VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed vmIdHash, bytes32 positionHash);
     assertGt(uint256(VmCreated_didIdHash), uint256(100));
-    assertEq(VmCreated_id, CREATE_EXAMPLE_DID_PARAMS.vmId);
+    assertEq(VmCreated_id, CREATE_EXAMPLE_00_DID_PARAMS.vmId);
     // VmValidated(bytes32 indexed id);
     assertEq(VmCreated_id, VmValidated_id);
     // DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
@@ -166,9 +153,9 @@ contract DidManagerTest is Test {
       DidCreated_idHash,
       keccak256(
         abi.encodePacked(
-          CREATE_EXAMPLE_DID_PARAMS.method0,
-          CREATE_EXAMPLE_DID_PARAMS.method1,
-          CREATE_EXAMPLE_DID_PARAMS.method2,
+          CREATE_EXAMPLE_00_DID_PARAMS.method0,
+          CREATE_EXAMPLE_00_DID_PARAMS.method1,
+          CREATE_EXAMPLE_00_DID_PARAMS.method2,
           DidCreated_id
         )
       )
@@ -177,13 +164,13 @@ contract DidManagerTest is Test {
     assertEq(VmCreated_didIdHash, DidCreated_idHash);
     // Final state check
     VerificationMethod memory verificationMethod = didManager.getVM(
-      CREATE_EXAMPLE_DID_PARAMS.method0,
-      CREATE_EXAMPLE_DID_PARAMS.method1,
-      CREATE_EXAMPLE_DID_PARAMS.method2,
+      CREATE_EXAMPLE_00_DID_PARAMS.method0,
+      CREATE_EXAMPLE_00_DID_PARAMS.method1,
+      CREATE_EXAMPLE_00_DID_PARAMS.method2,
       DidCreated_id,
-      CREATE_EXAMPLE_DID_PARAMS.vmId
+      CREATE_EXAMPLE_00_DID_PARAMS.vmId
     );
-    assertEq(verificationMethod.id, CREATE_EXAMPLE_DID_PARAMS.vmId);
+    assertEq(verificationMethod.id, CREATE_EXAMPLE_00_DID_PARAMS.vmId);
     assertEq(verificationMethod.thisBCAddress, users[0]);
     assertEq(verificationMethod.relationships, VM_RELATIONSHIPS_AUTHENTICATION);
     assertGt(verificationMethod.expiration, block.timestamp);
