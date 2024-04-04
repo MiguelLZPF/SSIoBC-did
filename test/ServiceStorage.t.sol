@@ -27,7 +27,7 @@ struct DidInfo {
 
 enum PerformedAction {
   CREATEorUPDATE,
-  REMOVE,
+  DELETE,
   UNDEFINED
 }
 
@@ -54,6 +54,8 @@ contract ServiceStorageTest is Test {
     DEFAULT_SERVICE_ENDPOINT[0],
     bytes32("https://new.endpoint.com")
   ];
+  bytes32[SERVICE_MAX_LENGTH] private EMPTY_SERVICE_TYPE = [bytes32(0)];
+  bytes32[SERVICE_MAX_LENGTH] private EMPTY_SERVICE_ENDPOINT = [bytes32(0)];
 
   CreateExampleDidParams CREATE_EXAMPLE_DID_PARAMS =
     CreateExampleDidParams(
@@ -69,6 +71,7 @@ contract ServiceStorageTest is Test {
   address user = payable(address(10));
   address otherUser = payable(address(11));
   // -- contracts
+  uint256 lastDidManagerUsed;
   IDidManager[] initDidManagers;
   DidInfo firstDidInfo;
 
@@ -106,7 +109,7 @@ contract ServiceStorageTest is Test {
   //* TESTS
   function test_should_addNewService() public {
     //* 🗂️ Arrange ⬇
-    IDidManager didManager = initDidManagers[0];
+    IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didData = firstDidInfo;
     startHoax(user);
     // Check previous state
@@ -203,7 +206,7 @@ contract ServiceStorageTest is Test {
 
   function test_should_updateService() public {
     //* 🗂️ Arrange ⬇
-    IDidManager didManager = initDidManagers[1];
+    IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didData = firstDidInfo;
     startHoax(user);
     // Add new service
@@ -235,7 +238,7 @@ contract ServiceStorageTest is Test {
     );
     assertEq(length, 1);
     //* 🎬 Act ⬇
-    // Add new service
+    // Update service
     (
       performedAction,
       ServiceUpdated_didIdHash,
@@ -307,6 +310,112 @@ contract ServiceStorageTest is Test {
     //   bytes32 positionHash
     // );
     assertTrue(performedAction == PerformedAction.CREATEorUPDATE);
+    assertEq(ServiceUpdated_didIdHash, didData.idHash);
+    assertEq(ServiceUpdated_id, DEFAULT_SERVICE_ID);
+    assertEq(ServiceUpdated_serviceIdHash, expectedServiceIdHash);
+    assertEq(ServiceUpdated_positionHash, expectedPositionHash);
+    // end
+    vm.stopPrank();
+  }
+
+  function test_should_removeService() public {
+    //* 🗂️ Arrange ⬇
+    IDidManager didManager = _getNextInitDidManager();
+    DidInfo memory didData = firstDidInfo;
+    startHoax(user);
+    // Add new service
+    (
+      PerformedAction performedAction,
+      bytes32 ServiceUpdated_didIdHash,
+      bytes32 ServiceUpdated_id,
+      bytes32 ServiceUpdated_serviceIdHash,
+      bytes32 ServiceUpdated_positionHash
+    ) = _updateService(
+        didManager,
+        didData.method0,
+        didData.method1,
+        didData.method2,
+        didData.id,
+        DEFAULT_VM_ID,
+        didData.id,
+        DEFAULT_SERVICE_ID,
+        DEFAULT_SERVICE_TYPE,
+        DEFAULT_SERVICE_ENDPOINT
+      );
+    // Check previous state
+    assertTrue(performedAction == PerformedAction.CREATEorUPDATE);
+    uint256 length = didManager.getServiceListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    assertEq(length, 1);
+    //* 🎬 Act ⬇
+    // Delete service
+    (
+      performedAction,
+      ServiceUpdated_didIdHash,
+      ServiceUpdated_id,
+      ServiceUpdated_serviceIdHash,
+      ServiceUpdated_positionHash
+    ) = _updateService(
+      didManager,
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      DEFAULT_VM_ID,
+      didData.id,
+      DEFAULT_SERVICE_ID,
+      EMPTY_SERVICE_TYPE,
+      EMPTY_SERVICE_ENDPOINT
+    );
+    //* ☑️ Assert ⬇
+    // Final length
+    length = didManager.getServiceListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    bytes32 serviceDidHash = keccak256(abi.encodePacked(didData.idHash, SERVICE_NAMESPACE));
+    bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(serviceDidHash, DEFAULT_SERVICE_ID));
+    bytes32 expectedPositionHash = 0;
+    // Check final state
+    assertEq(length, 0);
+    // -- final "first service"
+    Service memory service = didManager.getService(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(0)
+    );
+    assertEq(service.id, bytes32(0));
+    assertEq(service.type_[0], bytes32(0));
+    assertEq(service.serviceEndpoint[0], bytes32(0));
+    // -- final service by ID
+    service = didManager.getService(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      DEFAULT_SERVICE_ID,
+      uint8(0)
+    );
+    assertEq(service.id, bytes32(0));
+    assertEq(service.type_[0], bytes32(0));
+    assertEq(service.serviceEndpoint[0], bytes32(0));
+    // Check Events
+    // ServiceUpdated(
+    //   bytes32 indexed didIdHash,
+    //   bytes32 indexed id,
+    //   bytes32 indexed serviceIdHash,
+    //   bytes32 positionHash
+    // );
+    assertTrue(performedAction == PerformedAction.DELETE);
     assertEq(ServiceUpdated_didIdHash, didData.idHash);
     assertEq(ServiceUpdated_id, DEFAULT_SERVICE_ID);
     assertEq(ServiceUpdated_serviceIdHash, expectedServiceIdHash);
@@ -408,7 +517,7 @@ contract ServiceStorageTest is Test {
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Induce performed action
     performedAction = entries.length == 1 ? PerformedAction.CREATEorUPDATE : entries.length == 2
-      ? PerformedAction.REMOVE
+      ? PerformedAction.DELETE
       : PerformedAction.UNDEFINED;
     // Get the event values
     // ServiceUpdated(
@@ -421,5 +530,15 @@ contract ServiceStorageTest is Test {
     ServiceUpdated_id = entries[0].topics[2];
     ServiceUpdated_serviceIdHash = entries[0].topics[3];
     ServiceUpdated_positionHash = bytes32(entries[0].data);
+  }
+
+  /**
+   * @dev Retrieves the next initialized DidManager contract.
+   * @return didManager The next initialized DidManager contract.
+   */
+  function _getNextInitDidManager() internal returns (IDidManager didManager) {
+    didManager = initDidManagers[lastDidManagerUsed];
+    lastDidManagerUsed++;
+    return didManager;
   }
 }
