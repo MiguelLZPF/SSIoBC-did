@@ -34,6 +34,8 @@ bytes32 constant METHOD2 = bytes32(0); // not used by default
 uint constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
 uint8 constant CONTROLLERS_MAX_LENGTH = 5;
 
+string constant REVERT_NOT_CONTROLLER = "Not a controller for target";
+
 /**
  * @title IDidManager
  * @dev Interface for managing Decentralized Identifiers (DIDs).
@@ -145,9 +147,9 @@ interface IDidManager {
    * @param method0 The first method component of the DIDs.
    * @param method1 (optional) The second method component of the DIDs.
    * @param method2 (optional) The third method component of the DIDs.
-   * @param fromId The unique identifier of the sender's DID.
-   * @param fromVmId The unique identifier of the sender's VM.
-   * @param toId The unique identifier of the new to's DID to be modified.
+   * @param senderId The unique identifier of the sender's DID.
+   * @param senderVmId The unique identifier of the sender's VM.
+   * @param targetId The unique identifier of the new target's DID to be modified.
    * @param controllerId The unique identifier of the new controller's DID.
    * @param controllerVmId (optional) The unique identifier of the new controller's VM.
    * @param controllerPosition The position of the new controller's VM. If greater than CONTROLLER_MAX_LENGTH, it will overwrite the last controller.
@@ -156,9 +158,9 @@ interface IDidManager {
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
-    bytes32 fromId,
-    bytes32 fromVmId,
-    bytes32 toId,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
     bytes32 controllerId,
     bytes32 controllerVmId,
     uint8 controllerPosition
@@ -225,7 +227,9 @@ interface IDidManager {
    * @param method0 The first method of the service.
    * @param method1 The second method of the service.
    * @param method2 The third method of the service.
-   * @param id The ID associated with the service.
+   * @param senderId The unique identifier of the sender's DID.
+   * @param senderVmId The unique identifier of the sender's VM.
+   * @param targetId The unique identifier of the new target's DID to be modified.
    * @param serviceId The service ID.
    * @param type_ An array of service types.
    * @param serviceEndpoint An array of service endpoints.
@@ -234,7 +238,9 @@ interface IDidManager {
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
-    bytes32 id,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
     bytes32 serviceId,
     bytes32[SERVICE_MAX_LENGTH] memory type_,
     bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint

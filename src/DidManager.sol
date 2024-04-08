@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManager, Controller, CreateVmCommand as DidCreateVmCommand, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "src/interfaces/IDidManager.sol";
+import { IDidManager, Controller, CreateVmCommand as DidCreateVmCommand, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH, REVERT_NOT_CONTROLLER } from "src/interfaces/IDidManager.sol";
 import { VMStorage, VerificationMethod, CreateVmCommand } from "src/VMStorage.sol";
 import { ServiceStorage, Service, SERVICE_MAX_LENGTH } from "src/ServiceStorage.sol";
 
@@ -104,18 +104,20 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     require(command.method0 != bytes32(0), "Method0 cannot be 0");
     require(command.senderId != bytes32(0) || command.targetId != bytes32(0), "DID cannot be 0");
     //* Implementation
-    bytes32 senderIdHash = keccak256(
-      abi.encodePacked(command.method0, command.method1, command.method2, command.senderId)
-    );
-    bytes32 targetIdHash = keccak256(
-      abi.encodePacked(command.method0, command.method1, command.method2, command.targetId)
+    (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(
+      command.method0,
+      command.method1,
+      command.method2,
+      command.senderId,
+      command.senderVmId,
+      command.targetId
     );
     require(!_isExpired(senderIdHash), "Sender DID is expired");
     require(!_isExpired(targetIdHash), "Target DID is expired");
     // Check if the sender is a controller for the target DID
     require(
-      _isControllerFor(command.senderId, command.senderVmId, targetIdHash),
-      "Not a controller for To"
+      _isControllerFor(command.senderId, command.senderVmId, senderIdHash, targetIdHash),
+      REVERT_NOT_CONTROLLER
     );
     // Check if the sender is authenticated as the "from DID"
     require(
@@ -159,16 +161,14 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       "ID cannot be 0"
     );
     //* Implementation
-    // Calculate the hash of the sender and target DIDs
-    bytes32 senderIdHash = _calculateIdHash(method0, method1, method2, senderId);
-    bytes32 targetIdHash = _calculateIdHash(method0, method1, method2, targetId);
-    // Check if the DIDs are expired
-    require(!_isExpired(senderIdHash), "Sender DID expired");
-    require(!_isExpired(targetIdHash), "Target DID expired");
-    // Check if the sender is a controller for the target DID
-    require(_isControllerFor(senderId, senderVmId, targetIdHash), "Not a controller for target");
-    // Check if the sender is authenticated as the sender DID
-    require(_isAuthenticated(senderIdHash, senderVmId, msg.sender), "Not authenticated as sender");
+    (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(
+      method0,
+      method1,
+      method2,
+      senderId,
+      senderVmId,
+      targetId
+    );
     // Sender can make changes to this DID
     // If controller position is greater than MAX_LENGTH, always overwrite the last controller
     if (controllerPosition > CONTROLLERS_MAX_LENGTH - 1) {
@@ -193,15 +193,23 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
-    bytes32 id,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
     bytes32 serviceId,
     bytes32[SERVICE_MAX_LENGTH] memory type_,
     bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
   ) external {
     //* Implementation
-    bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
-    require(!_isExpired(idHash), "DID expired");
-    _updateService(idHash, serviceId, type_, serviceEndpoint);
+    (, bytes32 targetIdHash) = _validateSenderAndTarget(
+      method0,
+      method1,
+      method2,
+      senderId,
+      senderVmId,
+      targetId
+    );
+    _updateService(targetIdHash, serviceId, type_, serviceEndpoint);
   }
 
   //* View functions
@@ -298,9 +306,33 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
 
   //* Internal functions
 
+  function _validateSenderAndTarget(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId
+  ) internal view returns (bytes32 senderIdHash, bytes32 targetIdHash) {
+    // Calculate the hash of the sender and target DIDs
+    senderIdHash = _calculateIdHash(method0, method1, method2, senderId);
+    targetIdHash = _calculateIdHash(method0, method1, method2, targetId);
+    // Check if the DIDs are expired
+    require(!_isExpired(senderIdHash), "Sender DID expired");
+    require(!_isExpired(targetIdHash), "Target DID expired");
+    // Check if the sender is authenticated as the sender DID
+    require(_isAuthenticated(senderIdHash, senderVmId, msg.sender), "Not authenticated as sender");
+    // Check if the sender is a controller for the target DID
+    require(
+      _isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash),
+      REVERT_NOT_CONTROLLER
+    );
+  }
+
   function _isControllerFor(
     bytes32 senderDid,
     bytes32 senderVmId,
+    bytes32 senderIdHash,
     bytes32 targetIdHash
   ) internal view returns (bool) {
     // Copy the controllers of the target ID from storage to memory
@@ -308,7 +340,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     // Check if the controllers array is empty or matches the ID
     bool controllersIsEmpty = true;
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
-      // Check if the controller NOT empty (used)
+      // Check if the controller is not empty (used)
       if (controllers[i].id != bytes32(0)) {
         controllersIsEmpty = false;
         // Execute only if not empty
@@ -325,8 +357,8 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       }
       // check next controller
     }
-    // If the controllers array is empty, return true (controllers not used)
-    if (controllersIsEmpty) {
+    // If the controllers array is empty and the sender ID matches the target ID, return true (controllers not used)
+    if (controllersIsEmpty && senderIdHash == targetIdHash) {
       return true;
     }
     // If the controllers array is not empty and the sender is not a controller, return false

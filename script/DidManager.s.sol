@@ -20,20 +20,29 @@ contract DidManagerScript is Script {
 
   function deploy(
     bool store,
-    string calldata tag
+    string calldata tag,
+    bool broadcast
   ) external returns (DidManager storage_, Deployment memory deployment) {
     bytes32 tag_ = bytes32(bytes(tag));
     return
-      this.deploy(DeployCommand({ storeInfo: DeploymentStoreInfo({ store: store, tag: tag_ }) }));
+      this.deploy(
+        DeployCommand({ storeInfo: DeploymentStoreInfo({ store: store, tag: tag_ }) }),
+        broadcast
+      );
   }
 
   function deploy(
-    DeployCommand memory command
+    DeployCommand memory command,
+    bool broadcast
   ) external returns (DidManager storage_, Deployment memory deployment) {
     // Only thing that is executed in the blockchain
-    vm.startBroadcast();
-    storage_ = new DidManager();
-    vm.stopBroadcast();
+    if (broadcast) {
+      vm.startBroadcast();
+      storage_ = new DidManager();
+      vm.stopBroadcast();
+    } else {
+      storage_ = new DidManager();
+    }
     // Generate deployment data
     deployment = Deployment({
       bytecodeHash: keccak256(vm.getCode(CONTRACT_FILE_NAME)),
