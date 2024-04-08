@@ -15,6 +15,13 @@ import { HashBasedList } from "@lib/hash-based-list/src/HashBasedList.sol";
 uint8 constant SERVICE_MAX_LENGTH = 20;
 bytes32 constant SERVICE_NAMESPACE = bytes32("service");
 
+string constant REVERT_EMPTY_DID_HASH = "DID hash cannot be 0";
+string constant REVERT_EMPTY_ID = "ID cannot be 0";
+string constant REVERT_EMPTY_TYPE = "Type cannot be 0";
+string constant REVERT_EMPTY_ENDPOINT = "Endpoint cannot be 0";
+
+error EmptyDIDHash();
+
 struct Service {
   bytes32 id;
   bytes32[SERVICE_MAX_LENGTH] type_;
@@ -57,8 +64,8 @@ abstract contract ServiceStorage is HashBasedList {
   ) internal {
     bytes32 serviceDidHash = _addServiceNameSpace(didHash);
     // Check parameters
-    require(didHash != bytes32(0), "1st param required"); // "DID hash cannot be 0"
-    require(id != bytes32(0), "2nd param required"); // "ID cannot be 0"
+    // require(didHash != bytes32(0), REVERT_EMPTY_DID_HASH); //! Unreachable code
+    require(id != bytes32(0), REVERT_EMPTY_ID);
     // Get service
     (bytes32 idHash, bytes32 positionHash, uint8 position) = _calculateHashes(serviceDidHash, id);
     Service memory service = _service[positionHash];
@@ -83,8 +90,8 @@ abstract contract ServiceStorage is HashBasedList {
       return;
     }
     // Check both are defined before updating (or create)
-    require(type_[0] != bytes32(0), "3rd param required"); // "Type cannot be 0"
-    require(serviceEndpoint[0] != bytes32(0), "4th param required"); // "Service endpoint cannot be 0"
+    require(type_[0] != bytes32(0), REVERT_EMPTY_TYPE);
+    require(serviceEndpoint[0] != bytes32(0), REVERT_EMPTY_ENDPOINT);
     // Store the service
     _service[positionHash] = Service(id, type_, serviceEndpoint);
     // Only if the service is new, update the service list length and position by ID

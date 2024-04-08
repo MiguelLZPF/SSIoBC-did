@@ -9,3 +9,4 @@ overrides:
       useTabs: false
       singleQuote: false
       bracketSpacing: true
+      proseWrap: "always"

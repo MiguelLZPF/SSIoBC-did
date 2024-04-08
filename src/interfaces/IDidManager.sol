@@ -34,6 +34,8 @@ bytes32 constant METHOD2 = bytes32(0); // not used by default
 uint constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
 uint8 constant CONTROLLERS_MAX_LENGTH = 5;
 
+string constant REVERT_NOT_CONTROLLER = "Not a controller for target";
+
 /**
  * @title IDidManager
  * @dev Interface for managing Decentralized Identifiers (DIDs).
