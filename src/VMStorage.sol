@@ -39,13 +39,13 @@ abstract contract VMStorage is HashBasedList {
    * @dev Emitted when a new Verification Method (VM) is created for a DID.
    * @param didIdHash The unique identifier of the DID.
    * @param id The unique identifier of the VM.
-   * @param vmIdHash The unique identifier hash of the VM.
+   * @param idHash The unique identifier hash of the VM.
    * @param positionHash The hash of the position of the VM.
    */
   event VmCreated(
     bytes32 indexed didIdHash,
     bytes32 indexed id,
-    bytes32 indexed vmIdHash,
+    bytes32 indexed idHash,
     bytes32 positionHash
   );
 
@@ -66,7 +66,7 @@ abstract contract VMStorage is HashBasedList {
    */
   function _createVM(
     CreateVmCommand memory command
-  ) internal returns (bytes32 vmIdHash, bytes32 positionHash) {
+  ) internal returns (bytes32 idHash, bytes32 positionHash) {
     //* Params validation
     // Required
     require(command.didHash != bytes32(0), "1st param required"); // "DID hash cannot be 0"
@@ -93,7 +93,7 @@ abstract contract VMStorage is HashBasedList {
     //* Implementation
     // vmIdHash = keccak256(abi.encodePacked(didHash, id));
     // positionHash = keccak256(abi.encodePacked(didHash, _vmLength[didHash]));
-    (vmIdHash, positionHash, ) = _calculateHashes(command.didHash, command.id);
+    (idHash, positionHash, ) = _calculateHashes(command.didHash, command.id);
     VerificationMethod storage vm = _vm[positionHash];
     require(vm.id == bytes32(0), "VM already exists");
     // Store VM
@@ -107,8 +107,8 @@ abstract contract VMStorage is HashBasedList {
     // Mappings
     _addHbl(command.didHash, command.id);
     //Event
-    emit VmCreated(command.didHash, command.id, vmIdHash, positionHash);
-    return (vmIdHash, positionHash);
+    emit VmCreated(command.didHash, command.id, idHash, positionHash);
+    return (idHash, positionHash);
   }
 
   /**
@@ -155,12 +155,17 @@ abstract contract VMStorage is HashBasedList {
    * @dev Retrieves a specific verification method (VM) associated with a given DID hash and VM ID.
    * @param didHash The hash of the decentralized identifier (DID).
    * @param id The identifier of the verification method (VM).
+   * @param position The position of the verification method in the array.
    * @return vm The VerificationMethod struct representing the VM.
    */
   function _getVM(
     bytes32 didHash,
-    bytes32 id
+    bytes32 id,
+    uint8 position
   ) internal view returns (VerificationMethod memory vm) {
+    if (id == bytes32(0)) {
+      return _vm[_calculatePositionHash(didHash, position)];
+    }
     bytes32 positionHash = _calculatePositionHash(didHash, id);
     return _vm[positionHash];
   }

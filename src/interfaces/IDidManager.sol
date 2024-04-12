@@ -197,6 +197,7 @@ interface IDidManager {
    * @param method2 The third method identifier.
    * @param id The ID.
    * @param vmId The VM ID.
+   * @param position The position of the Verification Method in the array.
    * @return vm The Verification Method.
    */
   function getVM(
@@ -204,7 +205,8 @@ interface IDidManager {
     bytes32 method1,
     bytes32 method2,
     bytes32 id,
-    bytes32 vmId
+    bytes32 vmId,
+    uint8 position
   ) external view returns (VerificationMethod memory vm);
 
   /**

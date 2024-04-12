@@ -108,7 +108,8 @@ contract DidManagerTest is SharedTest {
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
       DidCreated_id,
-      DEFAULT_VM_ID
+      DEFAULT_VM_ID,
+      uint8(0)
     );
     assertEq(verificationMethod.id, DEFAULT_VM_ID);
     assertEq(verificationMethod.thisBCAddress, users[0]);
@@ -168,7 +169,8 @@ contract DidManagerTest is SharedTest {
       CREATE_EXAMPLE_00_DID_PARAMS.method1,
       CREATE_EXAMPLE_00_DID_PARAMS.method2,
       DidCreated_id,
-      CREATE_EXAMPLE_00_DID_PARAMS.vmId
+      CREATE_EXAMPLE_00_DID_PARAMS.vmId,
+      uint8(0)
     );
     assertEq(verificationMethod.id, CREATE_EXAMPLE_00_DID_PARAMS.vmId);
     assertEq(verificationMethod.thisBCAddress, users[0]);

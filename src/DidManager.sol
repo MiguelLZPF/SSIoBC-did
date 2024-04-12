@@ -142,6 +142,31 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     _validateVM(positionHash, expiration, msg.sender);
   }
 
+  function expireVM(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes32 vmId
+  ) external {
+    //* Params validation
+    // Required
+    require(method0 != bytes32(0), "Method0 cannot be 0");
+    require(senderId != bytes32(0) && targetId != bytes32(0), "ID cannot be 0");
+    //* Implementation
+    (, bytes32 targetIdHash) = _validateSenderAndTarget(
+      method0,
+      method1,
+      method2,
+      senderId,
+      senderVmId,
+      targetId
+    );
+    _expireVM(targetIdHash, vmId);
+  }
+
   function updateController(
     bytes32 method0,
     bytes32 method1,
@@ -270,9 +295,10 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32 method1,
     bytes32 method2,
     bytes32 id,
-    bytes32 vmId
+    bytes32 vmId,
+    uint8 position
   ) external view returns (VerificationMethod memory vm) {
-    return _getVM(_calculateIdHash(method0, method1, method2, id), vmId);
+    return _getVM(_calculateIdHash(method0, method1, method2, id), vmId, position);
   }
 
   function getVmListLength(
