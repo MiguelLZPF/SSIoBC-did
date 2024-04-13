@@ -12,6 +12,8 @@ import { HashBasedList } from "@lib/hash-based-list/src/HashBasedList.sol";
 // CapabilityDelegation             => 00010000 => 0x10 => 16
 // All                              => 00011111 => 0x1F => 31
 
+bytes32 constant VM_ID = bytes32("vm-0");
+
 struct VerificationMethod {
   bytes32 id;
   bytes32[2] type_;
@@ -55,9 +57,20 @@ abstract contract VMStorage is HashBasedList {
    */
   event VmValidated(bytes32 indexed id);
   //* Storage
-  bytes32 private constant VM_ID = bytes32("vm-0");
-  bytes32 private constant VM_TYPE_0 = bytes32("EcdsaSecp256k1VerificationKey20");
-  bytes32 private constant VM_TYPE_1 = bytes32("19");
+  bytes32[2] private VM_TYPE = [bytes32("EcdsaSecp256k1VerificationKey20"), bytes32("19")];
+  string[11] private REVERTS = [
+    "DID hash cannot be 0",
+    "4th or 5th or 6th param required",
+    "VM already exists",
+    "VM not found",
+    "VM already validated",
+    "Cannot validate VM. Invalid Sign",
+    "VM ID cannot be 0",
+    "Relationship cannot be 0",
+    "Invalid relationship",
+    "Invalid sender",
+    "VM expired"
+  ];
   // hash(DIDHash, position) --> VerificationMethod Details
   mapping(bytes32 => VerificationMethod) private _vm;
 
@@ -69,33 +82,35 @@ abstract contract VMStorage is HashBasedList {
   ) internal returns (bytes32 idHash, bytes32 positionHash) {
     //* Params validation
     // Required
-    require(command.didHash != bytes32(0), "1st param required"); // "DID hash cannot be 0"
+    require(command.didHash != bytes32(0), REVERTS[0]);
     require(
       command.publicKey[0] != bytes32(0) ||
         command.blockchainAccountId[0] != bytes32(0) ||
         command.thisBCAddress != address(0),
-      "4th or 5th or 6th param required" // "PublicKey or blockchainAccountId or thisBCAddress must be set"
+      REVERTS[1]
     );
     // Optional
     if (command.id == bytes32(0)) {
       command.id = VM_ID; // "vm-0"
     }
     if (command.type_[0] == bytes32(0)) {
-      command.type_ = [VM_TYPE_0, VM_TYPE_1]; // "EcdsaSecp256k1VerificationKey20", "19"
+      command.type_ = [VM_TYPE[0], VM_TYPE[1]]; // "EcdsaSecp256k1VerificationKey20", "19"
     }
     if (command.expiration == 0) {
       command.expiration = block.timestamp + 365 days;
     }
     if (command.thisBCAddress != address(0)) {
-      // Need to validate thisBCAddress
+      // Needed to validate thisBCAddress
       command.expiration = 0;
     }
     //* Implementation
-    // vmIdHash = keccak256(abi.encodePacked(didHash, id));
-    // positionHash = keccak256(abi.encodePacked(didHash, _vmLength[didHash]));
-    (idHash, positionHash, ) = _calculateHashes(command.didHash, command.id);
+    uint8 position;
+    (, , position) = _calculateHashes(command.didHash, command.id);
+    require(position == 0, REVERTS[2]);
+    // Add VM to HBL
+    (idHash, position) = _addHbl(command.didHash, command.id);
+    positionHash = _calculatePositionHash(command.didHash, position);
     VerificationMethod storage vm = _vm[positionHash];
-    require(vm.id == bytes32(0), "VM already exists");
     // Store VM
     vm.id = command.id;
     vm.type_ = command.type_;
@@ -104,8 +119,6 @@ abstract contract VMStorage is HashBasedList {
     vm.thisBCAddress = command.thisBCAddress;
     vm.relationships = command.relationships;
     vm.expiration = command.expiration;
-    // Mappings
-    _addHbl(command.didHash, command.id);
     //Event
     emit VmCreated(command.didHash, command.id, idHash, positionHash);
     return (idHash, positionHash);
@@ -130,9 +143,9 @@ abstract contract VMStorage is HashBasedList {
     }
     //* Implementation
     VerificationMethod storage vm = _vm[positionHash];
-    require(vm.id != bytes32(0), "VM not found");
-    require(vm.expiration == 0, "VM already validated");
-    require(vm.thisBCAddress == sender, "Cannot validate VM"); // This is the signature validation of the VM
+    require(vm.id != bytes32(0), REVERTS[3]);
+    require(vm.expiration == 0, REVERTS[4]);
+    require(vm.thisBCAddress == sender, REVERTS[5]); //! This is the signature validation of the VM
     vm.expiration = expiration;
     //Event
     emit VmValidated(vm.id);
@@ -147,7 +160,7 @@ abstract contract VMStorage is HashBasedList {
   function _expireVM(bytes32 didHash, bytes32 id) internal {
     bytes32 positionHash = _calculatePositionHash(didHash, id);
     VerificationMethod storage vm = _vm[positionHash];
-    require(vm.id != bytes32(0), "VM not found");
+    require(vm.id != bytes32(0), REVERTS[3]);
     vm.expiration = block.timestamp;
   }
 
@@ -219,15 +232,15 @@ abstract contract VMStorage is HashBasedList {
     bytes1 relationship,
     address sender
   ) internal view returns (bool) {
-    require(id != bytes32(0), "VM ID cannot be 0");
-    require(relationship != bytes1(0), "Relationship cannot be 0");
-    require(relationship <= bytes1(0x1F), "Invalid relationship");
-    require(sender != address(0), "Invalid sender");
+    require(id != bytes32(0), REVERTS[6]);
+    require(relationship != bytes1(0), REVERTS[7]);
+    require(relationship <= bytes1(0x1F), REVERTS[8]);
+    require(sender != address(0), REVERTS[9]);
     bytes32 positionHash = _calculatePositionHash(didHash, id);
     // Get VM
     VerificationMethod memory vm = _vm[positionHash];
     // Check if the VM exists and is not expired
-    require(vm.expiration > block.timestamp, "VM expired");
+    require(vm.expiration > block.timestamp, REVERTS[10]);
     // Check if the sender is in the VM and if the VM relationship is the same as the one provided
     if (sender != address(0)) {
       return (vm.thisBCAddress == sender && vm.relationships & relationship == relationship);

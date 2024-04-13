@@ -19,6 +19,7 @@ string constant REVERT_EMPTY_DID_HASH = "DID hash cannot be 0";
 string constant REVERT_EMPTY_ID = "ID cannot be 0";
 string constant REVERT_EMPTY_TYPE = "Type cannot be 0";
 string constant REVERT_EMPTY_ENDPOINT = "Endpoint cannot be 0";
+string constant REVERT_NOT_FOUND = "Service not found";
 
 error EmptyDIDHash();
 
@@ -68,9 +69,8 @@ abstract contract ServiceStorage is HashBasedList {
     require(id != bytes32(0), REVERT_EMPTY_ID);
     // Get service
     (bytes32 idHash, bytes32 positionHash, uint8 position) = _calculateHashes(serviceDidHash, id);
-    Service memory service = _service[positionHash];
-    //  Service.id exists and type_ and serviceEndpoint are empty ==> delete service
-    if (service.id != bytes32(0) && type_[0] == bytes32(0) && serviceEndpoint[0] == bytes32(0)) {
+    //  Service exists and type_ and serviceEndpoint are empty ==> delete service
+    if (position > 0 && type_[0] == bytes32(0) && serviceEndpoint[0] == bytes32(0)) {
       // Get latest service on array
       uint8 lastPosition = _getHblLength(serviceDidHash) - 1;
       bytes32 lastPositionHash = _calculatePositionHash(serviceDidHash, lastPosition);
@@ -92,13 +92,17 @@ abstract contract ServiceStorage is HashBasedList {
     // Check both are defined before updating (or create)
     require(type_[0] != bytes32(0), REVERT_EMPTY_TYPE);
     require(serviceEndpoint[0] != bytes32(0), REVERT_EMPTY_ENDPOINT);
-    // Store the service
-    _service[positionHash] = Service(id, type_, serviceEndpoint);
-    // Only if the service is new, update the service list length and position by ID
-    // "service" is in memory, so it is not updated in the storage
-    if (service.id == bytes32(0)) {
-      _addHbl(serviceDidHash, id);
+    if (position == 0) {
+      // Does not exist --> update service list length and position by ID
+      (idHash, position) = _addHbl(serviceDidHash, id);
+      positionHash = _calculatePositionHash(serviceDidHash, position);
     }
+    // Store the service
+    Service storage service = _service[positionHash];
+    service.id = id;
+    service.type_ = type_;
+    service.serviceEndpoint = serviceEndpoint;
+
     // Emit an event
     emit ServiceUpdated(didHash, id, idHash, positionHash);
   }

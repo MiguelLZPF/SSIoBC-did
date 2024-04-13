@@ -7,7 +7,7 @@ import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
 import { IDidManager, REVERT_NOT_CONTROLLER } from "@src/interfaces/IDidManager.sol";
 import { DidManager } from "@src/DidManager.sol";
-import { ServiceStorage, Service, SERVICE_MAX_LENGTH, SERVICE_NAMESPACE, REVERT_EMPTY_DID_HASH, REVERT_EMPTY_ID, REVERT_EMPTY_TYPE, REVERT_EMPTY_ENDPOINT } from "@src/ServiceStorage.sol";
+import { ServiceStorage, Service, SERVICE_MAX_LENGTH, SERVICE_NAMESPACE, REVERT_EMPTY_DID_HASH, REVERT_EMPTY_ID, REVERT_EMPTY_TYPE, REVERT_EMPTY_ENDPOINT, REVERT_NOT_FOUND } from "@src/ServiceStorage.sol";
 import { SharedTest, DidInfo } from "@test/SharedTest.sol";
 
 enum PerformedAction {
@@ -113,7 +113,7 @@ contract ServiceStorageTest is SharedTest {
       didData.method2,
       didData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -148,7 +148,7 @@ contract ServiceStorageTest is SharedTest {
     );
     bytes32 serviceDidHash = keccak256(abi.encodePacked(didData.idHash, SERVICE_NAMESPACE));
     bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(serviceDidHash, DEFAULT_SERVICE_ID));
-    bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(0)));
+    bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(1)));
     // Check final state
     assertEq(length, 1);
     // -- final "first service"
@@ -158,7 +158,7 @@ contract ServiceStorageTest is SharedTest {
       didData.method2,
       didData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, DEFAULT_SERVICE_ID);
     assertEq(service.type_[0], DEFAULT_SERVICE_TYPE[0]);
@@ -255,7 +255,7 @@ contract ServiceStorageTest is SharedTest {
     );
     bytes32 serviceDidHash = keccak256(abi.encodePacked(didData.idHash, SERVICE_NAMESPACE));
     bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(serviceDidHash, DEFAULT_SERVICE_ID));
-    bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(0)));
+    bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(1)));
     // Check final state
     assertEq(length, 1);
     // -- final "first service"
@@ -265,7 +265,7 @@ contract ServiceStorageTest is SharedTest {
       didData.method2,
       didData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, DEFAULT_SERVICE_ID);
     assertEq(service.type_[0], UPDATE_SERVICE_TYPE[0]);
@@ -326,7 +326,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -362,7 +362,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -404,7 +404,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -440,7 +440,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -480,7 +480,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -516,7 +516,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -556,7 +556,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -592,7 +592,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -687,7 +687,7 @@ contract ServiceStorageTest is SharedTest {
       didData.method2,
       didData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
