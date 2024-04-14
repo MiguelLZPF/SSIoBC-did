@@ -44,7 +44,7 @@ contract VMStorageTest is SharedTest {
   address otherUser = payable(address(11));
   // -- contracts
   uint256 lastDidManagerUsed;
-  IDidManager[] initDidManagers;
+  IDidManager didManager;
   DidInfo userDidInfo;
   DidInfo otherUserDidInfo;
 
@@ -58,41 +58,36 @@ contract VMStorageTest is SharedTest {
     vm.label(user, "user");
     vm.label(otherUser, "otherUser");
     // Deploy initial state contracts
-    // -- initialize N DidManagers
-    for (uint256 i = 0; i < INIT_CONTRACTS; i++) {
-      IDidManager didManager = _deployNewDidManager();
-      initDidManagers.push(didManager);
-      vm.label(address(didManager), string(abi.encodePacked("initDidManager_", vm.toString(i))));
-      // Create a DID for user
-      startHoax(user, DEFAULT_USER_BALANCE);
-      (userDidInfo, , , , , , ) = _createDid(
-        didManager,
-        bytes32(0),
-        bytes32(0),
-        bytes32(0),
-        bytes32("random0"),
-        bytes32(0)
-      );
-      vm.stopPrank();
-      // Create a DID for other user
-      startHoax(otherUser, DEFAULT_USER_BALANCE);
-      (otherUserDidInfo, , , , , , ) = _createDid(
-        didManager,
-        bytes32(0),
-        bytes32(0),
-        bytes32(0),
-        bytes32("random1"),
-        bytes32(0)
-      );
-      vm.stopPrank();
-    }
+    didManager = _deployNewDidManager();
+    vm.label(address(didManager), "initDidManager");
+    // Create a DID for user
+    startHoax(user, DEFAULT_USER_BALANCE);
+    (userDidInfo, , , , , , ) = _createDid(
+      didManager,
+      bytes32(0),
+      bytes32(0),
+      bytes32(0),
+      bytes32("random0"),
+      bytes32(0)
+    );
+    vm.stopPrank();
+    // Create a DID for other user
+    startHoax(otherUser, DEFAULT_USER_BALANCE);
+    (otherUserDidInfo, , , , , , ) = _createDid(
+      didManager,
+      bytes32(0),
+      bytes32(0),
+      bytes32(0),
+      bytes32("random1"),
+      bytes32(0)
+    );
+    vm.stopPrank();
   }
 
   //* TESTS
   // CREATE VERIFICATION METHOD
   function test_should_createNewVM() public {
     //* 🗂️ Arrange ⬇
-    IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
@@ -111,7 +106,6 @@ contract VMStorageTest is SharedTest {
       VM_ID[0],
       uint8(0)
     );
-    console.logBytes32(VM_ID[0]);
     _assertEmptyVm(verificationMethod);
     verificationMethod = didManager.getVM(
       didData.method0,
@@ -119,9 +113,8 @@ contract VMStorageTest is SharedTest {
       didData.method2,
       didData.id,
       bytes32(0),
-      uint8(1)
+      uint8(2)
     );
-    console.logBytes32(verificationMethod.id);
     _assertEmptyVm(verificationMethod);
     //* 🎬 Act ⬇
     // Add new service
@@ -138,14 +131,14 @@ contract VMStorageTest is SharedTest {
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
       DEFAULT_VM_THIS_BC_ADDRESS,
       DEFAULT_VM_RELATIONSHIPS,
-      DEFAULT_VM_EXPIRATION
+      EMPTY_VM_EXPIRATION
     );
     (
       bytes32 VmCreated_didIdHash,
       bytes32 VmCreated_id,
       bytes32 VmCreated_idHash,
       bytes32 VmCreated_positionHash
-    ) = _createVm(didManager, command);
+    ) = _createVm(command);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -154,8 +147,8 @@ contract VMStorageTest is SharedTest {
       DEFAULT_DID_METHOD2,
       didData.id
     );
-    bytes32 expectedVmIdHash = keccak256(abi.encodePacked(didData.idHash, VM_ID));
-    bytes32 expectedPositionHash = keccak256(abi.encodePacked(didData.idHash, uint8(1)));
+    bytes32 expectedVmIdHash = keccak256(abi.encodePacked(didData.idHash, VM_ID[0]));
+    bytes32 expectedPositionHash = keccak256(abi.encodePacked(didData.idHash, uint8(2)));
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
@@ -165,7 +158,7 @@ contract VMStorageTest is SharedTest {
       didData.method2,
       didData.id,
       bytes32(0),
-      uint8(1)
+      uint8(2)
     );
     _assertVm(
       verificationMethod,
@@ -750,7 +743,6 @@ contract VMStorageTest is SharedTest {
    * @dev Updates a service.
    */
   function _createVm(
-    IDidManager didManager,
     DidCreateVmCommand memory command
   )
     internal
@@ -813,15 +805,5 @@ contract VMStorageTest is SharedTest {
     assertEq(vmToCheck.thisBCAddress, expectedVM.thisBCAddress);
     assertEq(vmToCheck.relationships, expectedVM.relationships);
     assertEq(vmToCheck.expiration, expectedVM.expiration);
-  }
-
-  /**
-   * @dev Retrieves the next initialized DidManager contract.
-   * @return didManager The next initialized DidManager contract.
-   */
-  function _getNextInitDidManager() internal returns (IDidManager didManager) {
-    didManager = initDidManagers[lastDidManagerUsed];
-    lastDidManagerUsed++;
-    return didManager;
   }
 }

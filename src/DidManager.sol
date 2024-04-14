@@ -103,6 +103,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     // Required
     require(command.method0 != bytes32(0), "Method0 cannot be 0");
     require(command.senderId != bytes32(0) || command.targetId != bytes32(0), "DID cannot be 0");
+    require(command.relationships > bytes1(0), "Relationships cannot be 0");
     //* Implementation
     (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(
       command.method0,
@@ -112,8 +113,6 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       command.senderVmId,
       command.targetId
     );
-    require(!_isExpired(senderIdHash), "Sender DID is expired");
-    require(!_isExpired(targetIdHash), "Target DID is expired");
     // Check if the sender is a controller for the target DID
     require(
       _isControllerFor(command.senderId, command.senderVmId, senderIdHash, targetIdHash),
