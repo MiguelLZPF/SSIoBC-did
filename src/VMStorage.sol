@@ -158,7 +158,7 @@ abstract contract VMStorage is HashBasedList {
    * @param id The identifier of the verification method (VM) to expire.
    */
   function _expireVM(bytes32 didHash, bytes32 id) internal {
-    bytes32 positionHash = _calculatePositionHash(didHash, id);
+    (, bytes32 positionHash, ) = _calculateHashes(didHash, id);
     VerificationMethod storage vm = _vm[positionHash];
     require(vm.id != bytes32(0), REVERTS[3]);
     vm.expiration = block.timestamp;
@@ -179,7 +179,7 @@ abstract contract VMStorage is HashBasedList {
     if (id == bytes32(0)) {
       return _vm[_calculatePositionHash(didHash, position)];
     }
-    bytes32 positionHash = _calculatePositionHash(didHash, id);
+    (, bytes32 positionHash, ) = _calculateHashes(didHash, id);
     return _vm[positionHash];
   }
 
@@ -199,7 +199,7 @@ abstract contract VMStorage is HashBasedList {
    * @return exp The expiration timestamp of the VM.
    */
   function _getExpirationVM(bytes32 didHash, bytes32 id) internal view returns (uint256 exp) {
-    bytes32 positionHash = _calculatePositionHash(didHash, id);
+    (, bytes32 positionHash, ) = _calculateHashes(didHash, id);
     return _vm[positionHash].expiration;
   }
 
@@ -236,7 +236,7 @@ abstract contract VMStorage is HashBasedList {
     require(relationship != bytes1(0), REVERTS[7]);
     require(relationship <= bytes1(0x1F), REVERTS[8]);
     require(sender != address(0), REVERTS[9]);
-    bytes32 positionHash = _calculatePositionHash(didHash, id);
+    (, bytes32 positionHash, ) = _calculateHashes(didHash, id);
     // Get VM
     VerificationMethod memory vm = _vm[positionHash];
     // Check if the VM exists and is not expired
