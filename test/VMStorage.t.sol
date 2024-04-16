@@ -33,11 +33,12 @@ contract VMStorageTest is SharedTest {
     bytes32("eid155:1:0xab16a96d359ec26a11e2c"),
     bytes32("2b3d8f8b8942d5bfcdb")
   ];
-  address private constant DEFAULT_VM_THIS_BC_ADDRESS = address(666);
+  address private constant RANDOM_VM_THIS_BC_ADDRESS = address(666);
   bytes1 private constant DEFAULT_VM_RELATIONSHIPS = bytes1(0x01);
   bytes32[10] VM_ID = [bytes32("vm-create-test"), bytes32("vm-validate-test")];
   // Variables
-  uint256 DEFAULT_VM_EXPIRATION;
+  address private DEFAULT_VM_THIS_BC_ADDRESS;
+  uint256 private DEFAULT_VM_EXPIRATION;
   // -- users
   address admin = DEFAULT_SENDER;
   address user = payable(address(10));
@@ -52,6 +53,7 @@ contract VMStorageTest is SharedTest {
    * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
    */
   function setUp() public {
+    DEFAULT_VM_THIS_BC_ADDRESS = user;
     DEFAULT_VM_EXPIRATION = block.timestamp + 60; // Now + 1 minute
     // Label users
     vm.label(admin, "admin");
@@ -117,7 +119,7 @@ contract VMStorageTest is SharedTest {
     );
     _assertEmptyVm(verificationMethod);
     //* 🎬 Act ⬇
-    // Add new service
+    // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
       didData.method0,
       didData.method1,
@@ -208,539 +210,144 @@ contract VMStorageTest is SharedTest {
     vm.stopPrank();
   }
 
-  // // UPDATE SERVICE
-  // function test_should_updateService() public {
-  //   //* 🗂️ Arrange ⬇
-  //   IDidManager didManager = _getNextInitDidManager();
-  //   DidInfo memory didData = userDidInfo;
-  //   startHoax(user, DEFAULT_USER_BALANCE);
-  //   // Add new service
-  //   (
-  //     PerformedAction performedAction,
-  //     bytes32 ServiceUpdated_didIdHash,
-  //     bytes32 ServiceUpdated_id,
-  //     bytes32 ServiceUpdated_serviceIdHash,
-  //     bytes32 ServiceUpdated_positionHash
-  //   ) = _updateService(
-  //       didManager,
-  //       didData.method0,
-  //       didData.method1,
-  //       didData.method2,
-  //       didData.id,
-  //       DEFAULT_VM_ID,
-  //       didData.id,
-  //       DEFAULT_SERVICE_ID,
-  //       DEFAULT_SERVICE_TYPE,
-  //       DEFAULT_SERVICE_ENDPOINT
-  //     );
-  //   // Check previous state
-  //   assertTrue(performedAction == PerformedAction.CREATEorUPDATE);
-  //   uint256 length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didData.id
-  //   );
-  //   assertEq(length, 1);
-  //   //* 🎬 Act ⬇
-  //   // Update service
-  //   (
-  //     performedAction,
-  //     ServiceUpdated_didIdHash,
-  //     ServiceUpdated_id,
-  //     ServiceUpdated_serviceIdHash,
-  //     ServiceUpdated_positionHash
-  //   ) = _updateService(
-  //     didManager,
-  //     didData.method0,
-  //     didData.method1,
-  //     didData.method2,
-  //     didData.id,
-  //     DEFAULT_VM_ID,
-  //     didData.id,
-  //     DEFAULT_SERVICE_ID,
-  //     UPDATE_SERVICE_TYPE,
-  //     UPDATE_SERVICE_ENDPOINT
-  //   );
-  //   //* ☑️ Assert ⬇
-  //   // Final length
-  //   length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didData.id
-  //   );
-  //   bytes32 serviceDidHash = keccak256(abi.encodePacked(didData.idHash, SERVICE_NAMESPACE));
-  //   bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(serviceDidHash, DEFAULT_SERVICE_ID));
-  //   bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(0)));
-  //   // Check final state
-  //   assertEq(length, 1);
-  //   // -- final "first service"
-  //   Service memory service = didManager.getService(
-  //     didData.method0,
-  //     didData.method1,
-  //     didData.method2,
-  //     didData.id,
-  //     bytes32(0),
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, DEFAULT_SERVICE_ID);
-  //   assertEq(service.type_[0], UPDATE_SERVICE_TYPE[0]);
-  //   assertEq(service.type_[1], UPDATE_SERVICE_TYPE[1]);
-  //   assertEq(service.type_[2], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], UPDATE_SERVICE_ENDPOINT[0]);
-  //   assertEq(service.serviceEndpoint[1], UPDATE_SERVICE_ENDPOINT[1]);
-  //   assertEq(service.serviceEndpoint[2], bytes32(0));
-  //   // -- final service by ID
-  //   service = didManager.getService(
-  //     didData.method0,
-  //     didData.method1,
-  //     didData.method2,
-  //     didData.id,
-  //     DEFAULT_SERVICE_ID,
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, DEFAULT_SERVICE_ID);
-  //   assertEq(service.type_[0], UPDATE_SERVICE_TYPE[0]);
-  //   assertEq(service.type_[1], UPDATE_SERVICE_TYPE[1]);
-  //   assertEq(service.type_[2], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], UPDATE_SERVICE_ENDPOINT[0]);
-  //   assertEq(service.serviceEndpoint[1], UPDATE_SERVICE_ENDPOINT[1]);
-  //   assertEq(service.serviceEndpoint[2], bytes32(0));
-  //   // Check Events
-  //   // ServiceUpdated(
-  //   //   bytes32 indexed didIdHash,
-  //   //   bytes32 indexed id,
-  //   //   bytes32 indexed serviceIdHash,
-  //   //   bytes32 positionHash
-  //   // );
-  //   assertTrue(performedAction == PerformedAction.CREATEorUPDATE);
-  //   assertEq(ServiceUpdated_didIdHash, didData.idHash);
-  //   assertEq(ServiceUpdated_id, DEFAULT_SERVICE_ID);
-  //   assertEq(ServiceUpdated_serviceIdHash, expectedServiceIdHash);
-  //   assertEq(ServiceUpdated_positionHash, expectedPositionHash);
-  //   // end
-  //   vm.stopPrank();
-  // }
-
-  // function test_shouldNot_updateService_notInControl() public {
-  //   //* 🗂️ Arrange ⬇
-  //   IDidManager didManager = _getNextInitDidManager();
-  //   DidInfo memory didUserData = userDidInfo;
-  //   DidInfo memory didOtherData = otherUserDidInfo;
-  //   startHoax(otherUser, DEFAULT_USER_BALANCE);
-  //   // Check previous state
-  //   uint256 length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didUserData.id
-  //   );
-  //   assertEq(length, 0);
-  //   Service memory service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     bytes32(0),
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   //* 🎬 Act ⬇
-  //   vm.expectRevert(bytes(REVERT_NOT_CONTROLLER));
-  //   // Add new service from other user
-  //   didManager.updateService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didOtherData.id,
-  //     DEFAULT_VM_ID,
-  //     didUserData.id,
-  //     DEFAULT_SERVICE_ID,
-  //     DEFAULT_SERVICE_TYPE,
-  //     DEFAULT_SERVICE_ENDPOINT
-  //   );
-  //   //* ☑️ Assert ⬇
-  //   // Final length
-  //   length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didUserData.id
-  //   );
-  //   // Check final state
-  //   assertEq(length, 0);
-  //   // -- final "first service"
-  //   service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     bytes32(0),
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   // -- final service by ID
-  //   service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     DEFAULT_SERVICE_ID,
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   // end
-  //   vm.stopPrank();
-  // }
-
-  // // function test_shouldNot_updateService_emptyDidHash() public //! Not possible to test
-
-  // function test_shouldNot_updateService_emptyId() public {
-  //   //* 🗂️ Arrange ⬇
-  //   IDidManager didManager = _getNextInitDidManager();
-  //   DidInfo memory didUserData = userDidInfo;
-  //   startHoax(user, DEFAULT_USER_BALANCE);
-  //   // Check previous state
-  //   uint256 length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didUserData.id
-  //   );
-  //   assertEq(length, 0);
-  //   Service memory service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     bytes32(0),
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   //* 🎬 Act ⬇
-  //   vm.expectRevert(bytes(REVERT_EMPTY_ID));
-  //   // Add new service from other user
-  //   didManager.updateService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     DEFAULT_VM_ID,
-  //     didUserData.id,
-  //     bytes32(0), //! <---- empty ID
-  //     DEFAULT_SERVICE_TYPE,
-  //     DEFAULT_SERVICE_ENDPOINT
-  //   );
-  //   //* ☑️ Assert ⬇
-  //   // Final length
-  //   length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didUserData.id
-  //   );
-  //   // Check final state
-  //   assertEq(length, 0);
-  //   // -- final "first service"
-  //   service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     bytes32(0),
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   // -- final service by ID
-  //   service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     bytes32(0),
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   // end
-  //   vm.stopPrank();
-  // }
-
-  // function test_shouldNot_updateService_emptyType() public {
-  //   //* 🗂️ Arrange ⬇
-  //   IDidManager didManager = _getNextInitDidManager();
-  //   DidInfo memory didUserData = userDidInfo;
-  //   startHoax(user, DEFAULT_USER_BALANCE);
-  //   // Check previous state
-  //   uint256 length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didUserData.id
-  //   );
-  //   assertEq(length, 0);
-  //   Service memory service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     bytes32(0),
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   //* 🎬 Act ⬇
-  //   vm.expectRevert(bytes(REVERT_EMPTY_TYPE));
-  //   // Add new service from other user
-  //   didManager.updateService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     DEFAULT_VM_ID,
-  //     didUserData.id,
-  //     DEFAULT_SERVICE_ID,
-  //     EMPTY_SERVICE_TYPE, //! <---- empty type
-  //     DEFAULT_SERVICE_ENDPOINT
-  //   );
-  //   //* ☑️ Assert ⬇
-  //   // Final length
-  //   length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didUserData.id
-  //   );
-  //   // Check final state
-  //   assertEq(length, 0);
-  //   // -- final "first service"
-  //   service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     bytes32(0),
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   // -- final service by ID
-  //   service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     DEFAULT_SERVICE_ID,
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   // end
-  //   vm.stopPrank();
-  // }
-
-  // function test_shouldNot_updateService_emptyEndpoint() public {
-  //   //* 🗂️ Arrange ⬇
-  //   IDidManager didManager = _getNextInitDidManager();
-  //   DidInfo memory didUserData = userDidInfo;
-  //   startHoax(user, DEFAULT_USER_BALANCE);
-  //   // Check previous state
-  //   uint256 length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didUserData.id
-  //   );
-  //   assertEq(length, 0);
-  //   Service memory service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     bytes32(0),
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   //* 🎬 Act ⬇
-  //   vm.expectRevert(bytes(REVERT_EMPTY_ENDPOINT));
-  //   // Add new service from other user
-  //   didManager.updateService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     DEFAULT_VM_ID,
-  //     didUserData.id,
-  //     DEFAULT_SERVICE_ID,
-  //     DEFAULT_SERVICE_TYPE,
-  //     EMPTY_SERVICE_ENDPOINT //! <---- empty endpoint
-  //   );
-  //   //* ☑️ Assert ⬇
-  //   // Final length
-  //   length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didUserData.id
-  //   );
-  //   // Check final state
-  //   assertEq(length, 0);
-  //   // -- final "first service"
-  //   service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     bytes32(0),
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   // -- final service by ID
-  //   service = didManager.getService(
-  //     didUserData.method0,
-  //     didUserData.method1,
-  //     didUserData.method2,
-  //     didUserData.id,
-  //     DEFAULT_SERVICE_ID,
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   // end
-  //   vm.stopPrank();
-  // }
-
-  // // REMOVE SERVICE
-  // function test_should_removeService() public {
-  //   //* 🗂️ Arrange ⬇
-  //   IDidManager didManager = _getNextInitDidManager();
-  //   DidInfo memory didData = userDidInfo;
-  //   startHoax(user, DEFAULT_USER_BALANCE);
-  //   // Add new service
-  //   (
-  //     PerformedAction performedAction,
-  //     bytes32 ServiceUpdated_didIdHash,
-  //     bytes32 ServiceUpdated_id,
-  //     bytes32 ServiceUpdated_serviceIdHash,
-  //     bytes32 ServiceUpdated_positionHash
-  //   ) = _updateService(
-  //       didManager,
-  //       didData.method0,
-  //       didData.method1,
-  //       didData.method2,
-  //       didData.id,
-  //       DEFAULT_VM_ID,
-  //       didData.id,
-  //       DEFAULT_SERVICE_ID,
-  //       DEFAULT_SERVICE_TYPE,
-  //       DEFAULT_SERVICE_ENDPOINT
-  //     );
-  //   // Check previous state
-  //   assertTrue(performedAction == PerformedAction.CREATEorUPDATE);
-  //   uint256 length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didData.id
-  //   );
-  //   assertEq(length, 1);
-  //   //* 🎬 Act ⬇
-  //   // Delete service
-  //   (
-  //     performedAction,
-  //     ServiceUpdated_didIdHash,
-  //     ServiceUpdated_id,
-  //     ServiceUpdated_serviceIdHash,
-  //     ServiceUpdated_positionHash
-  //   ) = _updateService(
-  //     didManager,
-  //     didData.method0,
-  //     didData.method1,
-  //     didData.method2,
-  //     didData.id,
-  //     DEFAULT_VM_ID,
-  //     didData.id,
-  //     DEFAULT_SERVICE_ID,
-  //     EMPTY_SERVICE_TYPE,
-  //     EMPTY_SERVICE_ENDPOINT
-  //   );
-  //   //* ☑️ Assert ⬇
-  //   // Final length
-  //   length = didManager.getServiceListLength(
-  //     DEFAULT_DID_METHOD0,
-  //     DEFAULT_DID_METHOD1,
-  //     DEFAULT_DID_METHOD2,
-  //     didData.id
-  //   );
-  //   bytes32 serviceDidHash = keccak256(abi.encodePacked(didData.idHash, SERVICE_NAMESPACE));
-  //   bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(serviceDidHash, DEFAULT_SERVICE_ID));
-  //   bytes32 expectedPositionHash = 0;
-  //   // Check final state
-  //   assertEq(length, 0);
-  //   // -- final "first service"
-  //   Service memory service = didManager.getService(
-  //     didData.method0,
-  //     didData.method1,
-  //     didData.method2,
-  //     didData.id,
-  //     bytes32(0),
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   // -- final service by ID
-  //   service = didManager.getService(
-  //     didData.method0,
-  //     didData.method1,
-  //     didData.method2,
-  //     didData.id,
-  //     DEFAULT_SERVICE_ID,
-  //     uint8(0)
-  //   );
-  //   assertEq(service.id, bytes32(0));
-  //   assertEq(service.type_[0], bytes32(0));
-  //   assertEq(service.serviceEndpoint[0], bytes32(0));
-  //   // Check Events
-  //   // ServiceUpdated(
-  //   //   bytes32 indexed didIdHash,
-  //   //   bytes32 indexed id,
-  //   //   bytes32 indexed serviceIdHash,
-  //   //   bytes32 positionHash
-  //   // );
-  //   assertTrue(performedAction == PerformedAction.DELETE);
-  //   assertEq(ServiceUpdated_didIdHash, didData.idHash);
-  //   assertEq(ServiceUpdated_id, DEFAULT_SERVICE_ID);
-  //   assertEq(ServiceUpdated_serviceIdHash, expectedServiceIdHash);
-  //   assertEq(ServiceUpdated_positionHash, expectedPositionHash);
-  //   // end
-  //   vm.stopPrank();
-  // }
+  // VALIDATE VERIFICATION METHOD
+  function test_should_validateVM() public {
+    //* 🗂️ Arrange ⬇
+    DidInfo memory didData = userDidInfo;
+    startHoax(user, DEFAULT_USER_BALANCE);
+    // Add new Verification Method
+    DidCreateVmCommand memory command = DidCreateVmCommand(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      DEFAULT_VM_ID,
+      didData.id,
+      VM_ID[0],
+      DEFAULT_VM_TYPE,
+      EMPTY_VM_PUBLIC_KEY,
+      EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
+      DEFAULT_VM_THIS_BC_ADDRESS,
+      DEFAULT_VM_RELATIONSHIPS,
+      EMPTY_VM_EXPIRATION
+    );
+    (, bytes32 VmCreated_id, , bytes32 VmCreated_positionHash) = _createVm(command);
+    // Check previous state
+    uint256 length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    // Should be the one by default when creating DID + the one we just added
+    assertEq(length, 2);
+    VerificationMethod memory verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      VmCreated_id,
+      uint8(0)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        command.expiration
+      )
+    );
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        command.expiration
+      )
+    );
+    //* 🎬 Act ⬇
+    // Validate Verification Method
+    bytes32 VmValidated_id = _validateVm(VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    //* ☑️ Assert ⬇
+    // Final length
+    length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    // Check final state
+    assertEq(length, 2);
+    // -- final "first vm"
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        DEFAULT_VM_EXPIRATION
+      )
+    );
+    // -- final vm by ID
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      VmValidated_id,
+      uint8(0)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        DEFAULT_VM_EXPIRATION
+      )
+    );
+    // Check Events
+    // event VmValidated(bytes32 indexed id);
+    assertEq(VmValidated_id, VM_ID[0]);
+    assertEq(VmValidated_id, VmCreated_id);
+    // end
+    vm.stopPrank();
+  }
 
   // * Internal functions
 
   /**
-   * @dev Updates a service.
+   * @dev Creates a new verification method.
    */
   function _createVm(
     DidCreateVmCommand memory command
@@ -770,6 +377,21 @@ contract VMStorageTest is SharedTest {
     VmCreated_id = entries[0].topics[2];
     VmCreated_idHash = entries[0].topics[3];
     VmCreated_positionHash = bytes32(entries[0].data);
+  }
+
+  function _validateVm(
+    bytes32 positionHash,
+    uint expiration
+  ) internal returns (bytes32 VmValidated_id) {
+    // Event recording
+    vm.recordLogs();
+    //* Update controller call
+    didManager.validateVM(positionHash, expiration);
+    // Get logs from previous transaction
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    // Get the event values
+    // event VmValidated(bytes32 indexed id);
+    VmValidated_id = entries[0].topics[1];
   }
 
   function _assertEmptyVm(VerificationMethod memory verificationMethod) internal {
