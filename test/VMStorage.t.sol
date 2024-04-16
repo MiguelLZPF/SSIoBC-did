@@ -88,7 +88,7 @@ contract VMStorageTest is SharedTest {
 
   //* TESTS
   // CREATE VERIFICATION METHOD
-  function test_should_createNewVM() public {
+  function test_should_createVm() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
@@ -211,7 +211,7 @@ contract VMStorageTest is SharedTest {
   }
 
   // VALIDATE VERIFICATION METHOD
-  function test_should_validateVM() public {
+  function test_should_validateVm() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
@@ -344,6 +344,161 @@ contract VMStorageTest is SharedTest {
     vm.stopPrank();
   }
 
+  // VALIDATE VERIFICATION METHOD
+  function test_should_expireVm() public {
+    //* 🗂️ Arrange ⬇
+    DidInfo memory didData = userDidInfo;
+    startHoax(user, DEFAULT_USER_BALANCE);
+    // Add new Verification Method
+    DidCreateVmCommand memory command = DidCreateVmCommand(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      DEFAULT_VM_ID,
+      didData.id,
+      VM_ID[0],
+      DEFAULT_VM_TYPE,
+      EMPTY_VM_PUBLIC_KEY,
+      EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
+      DEFAULT_VM_THIS_BC_ADDRESS,
+      DEFAULT_VM_RELATIONSHIPS,
+      EMPTY_VM_EXPIRATION
+    );
+    (, bytes32 VmCreated_id, , bytes32 VmCreated_positionHash) = _createVm(command);
+    _validateVm(VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    // Check previous state
+    uint256 length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    // Should be the one by default when creating DID + the one we just added
+    assertEq(length, 2);
+    VerificationMethod memory verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      VmCreated_id,
+      uint8(0)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        DEFAULT_VM_EXPIRATION
+      )
+    );
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        DEFAULT_VM_EXPIRATION
+      )
+    );
+    //* 🎬 Act ⬇
+    // Validate Verification Method
+    (
+      bytes32 VmExpirationUpdated_didIdHash,
+      bytes32 VmExpirationUpdated_id,
+      bool VmExpirationUpdated_expired,
+      uint256 VmExpirationUpdated_expiration
+    ) = _expireVm(
+        didData.method0,
+        didData.method1,
+        didData.method2,
+        didData.id, // sender ID
+        DEFAULT_VM_ID, // sender VM ID
+        command.targetId, // target ID
+        command.vmId // VM ID to expire
+      );
+    //* ☑️ Assert ⬇
+    // Final length
+    length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    // Check final state
+    assertEq(length, 2);
+    // -- final "first vm"
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        VmExpirationUpdated_expiration
+      )
+    );
+    // -- final vm by ID
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      VmCreated_id,
+      uint8(0)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        VmExpirationUpdated_expiration
+      )
+    );
+    // Check Events
+    // event VmExpirationUpdated(
+    //   bytes32 indexed didIdHash,
+    //   bytes32 indexed id,
+    //   bool indexed expired,
+    //   uint256 expiration
+    // );
+    assertEq(VmExpirationUpdated_didIdHash, didData.idHash);
+    assertEq(VmExpirationUpdated_id, command.vmId);
+    assertEq(VmExpirationUpdated_expired, true);
+    assertEq(VmExpirationUpdated_expiration, block.timestamp);
+    // end
+    vm.stopPrank();
+  }
+
   // * Internal functions
 
   /**
@@ -392,6 +547,42 @@ contract VMStorageTest is SharedTest {
     // Get the event values
     // event VmValidated(bytes32 indexed id);
     VmValidated_id = entries[0].topics[1];
+  }
+
+  function _expireVm(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes32 vmId
+  )
+    private
+    returns (
+      bytes32 VmExpirationUpdated_didIdHash,
+      bytes32 VmExpirationUpdated_id,
+      bool VmExpirationUpdated_expired,
+      uint256 VmExpirationUpdated_expiration
+    )
+  {
+    // Event recording
+    vm.recordLogs();
+    //* Update controller call
+    didManager.expireVM(method0, method1, method2, senderId, senderVmId, targetId, vmId);
+    // Get logs from previous transaction
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    // Get the event values
+    // event VmExpirationUpdated(
+    //   bytes32 indexed didIdHash,
+    //   bytes32 indexed id,
+    //   bool indexed expired,
+    //   uint256 expiration
+    // );
+    VmExpirationUpdated_didIdHash = entries[0].topics[1];
+    VmExpirationUpdated_id = entries[0].topics[2];
+    VmExpirationUpdated_expired = entries[0].topics[3] != bytes32(0);
+    VmExpirationUpdated_expiration = uint256(bytes32(entries[0].data));
   }
 
   function _assertEmptyVm(VerificationMethod memory verificationMethod) internal {

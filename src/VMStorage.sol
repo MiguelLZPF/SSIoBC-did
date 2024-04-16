@@ -56,6 +56,20 @@ abstract contract VMStorage is HashBasedList {
    * @param id The unique identifier of the VM.
    */
   event VmValidated(bytes32 indexed id);
+
+  /**
+   * @dev Emitted when the expiration status of a VM is updated.
+   * @param didIdHash The unique identifier of the DID.
+   * @param id The unique identifier of the VM.
+   * @param expired The new expiration status of the VM.
+   * @param expiration The new expiration timestamp of the VM.
+   */
+  event VmExpirationUpdated(
+    bytes32 indexed didIdHash,
+    bytes32 indexed id,
+    bool indexed expired,
+    uint256 expiration
+  );
   //* Storage
   bytes32[2] private VM_TYPE = [bytes32("EcdsaSecp256k1VerificationKey20"), bytes32("19")];
   // hash(DIDHash, position) --> VerificationMethod Details
@@ -149,6 +163,7 @@ abstract contract VMStorage is HashBasedList {
     VerificationMethod storage vm = _vm[positionHash];
     require(vm.id != bytes32(0), "VM not found");
     vm.expiration = block.timestamp;
+    emit VmExpirationUpdated(didHash, id, vm.expiration <= block.timestamp, vm.expiration);
   }
 
   /**

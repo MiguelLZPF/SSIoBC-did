@@ -88,6 +88,26 @@ interface IDidManager {
   ) external;
 
   /**
+   * @dev Expires a Verification Method (VM).
+   * @param method0 The first method component of the DID.
+   * @param method1 (optional) The second method component of the DID.
+   * @param method2 (optional) The third method component of the DID.
+   * @param senderId The ID of the sender.
+   * @param senderVmId The ID of the sender's Verification Method.
+   * @param targetId The ID of the target.
+   * @param vmId The ID of the Verification Method to expire.
+   */
+  function expireVM(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes32 vmId
+  ) external;
+
+  /**
    * @dev Returns the expiration timestamp for a given DID or VM ID.
    * @param method0 The first method identifier.
    * @param method1 The second method identifier.
