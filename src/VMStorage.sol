@@ -83,7 +83,7 @@ abstract contract VMStorage is HashBasedList {
   ) internal returns (bytes32 idHash, bytes32 positionHash) {
     //* Params validation
     // Required
-    require(command.didHash != bytes32(0), "DID hash cannot be 0");
+    // require(command.didHash != bytes32(0), "DID hash required"); //! Unreachable code
     require(
       command.publicKey[0] != bytes32(0) ||
         command.blockchainAccountId[0] != bytes32(0) ||

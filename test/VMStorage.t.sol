@@ -88,7 +88,7 @@ contract VMStorageTest is SharedTest {
 
   //* TESTS
   // CREATE VERIFICATION METHOD
-  function test_should_createVm() public {
+  function test_should_createVmWithDefaults() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
@@ -206,6 +206,455 @@ contract VMStorageTest is SharedTest {
     assertEq(VmCreated_id, command.vmId);
     assertEq(VmCreated_idHash, expectedVmIdHash);
     assertEq(VmCreated_positionHash, expectedPositionHash);
+    // end
+    vm.stopPrank();
+  }
+
+  function test_should_createVmWithPublicKey() public {
+    //* 🗂️ Arrange ⬇
+    DidInfo memory didData = userDidInfo;
+    startHoax(user, DEFAULT_USER_BALANCE);
+    // Check previous state
+    uint256 length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    assertEq(length, 1);
+    VerificationMethod memory verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      VM_ID[0],
+      uint8(0)
+    );
+    _assertEmptyVm(verificationMethod);
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertEmptyVm(verificationMethod);
+    //* 🎬 Act ⬇
+    // Add new Verification Method
+    DidCreateVmCommand memory command = DidCreateVmCommand(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      DEFAULT_VM_ID,
+      didData.id,
+      VM_ID[0],
+      DEFAULT_VM_TYPE,
+      DEFAULT_VM_PUBLIC_KEY, // ! <== Public Key
+      EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID, // * <-- important
+      EMPTY_VM_THIS_BC_ADDRESS, // * <-- important
+      DEFAULT_VM_RELATIONSHIPS,
+      DEFAULT_VM_EXPIRATION // * <-- important
+    );
+    (
+      bytes32 VmCreated_didIdHash,
+      bytes32 VmCreated_id,
+      bytes32 VmCreated_idHash,
+      bytes32 VmCreated_positionHash
+    ) = _createVm(command);
+    //* ☑️ Assert ⬇
+    // Final length
+    length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    bytes32 expectedVmIdHash = keccak256(abi.encodePacked(didData.idHash, VM_ID[0]));
+    bytes32 expectedPositionHash = keccak256(abi.encodePacked(didData.idHash, uint8(2)));
+    // Check final state
+    assertEq(length, 2);
+    // -- final "first vm"
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        command.expiration
+      )
+    );
+    // -- final vm by ID
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      command.vmId,
+      uint8(0)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        command.expiration
+      )
+    );
+    // Check Events
+    // event VmCreated(
+    //   bytes32 indexed didIdHash,
+    //   bytes32 indexed id,
+    //   bytes32 indexed idHash,
+    //   bytes32 positionHash
+    // );
+    assertEq(VmCreated_didIdHash, didData.idHash);
+    assertEq(VmCreated_id, command.vmId);
+    assertEq(VmCreated_idHash, expectedVmIdHash);
+    assertEq(VmCreated_positionHash, expectedPositionHash);
+    // end
+    vm.stopPrank();
+  }
+
+  function test_should_createVmWithBlockchainAccountId() public {
+    //* 🗂️ Arrange ⬇
+    DidInfo memory didData = userDidInfo;
+    startHoax(user, DEFAULT_USER_BALANCE);
+    // Check previous state
+    uint256 length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    assertEq(length, 1);
+    VerificationMethod memory verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      VM_ID[0],
+      uint8(0)
+    );
+    _assertEmptyVm(verificationMethod);
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertEmptyVm(verificationMethod);
+    //* 🎬 Act ⬇
+    // Add new Verification Method
+    DidCreateVmCommand memory command = DidCreateVmCommand(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      DEFAULT_VM_ID,
+      didData.id,
+      VM_ID[0],
+      DEFAULT_VM_TYPE,
+      EMPTY_VM_PUBLIC_KEY, // * <-- important
+      DEFAULT_VM_BLOCKCHAIN_ACCOUNT_ID, // ! <== Blockchain Account ID
+      EMPTY_VM_THIS_BC_ADDRESS, // * <-- important
+      DEFAULT_VM_RELATIONSHIPS,
+      DEFAULT_VM_EXPIRATION // * <-- important
+    );
+    (
+      bytes32 VmCreated_didIdHash,
+      bytes32 VmCreated_id,
+      bytes32 VmCreated_idHash,
+      bytes32 VmCreated_positionHash
+    ) = _createVm(command);
+    //* ☑️ Assert ⬇
+    // Final length
+    length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    bytes32 expectedVmIdHash = keccak256(abi.encodePacked(didData.idHash, VM_ID[0]));
+    bytes32 expectedPositionHash = keccak256(abi.encodePacked(didData.idHash, uint8(2)));
+    // Check final state
+    assertEq(length, 2);
+    // -- final "first vm"
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        command.expiration
+      )
+    );
+    // -- final vm by ID
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      command.vmId,
+      uint8(0)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        command.expiration
+      )
+    );
+    // Check Events
+    // event VmCreated(
+    //   bytes32 indexed didIdHash,
+    //   bytes32 indexed id,
+    //   bytes32 indexed idHash,
+    //   bytes32 positionHash
+    // );
+    assertEq(VmCreated_didIdHash, didData.idHash);
+    assertEq(VmCreated_id, command.vmId);
+    assertEq(VmCreated_idHash, expectedVmIdHash);
+    assertEq(VmCreated_positionHash, expectedPositionHash);
+    // end
+    vm.stopPrank();
+  }
+
+  function test_should_createVmAndChangeExpirationTo0() public {
+    //* 🗂️ Arrange ⬇
+    DidInfo memory didData = userDidInfo;
+    startHoax(user, DEFAULT_USER_BALANCE);
+    // Check previous state
+    uint256 length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    assertEq(length, 1);
+    VerificationMethod memory verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      VM_ID[0],
+      uint8(0)
+    );
+    _assertEmptyVm(verificationMethod);
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertEmptyVm(verificationMethod);
+    //* 🎬 Act ⬇
+    // Add new Verification Method
+    DidCreateVmCommand memory command = DidCreateVmCommand(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      DEFAULT_VM_ID,
+      didData.id,
+      VM_ID[0],
+      DEFAULT_VM_TYPE,
+      EMPTY_VM_PUBLIC_KEY,
+      EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
+      DEFAULT_VM_THIS_BC_ADDRESS, // * <-- important
+      DEFAULT_VM_RELATIONSHIPS,
+      DEFAULT_VM_EXPIRATION // * <-- important: should change to 0
+    );
+    (
+      bytes32 VmCreated_didIdHash,
+      bytes32 VmCreated_id,
+      bytes32 VmCreated_idHash,
+      bytes32 VmCreated_positionHash
+    ) = _createVm(command);
+    //* ☑️ Assert ⬇
+    // Final length
+    length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    bytes32 expectedVmIdHash = keccak256(abi.encodePacked(didData.idHash, VM_ID[0]));
+    bytes32 expectedPositionHash = keccak256(abi.encodePacked(didData.idHash, uint8(2)));
+    // Check final state
+    assertEq(length, 2);
+    // -- final "first vm"
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        EMPTY_VM_EXPIRATION
+      )
+    );
+    // -- final vm by ID
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      command.vmId,
+      uint8(0)
+    );
+    _assertVm(
+      verificationMethod,
+      VerificationMethod(
+        command.vmId,
+        command.type_,
+        command.publicKey,
+        command.blockchainAccountId,
+        command.thisBCAddress,
+        command.relationships,
+        EMPTY_VM_EXPIRATION
+      )
+    );
+    // Check Events
+    // event VmCreated(
+    //   bytes32 indexed didIdHash,
+    //   bytes32 indexed id,
+    //   bytes32 indexed idHash,
+    //   bytes32 positionHash
+    // );
+    assertEq(VmCreated_didIdHash, didData.idHash);
+    assertEq(VmCreated_id, command.vmId);
+    assertEq(VmCreated_idHash, expectedVmIdHash);
+    assertEq(VmCreated_positionHash, expectedPositionHash);
+    // end
+    vm.stopPrank();
+  }
+
+  function test_shouldNot_createVm_withPubKeyBlockchainAccountIdAndThisBCAddressEmpty() public {
+    //* 🗂️ Arrange ⬇
+    DidInfo memory didData = userDidInfo;
+    startHoax(user, DEFAULT_USER_BALANCE);
+    // Check previous state
+    uint256 length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    assertEq(length, 1);
+    VerificationMethod memory verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      VM_ID[0],
+      uint8(0)
+    );
+    _assertEmptyVm(verificationMethod);
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertEmptyVm(verificationMethod);
+    //* 🎬 Act ⬇
+    // Add new Verification Method
+    vm.expectRevert("4th or 5th or 6th param required");
+    DidCreateVmCommand memory command = DidCreateVmCommand(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      DEFAULT_VM_ID,
+      didData.id,
+      VM_ID[0],
+      DEFAULT_VM_TYPE,
+      EMPTY_VM_PUBLIC_KEY, //! <== Empty
+      EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID, //! <== Empty
+      EMPTY_VM_THIS_BC_ADDRESS, //! <== Empty
+      DEFAULT_VM_RELATIONSHIPS,
+      EMPTY_VM_EXPIRATION
+    );
+    didManager.createVM(command);
+    //* ☑️ Assert ⬇
+    // Final length
+    length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      didData.id
+    );
+    // Check final state
+    assertEq(length, 1);
+    // -- final "first vm"
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      bytes32(0),
+      uint8(2)
+    );
+    _assertEmptyVm(verificationMethod);
+    // -- final vm by ID
+    verificationMethod = didManager.getVM(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      command.vmId,
+      uint8(0)
+    );
+    _assertEmptyVm(verificationMethod);
     // end
     vm.stopPrank();
   }
