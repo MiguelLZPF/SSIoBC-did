@@ -103,6 +103,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     // Required
     require(command.method0 != bytes32(0), "Method0 cannot be 0");
     require(command.senderId != bytes32(0) || command.targetId != bytes32(0), "DID cannot be 0");
+    require(command.relationships > bytes1(0), "Relationships cannot be 0");
     //* Implementation
     (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(
       command.method0,
@@ -112,8 +113,6 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       command.senderVmId,
       command.targetId
     );
-    require(!_isExpired(senderIdHash), "Sender DID is expired");
-    require(!_isExpired(targetIdHash), "Target DID is expired");
     // Check if the sender is a controller for the target DID
     require(
       _isControllerFor(command.senderId, command.senderVmId, senderIdHash, targetIdHash),
@@ -140,6 +139,31 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
 
   function validateVM(bytes32 positionHash, uint expiration) external {
     _validateVM(positionHash, expiration, msg.sender);
+  }
+
+  function expireVM(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes32 vmId
+  ) external {
+    //* Params validation
+    // Required
+    require(method0 != bytes32(0), "Method0 cannot be 0");
+    require(senderId != bytes32(0) && targetId != bytes32(0), "ID cannot be 0");
+    //* Implementation
+    (, bytes32 targetIdHash) = _validateSenderAndTarget(
+      method0,
+      method1,
+      method2,
+      senderId,
+      senderVmId,
+      targetId
+    );
+    _expireVM(targetIdHash, vmId);
   }
 
   function updateController(
@@ -270,9 +294,10 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32 method1,
     bytes32 method2,
     bytes32 id,
-    bytes32 vmId
+    bytes32 vmId,
+    uint8 position
   ) external view returns (VerificationMethod memory vm) {
-    return _getVM(_calculateIdHash(method0, method1, method2, id), vmId);
+    return _getVM(_calculateIdHash(method0, method1, method2, id), vmId, position);
   }
 
   function getVmListLength(

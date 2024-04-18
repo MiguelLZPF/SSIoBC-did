@@ -7,7 +7,7 @@ import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
 import { IDidManager, REVERT_NOT_CONTROLLER } from "@src/interfaces/IDidManager.sol";
 import { DidManager } from "@src/DidManager.sol";
-import { ServiceStorage, Service, SERVICE_MAX_LENGTH, SERVICE_NAMESPACE, REVERT_EMPTY_DID_HASH, REVERT_EMPTY_ID, REVERT_EMPTY_TYPE, REVERT_EMPTY_ENDPOINT } from "@src/ServiceStorage.sol";
+import { ServiceStorage, Service, SERVICE_MAX_LENGTH, SERVICE_NAMESPACE } from "@src/ServiceStorage.sol";
 import { SharedTest, DidInfo } from "@test/SharedTest.sol";
 
 enum PerformedAction {
@@ -45,7 +45,7 @@ contract ServiceStorageTest is SharedTest {
   address otherUser = payable(address(11));
   // -- contracts
   uint256 lastDidManagerUsed;
-  IDidManager[] initDidManagers;
+  IDidManager didManager;
   DidInfo userDidInfo;
   DidInfo otherUserDidInfo;
 
@@ -62,41 +62,36 @@ contract ServiceStorageTest is SharedTest {
     vm.label(user, "user");
     vm.label(otherUser, "otherUser");
     // Deploy initial state contracts
-    // -- initialize N DidManagers
-    for (uint256 i = 0; i < INIT_CONTRACTS; i++) {
-      IDidManager didManager = _deployNewDidManager();
-      initDidManagers.push(didManager);
-      vm.label(address(didManager), string(abi.encodePacked("initDidManager_", i)));
-      // Create a DID for user
-      startHoax(user, DEFAULT_USER_BALANCE);
-      (userDidInfo, , , , , , ) = _createDid(
-        didManager,
-        bytes32(0),
-        bytes32(0),
-        bytes32(0),
-        bytes32("random"),
-        bytes32(0)
-      );
-      vm.stopPrank();
-      // Create a DID for other user
-      startHoax(otherUser, DEFAULT_USER_BALANCE);
-      (otherUserDidInfo, , , , , , ) = _createDid(
-        didManager,
-        bytes32(0),
-        bytes32(0),
-        bytes32(0),
-        bytes32("random"),
-        bytes32(0)
-      );
-      vm.stopPrank();
-    }
+    didManager = _deployNewDidManager();
+    vm.label(address(didManager), "initDidManager");
+    // Create a DID for user
+    startHoax(user, DEFAULT_USER_BALANCE);
+    (userDidInfo, , , , , , ) = _createDid(
+      didManager,
+      bytes32(0),
+      bytes32(0),
+      bytes32(0),
+      bytes32("random"),
+      bytes32(0)
+    );
+    vm.stopPrank();
+    // Create a DID for other user
+    startHoax(otherUser, DEFAULT_USER_BALANCE);
+    (otherUserDidInfo, , , , , , ) = _createDid(
+      didManager,
+      bytes32(0),
+      bytes32(0),
+      bytes32(0),
+      bytes32("random"),
+      bytes32(0)
+    );
+    vm.stopPrank();
   }
 
   //* TESTS
   // ADD SERVICE
   function test_should_addNewService() public {
     //* 🗂️ Arrange ⬇
-    IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
@@ -113,7 +108,7 @@ contract ServiceStorageTest is SharedTest {
       didData.method2,
       didData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -127,7 +122,6 @@ contract ServiceStorageTest is SharedTest {
       bytes32 ServiceUpdated_serviceIdHash,
       bytes32 ServiceUpdated_positionHash
     ) = _updateService(
-        didManager,
         didData.method0,
         didData.method1,
         didData.method2,
@@ -148,7 +142,7 @@ contract ServiceStorageTest is SharedTest {
     );
     bytes32 serviceDidHash = keccak256(abi.encodePacked(didData.idHash, SERVICE_NAMESPACE));
     bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(serviceDidHash, DEFAULT_SERVICE_ID));
-    bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(0)));
+    bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(1)));
     // Check final state
     assertEq(length, 1);
     // -- final "first service"
@@ -158,7 +152,7 @@ contract ServiceStorageTest is SharedTest {
       didData.method2,
       didData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, DEFAULT_SERVICE_ID);
     assertEq(service.type_[0], DEFAULT_SERVICE_TYPE[0]);
@@ -194,7 +188,6 @@ contract ServiceStorageTest is SharedTest {
   // UPDATE SERVICE
   function test_should_updateService() public {
     //* 🗂️ Arrange ⬇
-    IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new service
@@ -205,7 +198,6 @@ contract ServiceStorageTest is SharedTest {
       bytes32 ServiceUpdated_serviceIdHash,
       bytes32 ServiceUpdated_positionHash
     ) = _updateService(
-        didManager,
         didData.method0,
         didData.method1,
         didData.method2,
@@ -234,7 +226,6 @@ contract ServiceStorageTest is SharedTest {
       ServiceUpdated_serviceIdHash,
       ServiceUpdated_positionHash
     ) = _updateService(
-      didManager,
       didData.method0,
       didData.method1,
       didData.method2,
@@ -255,7 +246,7 @@ contract ServiceStorageTest is SharedTest {
     );
     bytes32 serviceDidHash = keccak256(abi.encodePacked(didData.idHash, SERVICE_NAMESPACE));
     bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(serviceDidHash, DEFAULT_SERVICE_ID));
-    bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(0)));
+    bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(1)));
     // Check final state
     assertEq(length, 1);
     // -- final "first service"
@@ -265,7 +256,7 @@ contract ServiceStorageTest is SharedTest {
       didData.method2,
       didData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, DEFAULT_SERVICE_ID);
     assertEq(service.type_[0], UPDATE_SERVICE_TYPE[0]);
@@ -308,7 +299,6 @@ contract ServiceStorageTest is SharedTest {
 
   function test_shouldNot_updateService_notInControl() public {
     //* 🗂️ Arrange ⬇
-    IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didUserData = userDidInfo;
     DidInfo memory didOtherData = otherUserDidInfo;
     startHoax(otherUser, DEFAULT_USER_BALANCE);
@@ -326,7 +316,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -362,7 +352,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -387,7 +377,6 @@ contract ServiceStorageTest is SharedTest {
 
   function test_shouldNot_updateService_emptyId() public {
     //* 🗂️ Arrange ⬇
-    IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didUserData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
@@ -404,13 +393,13 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
     assertEq(service.serviceEndpoint[0], bytes32(0));
     //* 🎬 Act ⬇
-    vm.expectRevert(bytes(REVERT_EMPTY_ID));
+    vm.expectRevert("ID cannot be 0");
     // Add new service from other user
     didManager.updateService(
       didUserData.method0,
@@ -440,7 +429,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -463,7 +452,6 @@ contract ServiceStorageTest is SharedTest {
 
   function test_shouldNot_updateService_emptyType() public {
     //* 🗂️ Arrange ⬇
-    IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didUserData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
@@ -480,13 +468,13 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
     assertEq(service.serviceEndpoint[0], bytes32(0));
     //* 🎬 Act ⬇
-    vm.expectRevert(bytes(REVERT_EMPTY_TYPE));
+    vm.expectRevert("Type cannot be 0");
     // Add new service from other user
     didManager.updateService(
       didUserData.method0,
@@ -516,7 +504,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -539,7 +527,6 @@ contract ServiceStorageTest is SharedTest {
 
   function test_shouldNot_updateService_emptyEndpoint() public {
     //* 🗂️ Arrange ⬇
-    IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didUserData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
@@ -556,13 +543,13 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
     assertEq(service.serviceEndpoint[0], bytes32(0));
     //* 🎬 Act ⬇
-    vm.expectRevert(bytes(REVERT_EMPTY_ENDPOINT));
+    vm.expectRevert("Endpoint cannot be 0");
     // Add new service from other user
     didManager.updateService(
       didUserData.method0,
@@ -592,7 +579,7 @@ contract ServiceStorageTest is SharedTest {
       didUserData.method2,
       didUserData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -616,7 +603,6 @@ contract ServiceStorageTest is SharedTest {
   // REMOVE SERVICE
   function test_should_removeService() public {
     //* 🗂️ Arrange ⬇
-    IDidManager didManager = _getNextInitDidManager();
     DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new service
@@ -627,7 +613,6 @@ contract ServiceStorageTest is SharedTest {
       bytes32 ServiceUpdated_serviceIdHash,
       bytes32 ServiceUpdated_positionHash
     ) = _updateService(
-        didManager,
         didData.method0,
         didData.method1,
         didData.method2,
@@ -656,7 +641,6 @@ contract ServiceStorageTest is SharedTest {
       ServiceUpdated_serviceIdHash,
       ServiceUpdated_positionHash
     ) = _updateService(
-      didManager,
       didData.method0,
       didData.method1,
       didData.method2,
@@ -687,7 +671,7 @@ contract ServiceStorageTest is SharedTest {
       didData.method2,
       didData.id,
       bytes32(0),
-      uint8(0)
+      uint8(1)
     );
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0], bytes32(0));
@@ -726,7 +710,6 @@ contract ServiceStorageTest is SharedTest {
    * @dev Updates a service.
    */
   function _updateService(
-    IDidManager didManager,
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
@@ -777,15 +760,5 @@ contract ServiceStorageTest is SharedTest {
     ServiceUpdated_id = entries[0].topics[2];
     ServiceUpdated_serviceIdHash = entries[0].topics[3];
     ServiceUpdated_positionHash = bytes32(entries[0].data);
-  }
-
-  /**
-   * @dev Retrieves the next initialized DidManager contract.
-   * @return didManager The next initialized DidManager contract.
-   */
-  function _getNextInitDidManager() internal returns (IDidManager didManager) {
-    didManager = initDidManagers[lastDidManagerUsed];
-    lastDidManagerUsed++;
-    return didManager;
   }
 }

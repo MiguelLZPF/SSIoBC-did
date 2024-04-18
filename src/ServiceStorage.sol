@@ -15,13 +15,6 @@ import { HashBasedList } from "@lib/hash-based-list/src/HashBasedList.sol";
 uint8 constant SERVICE_MAX_LENGTH = 20;
 bytes32 constant SERVICE_NAMESPACE = bytes32("service");
 
-string constant REVERT_EMPTY_DID_HASH = "DID hash cannot be 0";
-string constant REVERT_EMPTY_ID = "ID cannot be 0";
-string constant REVERT_EMPTY_TYPE = "Type cannot be 0";
-string constant REVERT_EMPTY_ENDPOINT = "Endpoint cannot be 0";
-
-error EmptyDIDHash();
-
 struct Service {
   bytes32 id;
   bytes32[SERVICE_MAX_LENGTH] type_;
@@ -65,40 +58,41 @@ abstract contract ServiceStorage is HashBasedList {
     bytes32 serviceDidHash = _addServiceNameSpace(didHash);
     // Check parameters
     // require(didHash != bytes32(0), REVERT_EMPTY_DID_HASH); //! Unreachable code
-    require(id != bytes32(0), REVERT_EMPTY_ID);
+    require(id != bytes32(0), "ID cannot be 0");
     // Get service
     (bytes32 idHash, bytes32 positionHash, uint8 position) = _calculateHashes(serviceDidHash, id);
-    Service memory service = _service[positionHash];
-    //  Service.id exists and type_ and serviceEndpoint are empty ==> delete service
-    if (service.id != bytes32(0) && type_[0] == bytes32(0) && serviceEndpoint[0] == bytes32(0)) {
+    //  Service exists and type_ and serviceEndpoint are empty ==> delete service
+    if (position > 0 && type_[0] == bytes32(0) && serviceEndpoint[0] == bytes32(0)) {
       // Get latest service on array
-      uint8 lastPosition = _getHblLength(serviceDidHash) - 1;
+      uint8 lastPosition = _getHblLength(serviceDidHash);
       bytes32 lastPositionHash = _calculatePositionHash(serviceDidHash, lastPosition);
       Service memory lastService = _service[lastPositionHash];
       bytes32 lastIdHash = _calculateIdHash(serviceDidHash, lastService.id);
       // Replace the service with the last service
       _service[positionHash] = lastService;
-      // Update position of the previous last service
-      _setHblPosition(serviceDidHash, lastIdHash, position);
       // Delete the service new last service
       delete _service[lastPositionHash];
       // Remove position of the deleted service
-      _removeHbl(serviceDidHash, idHash);
+      _removeHbl(serviceDidHash, id, lastService.id);
       // Emit two events
       emit ServiceUpdated(didHash, id, idHash, 0);
       emit ServiceUpdated(didHash, lastService.id, lastIdHash, positionHash);
       return;
     }
     // Check both are defined before updating (or create)
-    require(type_[0] != bytes32(0), REVERT_EMPTY_TYPE);
-    require(serviceEndpoint[0] != bytes32(0), REVERT_EMPTY_ENDPOINT);
-    // Store the service
-    _service[positionHash] = Service(id, type_, serviceEndpoint);
-    // Only if the service is new, update the service list length and position by ID
-    // "service" is in memory, so it is not updated in the storage
-    if (service.id == bytes32(0)) {
-      _addHbl(serviceDidHash, id);
+    require(type_[0] != bytes32(0), "Type cannot be 0");
+    require(serviceEndpoint[0] != bytes32(0), "Endpoint cannot be 0");
+    if (position == 0) {
+      // Does not exist --> update service list length and position by ID
+      (idHash, position) = _addHbl(serviceDidHash, id);
+      positionHash = _calculatePositionHash(serviceDidHash, position);
     }
+    // Store the service
+    Service storage service = _service[positionHash];
+    service.id = id;
+    service.type_ = type_;
+    service.serviceEndpoint = serviceEndpoint;
+
     // Emit an event
     emit ServiceUpdated(didHash, id, idHash, positionHash);
   }
@@ -119,7 +113,7 @@ abstract contract ServiceStorage is HashBasedList {
     if (id == bytes32(0)) {
       return _service[keccak256(abi.encodePacked(didHash, position))];
     }
-    bytes32 positionHash = _calculatePositionHash(didHash, id);
+    (, bytes32 positionHash, ) = _calculateHashes(didHash, id);
     return _service[positionHash];
   }
 
