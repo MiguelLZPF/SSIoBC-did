@@ -145,8 +145,8 @@ abstract contract VMStorage is HashBasedList {
     //* Implementation
     VerificationMethod storage vm = _vm[positionHash];
     require(vm.id != bytes32(0), "VM not found");
-    require(vm.expiration == 0, "VM already validated");
-    require(vm.thisBCAddress == sender, "Cannot validate VM. Invalid Sign"); //! This is the signature validation of the VM
+    require(vm.expiration == 0, "VM already validated or out"); // This means either the VM is validated or is a VM from another BC or type
+    require(vm.thisBCAddress == sender, "Cant validate VM. Invalid Sign"); //! This is the signature validation of the VM
     vm.expiration = expiration;
     //Event
     emit VmValidated(vm.id);
@@ -161,7 +161,7 @@ abstract contract VMStorage is HashBasedList {
   function _expireVM(bytes32 didHash, bytes32 id) internal {
     (, bytes32 positionHash, ) = _calculateHashes(didHash, id);
     VerificationMethod storage vm = _vm[positionHash];
-    require(vm.id != bytes32(0), "VM not found");
+    require(vm.expiration > block.timestamp, "VM already expired");
     vm.expiration = block.timestamp;
     emit VmExpirationUpdated(didHash, id, vm.expiration <= block.timestamp, vm.expiration);
   }
