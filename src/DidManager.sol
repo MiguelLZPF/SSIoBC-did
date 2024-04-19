@@ -15,8 +15,6 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   // hash(method0:method1:method2:id) --> controller[0..4]
   mapping(bytes32 => Controller[CONTROLLERS_MAX_LENGTH]) private _controllers;
 
-  constructor() {}
-
   /**
    * @dev Creates a new Decentralized Identifier (DID) using the specified method identifiers and a random value.
    * The method identifiers can be optionally provided, and if any of them is not provided (i.e., set to 0),
@@ -55,7 +53,9 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       method0 = METHOD0;
     }
     //* Implementation
-    bytes32 id = _calculateId(method0, method1, method2, random, msg.sender, block.timestamp);
+    bytes32 id = keccak256(
+      abi.encodePacked(method0, method1, method2, random, msg.sender, block.timestamp)
+    );
     bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
     require(_isExpired(idHash), "DID in use");
     (, bytes32 positionHash) = _createVM(
@@ -389,27 +389,6 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     // If the controllers array is not empty and the sender is not a controller, return false
     // (controllers used but sender not in controllers)
     return false;
-  }
-
-  /**
-   * @dev Calculates the ID based on the provided parameters.
-   * @param method0 The first method parameter.
-   * @param method1 The second method parameter.
-   * @param method2 The third method parameter.
-   * @param random The random parameter.
-   * @param sender The address of the sender.
-   * @param timestamp The timestamp parameter.
-   * @return id The calculated ID.
-   */
-  function _calculateId(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 random,
-    address sender,
-    uint timestamp
-  ) internal pure returns (bytes32 id) {
-    return keccak256(abi.encodePacked(method0, method1, method2, random, sender, timestamp));
   }
 
   /**

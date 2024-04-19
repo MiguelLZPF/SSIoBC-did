@@ -17,10 +17,23 @@ struct DidInfo {
 }
 
 abstract contract SharedTest is Test {
+  // * Shared Constants
+  uint256 EMPTY_EXPIRATION = 0;
+  // DID
+  bytes32 constant EMPTY_DID_METHOD = bytes32(0);
   bytes32 constant DEFAULT_DID_METHOD0 = bytes32("lzpf");
   bytes32 constant DEFAULT_DID_METHOD1 = bytes32("main");
-  bytes32 constant DEFAULT_DID_METHOD2 = bytes32(0);
+  bytes32 constant DEFAULT_DID_METHOD2 = EMPTY_DID_METHOD;
+  // VM
+  bytes32 constant EMPTY_VM_ID = bytes32(0);
   bytes32 constant DEFAULT_VM_ID = bytes32("vm-0");
+  // -- relation
+  bytes1 constant VM_RELATIONSHIPS_NONE = bytes1(0x00);
+  bytes1 constant VM_RELATIONSHIPS_AUTHENTICATION = bytes1(0x01);
+  bytes1 constant VM_RELATIONSHIPS_ASSERTION_METHOD = bytes1(0x02);
+  bytes1 constant VM_RELATIONSHIPS_KEY_AGREEMENT = bytes1(0x04);
+  bytes1 constant VM_RELATIONSHIPS_CAPABILITY_INVOCATION = bytes1(0x08);
+  bytes1 constant VM_RELATIONSHIPS_CAPABILITY_DELEGATION = bytes1(0x10);
 
   function _deployNewDidManager() internal returns (IDidManager didManager) {
     (didManager, ) = new DidManagerScript().deploy(

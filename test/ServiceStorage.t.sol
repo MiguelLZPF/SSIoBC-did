@@ -20,7 +20,6 @@ contract ServiceStorageTest is SharedTest {
   //* Constants
   // General
   uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
-  uint256 private constant INIT_CONTRACTS = 6;
   // Specific
   bytes32 private constant DEFAULT_SERVICE_ID = bytes32("linked-domain");
   bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_TYPE = [bytes32("LinkedDomains")];
@@ -53,10 +52,6 @@ contract ServiceStorageTest is SharedTest {
    * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
    */
   function setUp() public {
-    // // Transfer some ether to users
-    // for (uint i = 0; i < users.length; i++) {
-    //   vm.deal(users[i], DEFAULT_USER_BALANCE);
-    // }
     // Label users
     vm.label(admin, "admin");
     vm.label(user, "user");
