@@ -59,11 +59,11 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
     require(_isExpired(idHash), "DID in use");
     (, bytes32 positionHash) = _createVM(
-      CreateVmCommand(
-        idHash,
-        vmId,
-        [bytes32(0), bytes32(0)], // type
-        [
+      CreateVmCommand({
+        didHash: idHash,
+        id: vmId,
+        type_: [bytes32(0), bytes32(0)],
+        publicKey: [
           bytes32(0),
           bytes32(0),
           bytes32(0),
@@ -78,20 +78,20 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
           bytes32(0),
           bytes32(0),
           bytes32(0),
-          bytes32(0),
-          bytes32(0)
-        ], // publicKey
-        [
-          bytes32(abi.encodePacked("eip155")),
-          bytes32(abi.encodePacked("666")),
-          bytes32(bytes32(uint256(uint160(msg.sender)))),
           bytes32(0),
           bytes32(0)
         ],
-        msg.sender,
-        bytes1(0x01), // relationships = 0x01 (Authentication)
-        1 // Just to avoid one if...
-      )
+        blockchainAccountId: [
+          bytes32("eip155"),
+          bytes32("666"),
+          bytes32(uint256(uint160(msg.sender))),
+          bytes32(0),
+          bytes32(0)
+        ],
+        thisBCAddress: msg.sender,
+        relationships: bytes1(0x01), // 0x01 (Authentication)
+        expiration: 1 // Just to avoid one if statement
+      })
     );
     _validateVM(positionHash, block.timestamp + EXPIRATION, msg.sender);
     _updateExpiration(idHash);
@@ -201,16 +201,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     // Update the controllers mapping
     _controllers[targetIdHash][controllerPosition] = Controller(controllerId, controllerVmId);
     // Emit the ControllerUpdated event
-    emit ControllerUpdated(
-      senderIdHash,
-      targetIdHash,
-      controllerPosition,
-      method0,
-      method1,
-      method2,
-      controllerId,
-      controllerVmId
-    );
+    emit ControllerUpdated(senderIdHash, targetIdHash, controllerPosition, controllerVmId);
   }
 
   function updateService(

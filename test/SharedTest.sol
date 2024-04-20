@@ -24,6 +24,7 @@ abstract contract SharedTest is Test {
   bytes32 constant DEFAULT_DID_METHOD0 = bytes32("lzpf");
   bytes32 constant DEFAULT_DID_METHOD1 = bytes32("main");
   bytes32 constant DEFAULT_DID_METHOD2 = EMPTY_DID_METHOD;
+  bytes32 constant EMPTY_DID_ID = bytes32(0);
   // VM
   bytes32 constant EMPTY_VM_ID = bytes32(0);
   bytes32 constant DEFAULT_VM_ID = bytes32("vm-0");
@@ -86,5 +87,14 @@ abstract contract SharedTest is Test {
       idHash: DidCreated_idHash,
       creator: DidCreated_creator
     });
+  }
+
+  function _calculateDidHash(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 random
+  ) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(method0, method1, method2, random));
   }
 }
