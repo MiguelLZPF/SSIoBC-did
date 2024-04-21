@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManager, Controller, CreateVmCommand as DidCreateVmCommand, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH, REVERT_NOT_CONTROLLER } from "src/interfaces/IDidManager.sol";
+import { IDidManager, Controller, CreateVmCommand as DidCreateVmCommand, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "src/interfaces/IDidManager.sol";
 import { VMStorage, VerificationMethod, CreateVmCommand } from "src/VMStorage.sol";
 import { ServiceStorage, Service, SERVICE_MAX_LENGTH } from "src/ServiceStorage.sol";
 
@@ -93,7 +93,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
         expiration: 1 // Just to avoid one if statement
       })
     );
-    _validateVM(positionHash, block.timestamp + EXPIRATION, msg.sender);
+    _validateVM(positionHash, 0, msg.sender);
     _updateExpiration(idHash);
     emit DidCreated(id, idHash, msg.sender);
   }
@@ -101,11 +101,11 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   function createVM(DidCreateVmCommand memory command) external {
     //* Params validation
     // Required
-    require(command.method0 != bytes32(0), "Method0 cannot be 0");
-    require(command.senderId != bytes32(0) || command.targetId != bytes32(0), "DID cannot be 0");
-    require(command.relationships > bytes1(0), "Relationships cannot be 0");
+    require(command.method0 != bytes32(0), "Method0 cant be 0");
+    require(command.senderId != bytes32(0) && command.targetId != bytes32(0), "DIDs cant be 0");
+    require(command.relationships > bytes1(0), "Relationships cant be 0");
     //* Implementation
-    (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(
+    (, bytes32 targetIdHash) = _validateSenderAndTarget(
       command.method0,
       command.method1,
       command.method2,
@@ -113,27 +113,17 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       command.senderVmId,
       command.targetId
     );
-    // Check if the sender is a controller for the target DID
-    require(
-      _isControllerFor(command.senderId, command.senderVmId, senderIdHash, targetIdHash),
-      REVERT_NOT_CONTROLLER
-    );
-    // Check if the sender is authenticated as the "from DID"
-    require(
-      _isAuthenticated(senderIdHash, command.senderVmId, msg.sender),
-      "Not authenticated as From"
-    );
     _createVM(
-      CreateVmCommand(
-        targetIdHash,
-        command.vmId,
-        command.type_,
-        command.publicKey,
-        command.blockchainAccountId,
-        command.thisBCAddress,
-        command.relationships,
-        command.expiration
-      )
+      CreateVmCommand({
+        didHash: targetIdHash,
+        id: command.vmId,
+        type_: command.type_,
+        publicKey: command.publicKey,
+        blockchainAccountId: command.blockchainAccountId,
+        thisBCAddress: command.thisBCAddress,
+        relationships: command.relationships,
+        expiration: command.expiration
+      })
     );
   }
 
@@ -152,8 +142,8 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   ) external {
     //* Params validation
     // Required
-    require(method0 != bytes32(0), "Method0 cannot be 0");
-    require(senderId != bytes32(0) && targetId != bytes32(0), "ID cannot be 0");
+    require(method0 != bytes32(0), "Method0 cant be 0");
+    require(senderId != bytes32(0) && targetId != bytes32(0), "DIDs cant be 0");
     //* Implementation
     (, bytes32 targetIdHash) = _validateSenderAndTarget(
       method0,
@@ -179,10 +169,10 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   ) external {
     //* Params validation
     // Required
-    require(method0 != bytes32(0), "Method0 cannot be 0");
+    require(method0 != bytes32(0), "Method0 cant be 0");
     require(
       senderId != bytes32(0) && targetId != bytes32(0) && controllerId != bytes32(0),
-      "ID cannot be 0"
+      "DIDs cant be 0"
     );
     //* Implementation
     (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(
@@ -264,9 +254,9 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes1 relationship,
     address sender
   ) public view returns (bool) {
-    require(method0 != bytes32(0), "Method0 cannot be 0");
-    require(id != bytes32(0), "ID cannot be 0");
-    require(sender != address(0), "Sender cannot be 0");
+    require(method0 != bytes32(0), "Method0 cant be 0");
+    require(id != bytes32(0), "ID cant be 0");
+    require(sender != address(0), "Sender cant be 0");
     bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
     return _isVmRelationship(idHash, vmId, relationship, sender);
   }
@@ -341,7 +331,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     // Check if the sender is a controller for the target DID
     require(
       _isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash),
-      REVERT_NOT_CONTROLLER
+      "Not a controller for target"
     );
   }
 

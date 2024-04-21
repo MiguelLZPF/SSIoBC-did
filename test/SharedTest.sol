@@ -25,9 +25,26 @@ abstract contract SharedTest is Test {
   bytes32 constant DEFAULT_DID_METHOD1 = bytes32("main");
   bytes32 constant DEFAULT_DID_METHOD2 = EMPTY_DID_METHOD;
   bytes32 constant EMPTY_DID_ID = bytes32(0);
+  bytes32 constant EMPTY_RANDOM = bytes32(0);
   // VM
   bytes32 constant EMPTY_VM_ID = bytes32(0);
   bytes32 constant DEFAULT_VM_ID = bytes32("vm-0");
+  bytes32[2] EMPTY_VM_TYPE = [bytes32(0)];
+  bytes32[2] DEFAULT_VM_TYPE = [bytes32("EcdsaSecp256k1VerificationKey20"), bytes32("19")];
+  bytes32[16] EMPTY_VM_PUBLIC_KEY = [bytes32(0)];
+  bytes32[16] DEFAULT_VM_PUBLIC_KEY = [
+    bytes32("0x04a2b4f3b4"),
+    bytes32("0a2b4f3b4"),
+    bytes32("0b2b4f3b4")
+  ];
+  bytes32[5] EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID = [bytes32(0)];
+  // "eip155:1:0xab16a96d359ec26a11e2c2b3d8f8b8942d5bfcdb"
+  bytes32[5] DEFAULT_VM_BLOCKCHAIN_ACCOUNT_ID = [
+    bytes32("eid155:1:0xab16a96d359ec26a11e2c"),
+    bytes32("2b3d8f8b8942d5bfcdb")
+  ];
+  address constant EMPTY_VM_THIS_BC_ADDRESS = address(0);
+  uint256 constant EMPTY_VM_EXPIRATION = 0;
   // -- relation
   bytes1 constant VM_RELATIONSHIPS_NONE = bytes1(0x00);
   bytes1 constant VM_RELATIONSHIPS_AUTHENTICATION = bytes1(0x01);
@@ -35,6 +52,8 @@ abstract contract SharedTest is Test {
   bytes1 constant VM_RELATIONSHIPS_KEY_AGREEMENT = bytes1(0x04);
   bytes1 constant VM_RELATIONSHIPS_CAPABILITY_INVOCATION = bytes1(0x08);
   bytes1 constant VM_RELATIONSHIPS_CAPABILITY_DELEGATION = bytes1(0x10);
+
+  address constant EMPTY_SENDER = address(0);
 
   function _deployNewDidManager() internal returns (IDidManager didManager) {
     (didManager, ) = new DidManagerScript().deploy(

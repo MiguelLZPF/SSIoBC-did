@@ -5,7 +5,7 @@ import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager, REVERT_NOT_CONTROLLER } from "@src/interfaces/IDidManager.sol";
+import { IDidManager } from "@src/interfaces/IDidManager.sol";
 import { DidManager } from "@src/DidManager.sol";
 import { ServiceStorage, Service, SERVICE_MAX_LENGTH, SERVICE_NAMESPACE } from "@src/ServiceStorage.sol";
 import { SharedTest, DidInfo } from "@test/SharedTest.sol";
@@ -317,7 +317,7 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.type_[0], bytes32(0));
     assertEq(service.serviceEndpoint[0], bytes32(0));
     //* 🎬 Act ⬇
-    vm.expectRevert(bytes(REVERT_NOT_CONTROLLER));
+    vm.expectRevert("Not a controller for target");
     // Add new service from other user
     didManager.updateService(
       didUserData.method0,
