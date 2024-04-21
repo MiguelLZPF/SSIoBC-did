@@ -5,7 +5,7 @@ import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager, REVERT_NOT_CONTROLLER } from "@src/interfaces/IDidManager.sol";
+import { IDidManager } from "@src/interfaces/IDidManager.sol";
 import { DidManager } from "@src/DidManager.sol";
 import { ServiceStorage, Service, SERVICE_MAX_LENGTH, SERVICE_NAMESPACE } from "@src/ServiceStorage.sol";
 import { SharedTest, DidInfo } from "@test/SharedTest.sol";
@@ -20,7 +20,6 @@ contract ServiceStorageTest is SharedTest {
   //* Constants
   // General
   uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
-  uint256 private constant INIT_CONTRACTS = 6;
   // Specific
   bytes32 private constant DEFAULT_SERVICE_ID = bytes32("linked-domain");
   bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_TYPE = [bytes32("LinkedDomains")];
@@ -53,10 +52,6 @@ contract ServiceStorageTest is SharedTest {
    * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
    */
   function setUp() public {
-    // // Transfer some ether to users
-    // for (uint i = 0; i < users.length; i++) {
-    //   vm.deal(users[i], DEFAULT_USER_BALANCE);
-    // }
     // Label users
     vm.label(admin, "admin");
     vm.label(user, "user");
@@ -322,7 +317,7 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.type_[0], bytes32(0));
     assertEq(service.serviceEndpoint[0], bytes32(0));
     //* 🎬 Act ⬇
-    vm.expectRevert(bytes(REVERT_NOT_CONTROLLER));
+    vm.expectRevert("Not a controller for target");
     // Add new service from other user
     didManager.updateService(
       didUserData.method0,

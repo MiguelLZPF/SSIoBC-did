@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManager, Controller, CreateVmCommand as DidCreateVmCommand, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH, REVERT_NOT_CONTROLLER } from "src/interfaces/IDidManager.sol";
+import { IDidManager, Controller, CreateVmCommand as DidCreateVmCommand, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "src/interfaces/IDidManager.sol";
 import { VMStorage, VerificationMethod, CreateVmCommand } from "src/VMStorage.sol";
 import { ServiceStorage, Service, SERVICE_MAX_LENGTH } from "src/ServiceStorage.sol";
 
@@ -14,8 +14,6 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   // DID controllers are stored in a mapping that maps a bytes32 key (representing the hash of the DID or the hash of a specific VM) to an array of 5 bytes32 values (representing the actual controllers).
   // hash(method0:method1:method2:id) --> controller[0..4]
   mapping(bytes32 => Controller[CONTROLLERS_MAX_LENGTH]) private _controllers;
-
-  constructor() {}
 
   /**
    * @dev Creates a new Decentralized Identifier (DID) using the specified method identifiers and a random value.
@@ -55,15 +53,17 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       method0 = METHOD0;
     }
     //* Implementation
-    bytes32 id = _calculateId(method0, method1, method2, random, msg.sender, block.timestamp);
+    bytes32 id = keccak256(
+      abi.encodePacked(method0, method1, method2, random, msg.sender, block.timestamp)
+    );
     bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
     require(_isExpired(idHash), "DID in use");
     (, bytes32 positionHash) = _createVM(
-      CreateVmCommand(
-        idHash,
-        vmId,
-        [bytes32(0), bytes32(0)], // type
-        [
+      CreateVmCommand({
+        didHash: idHash,
+        id: vmId,
+        type_: [bytes32(0), bytes32(0)],
+        publicKey: [
           bytes32(0),
           bytes32(0),
           bytes32(0),
@@ -78,22 +78,22 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
           bytes32(0),
           bytes32(0),
           bytes32(0),
-          bytes32(0),
-          bytes32(0)
-        ], // publicKey
-        [
-          bytes32(abi.encodePacked("eip155")),
-          bytes32(abi.encodePacked("666")),
-          bytes32(bytes32(uint256(uint160(msg.sender)))),
           bytes32(0),
           bytes32(0)
         ],
-        msg.sender,
-        bytes1(0x01), // relationships = 0x01 (Authentication)
-        1 // Just to avoid one if...
-      )
+        blockchainAccountId: [
+          bytes32("eip155"),
+          bytes32("666"),
+          bytes32(uint256(uint160(msg.sender))),
+          bytes32(0),
+          bytes32(0)
+        ],
+        thisBCAddress: msg.sender,
+        relationships: bytes1(0x01), // 0x01 (Authentication)
+        expiration: 1 // Just to avoid one if statement
+      })
     );
-    _validateVM(positionHash, block.timestamp + EXPIRATION, msg.sender);
+    _validateVM(positionHash, 0, msg.sender);
     _updateExpiration(idHash);
     emit DidCreated(id, idHash, msg.sender);
   }
@@ -101,11 +101,11 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   function createVM(DidCreateVmCommand memory command) external {
     //* Params validation
     // Required
-    require(command.method0 != bytes32(0), "Method0 cannot be 0");
-    require(command.senderId != bytes32(0) || command.targetId != bytes32(0), "DID cannot be 0");
-    require(command.relationships > bytes1(0), "Relationships cannot be 0");
+    require(command.method0 != bytes32(0), "Method0 cant be 0");
+    require(command.senderId != bytes32(0) && command.targetId != bytes32(0), "DIDs cant be 0");
+    require(command.relationships > bytes1(0), "Relationships cant be 0");
     //* Implementation
-    (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(
+    (, bytes32 targetIdHash) = _validateSenderAndTarget(
       command.method0,
       command.method1,
       command.method2,
@@ -113,27 +113,17 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       command.senderVmId,
       command.targetId
     );
-    // Check if the sender is a controller for the target DID
-    require(
-      _isControllerFor(command.senderId, command.senderVmId, senderIdHash, targetIdHash),
-      REVERT_NOT_CONTROLLER
-    );
-    // Check if the sender is authenticated as the "from DID"
-    require(
-      _isAuthenticated(senderIdHash, command.senderVmId, msg.sender),
-      "Not authenticated as From"
-    );
     _createVM(
-      CreateVmCommand(
-        targetIdHash,
-        command.vmId,
-        command.type_,
-        command.publicKey,
-        command.blockchainAccountId,
-        command.thisBCAddress,
-        command.relationships,
-        command.expiration
-      )
+      CreateVmCommand({
+        didHash: targetIdHash,
+        id: command.vmId,
+        type_: command.type_,
+        publicKey: command.publicKey,
+        blockchainAccountId: command.blockchainAccountId,
+        thisBCAddress: command.thisBCAddress,
+        relationships: command.relationships,
+        expiration: command.expiration
+      })
     );
   }
 
@@ -152,8 +142,8 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   ) external {
     //* Params validation
     // Required
-    require(method0 != bytes32(0), "Method0 cannot be 0");
-    require(senderId != bytes32(0) && targetId != bytes32(0), "ID cannot be 0");
+    require(method0 != bytes32(0), "Method0 cant be 0");
+    require(senderId != bytes32(0) && targetId != bytes32(0), "DIDs cant be 0");
     //* Implementation
     (, bytes32 targetIdHash) = _validateSenderAndTarget(
       method0,
@@ -179,10 +169,10 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   ) external {
     //* Params validation
     // Required
-    require(method0 != bytes32(0), "Method0 cannot be 0");
+    require(method0 != bytes32(0), "Method0 cant be 0");
     require(
       senderId != bytes32(0) && targetId != bytes32(0) && controllerId != bytes32(0),
-      "ID cannot be 0"
+      "DIDs cant be 0"
     );
     //* Implementation
     (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(
@@ -201,16 +191,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     // Update the controllers mapping
     _controllers[targetIdHash][controllerPosition] = Controller(controllerId, controllerVmId);
     // Emit the ControllerUpdated event
-    emit ControllerUpdated(
-      senderIdHash,
-      targetIdHash,
-      controllerPosition,
-      method0,
-      method1,
-      method2,
-      controllerId,
-      controllerVmId
-    );
+    emit ControllerUpdated(senderIdHash, targetIdHash, controllerPosition, controllerVmId);
   }
 
   function updateService(
@@ -273,9 +254,9 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes1 relationship,
     address sender
   ) public view returns (bool) {
-    require(method0 != bytes32(0), "Method0 cannot be 0");
-    require(id != bytes32(0), "ID cannot be 0");
-    require(sender != address(0), "Sender cannot be 0");
+    require(method0 != bytes32(0), "Method0 cant be 0");
+    require(id != bytes32(0), "ID cant be 0");
+    require(sender != address(0), "Sender cant be 0");
     bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
     return _isVmRelationship(idHash, vmId, relationship, sender);
   }
@@ -350,7 +331,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     // Check if the sender is a controller for the target DID
     require(
       _isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash),
-      REVERT_NOT_CONTROLLER
+      "Not a controller for target"
     );
   }
 
@@ -389,27 +370,6 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     // If the controllers array is not empty and the sender is not a controller, return false
     // (controllers used but sender not in controllers)
     return false;
-  }
-
-  /**
-   * @dev Calculates the ID based on the provided parameters.
-   * @param method0 The first method parameter.
-   * @param method1 The second method parameter.
-   * @param method2 The third method parameter.
-   * @param random The random parameter.
-   * @param sender The address of the sender.
-   * @param timestamp The timestamp parameter.
-   * @return id The calculated ID.
-   */
-  function _calculateId(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 random,
-    address sender,
-    uint timestamp
-  ) internal pure returns (bytes32 id) {
-    return keccak256(abi.encodePacked(method0, method1, method2, random, sender, timestamp));
   }
 
   /**

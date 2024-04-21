@@ -5,7 +5,7 @@ import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager, CreateVmCommand as DidCreateVmCommand, REVERT_NOT_CONTROLLER } from "@src/interfaces/IDidManager.sol";
+import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfaces/IDidManager.sol";
 import { DidManager } from "@src/DidManager.sol";
 import { VMStorage, VerificationMethod, CreateVmCommand } from "@src/VMStorage.sol";
 import { SharedTest, DidInfo } from "@test/SharedTest.sol";
@@ -16,25 +16,8 @@ contract VMStorageTest is SharedTest {
   uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
   uint256 private constant INIT_CONTRACTS = 6;
   // Specific
-  bytes32[2] private EMPTY_VM_TYPE = [bytes32(0)];
-  bytes32[16] private EMPTY_VM_PUBLIC_KEY = [bytes32(0)];
-  bytes32[5] private EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID = [bytes32(0)];
-  address private constant EMPTY_VM_THIS_BC_ADDRESS = address(0);
-  bytes1 private constant EMPTY_VM_RELATIONSHIPS = bytes1(0);
-  uint256 private constant EMPTY_VM_EXPIRATION = 0;
-  bytes32[2] private DEFAULT_VM_TYPE = [bytes32("EcdsaSecp256k1VerificationKey20"), bytes32("19")];
-  bytes32[16] private DEFAULT_VM_PUBLIC_KEY = [
-    bytes32("0x04a2b4f3b4"),
-    bytes32("0a2b4f3b4"),
-    bytes32("0b2b4f3b4")
-  ];
-  // "eip155:1:0xab16a96d359ec26a11e2c2b3d8f8b8942d5bfcdb"
-  bytes32[5] private DEFAULT_VM_BLOCKCHAIN_ACCOUNT_ID = [
-    bytes32("eid155:1:0xab16a96d359ec26a11e2c"),
-    bytes32("2b3d8f8b8942d5bfcdb")
-  ];
   address private constant RANDOM_VM_THIS_BC_ADDRESS = address(666);
-  bytes1 private constant DEFAULT_VM_RELATIONSHIPS = bytes1(0x01);
+  bytes1 private constant DEFAULT_VM_RELATIONSHIPS = VM_RELATIONSHIPS_AUTHENTICATION;
   bytes32[10] VM_ID = [bytes32("vm-create-test"), bytes32("vm-validate-test")];
   // Variables
   address private DEFAULT_VM_THIS_BC_ADDRESS;
