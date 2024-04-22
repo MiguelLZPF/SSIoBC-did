@@ -346,11 +346,11 @@ contract DidManagerTest is SharedTest {
       type_: EMPTY_VM_TYPE,
       publicKey: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      thisBCAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      thisBcAddress: EMPTY_VM_THIS_BC_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE,
       expiration: EMPTY_VM_EXPIRATION
     });
-    didManager.createVM(command);
+    didManager.createVm(command);
     //* ☑️ Assert ⬇
     // Check final state
     length = didManager.getVmListLength(
@@ -398,11 +398,11 @@ contract DidManagerTest is SharedTest {
       type_: EMPTY_VM_TYPE,
       publicKey: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      thisBCAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      thisBcAddress: EMPTY_VM_THIS_BC_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE,
       expiration: EMPTY_VM_EXPIRATION
     });
-    didManager.createVM(command);
+    didManager.createVm(command);
     //* ☑️ Assert ⬇
     // Check final state
     length = didManager.getVmListLength(
@@ -450,11 +450,11 @@ contract DidManagerTest is SharedTest {
       type_: EMPTY_VM_TYPE,
       publicKey: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      thisBCAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      thisBcAddress: EMPTY_VM_THIS_BC_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE,
       expiration: EMPTY_VM_EXPIRATION
     });
-    didManager.createVM(command);
+    didManager.createVm(command);
     //* ☑️ Assert ⬇
     // Check final state
     length = didManager.getVmListLength(
@@ -502,11 +502,11 @@ contract DidManagerTest is SharedTest {
       type_: EMPTY_VM_TYPE,
       publicKey: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      thisBCAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      thisBcAddress: EMPTY_VM_THIS_BC_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE, // ! <-- Relationships are empty
       expiration: EMPTY_VM_EXPIRATION
     });
-    didManager.createVM(command);
+    didManager.createVm(command);
     //* ☑️ Assert ⬇
     // Check final state
     length = didManager.getVmListLength(
@@ -546,7 +546,7 @@ contract DidManagerTest is SharedTest {
     //* 🎬 Act ⬇
     // Expire VM
     vm.expectRevert("Method0 cant be 0");
-    didManager.expireVM(
+    didManager.expireVm(
       EMPTY_DID_METHOD, // ! <-- Method0 is empty
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -556,7 +556,7 @@ contract DidManagerTest is SharedTest {
       DEFAULT_VM_ID
     );
     vm.expectRevert("DIDs cant be 0");
-    didManager.expireVM({
+    didManager.expireVm({
       method0: didInfo.method0,
       method1: didInfo.method1,
       method2: didInfo.method2,
@@ -566,7 +566,7 @@ contract DidManagerTest is SharedTest {
       vmId: DEFAULT_VM_ID
     });
     vm.expectRevert("DIDs cant be 0");
-    didManager.expireVM({
+    didManager.expireVm({
       method0: didInfo.method0,
       method1: didInfo.method1,
       method2: didInfo.method2,

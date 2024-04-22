@@ -83,7 +83,7 @@ contract VMStorageTest is SharedTest {
       didData.id
     );
     assertEq(length, 1);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -92,7 +92,7 @@ contract VMStorageTest is SharedTest {
       uint8(0)
     );
     _assertEmptyVm(verificationMethod);
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -137,7 +137,7 @@ contract VMStorageTest is SharedTest {
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -152,13 +152,13 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -173,7 +173,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
@@ -205,7 +205,7 @@ contract VMStorageTest is SharedTest {
       didData.id
     );
     assertEq(length, 1);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -214,7 +214,7 @@ contract VMStorageTest is SharedTest {
       uint8(0)
     );
     _assertEmptyVm(verificationMethod);
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -259,7 +259,7 @@ contract VMStorageTest is SharedTest {
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -274,13 +274,13 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -295,7 +295,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
@@ -327,7 +327,7 @@ contract VMStorageTest is SharedTest {
       didData.id
     );
     assertEq(length, 1);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -336,7 +336,7 @@ contract VMStorageTest is SharedTest {
       uint8(0)
     );
     _assertEmptyVm(verificationMethod);
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -381,7 +381,7 @@ contract VMStorageTest is SharedTest {
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -396,13 +396,13 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -417,7 +417,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
@@ -449,7 +449,7 @@ contract VMStorageTest is SharedTest {
       didData.id
     );
     assertEq(length, 1);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -458,7 +458,7 @@ contract VMStorageTest is SharedTest {
       uint8(0)
     );
     _assertEmptyVm(verificationMethod);
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -503,7 +503,7 @@ contract VMStorageTest is SharedTest {
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -518,13 +518,13 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -539,7 +539,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
@@ -559,7 +559,7 @@ contract VMStorageTest is SharedTest {
     vm.stopPrank();
   }
 
-  function test_shouldNot_createVm_withPubKeyBlockchainAccountIdAndThisBCAddressEmpty() public {
+  function test_shouldNot_createVm_withPubKeyBlockchainAccountIdAndThisBcAddressEmpty() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
@@ -571,7 +571,7 @@ contract VMStorageTest is SharedTest {
       didData.id
     );
     assertEq(length, 1);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -580,7 +580,7 @@ contract VMStorageTest is SharedTest {
       uint8(0)
     );
     _assertEmptyVm(verificationMethod);
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -607,7 +607,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
-    didManager.createVM(command);
+    didManager.createVm(command);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -619,7 +619,7 @@ contract VMStorageTest is SharedTest {
     // Check final state
     assertEq(length, 1);
     // -- final "first vm"
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -629,7 +629,7 @@ contract VMStorageTest is SharedTest {
     );
     _assertEmptyVm(verificationMethod);
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -673,7 +673,7 @@ contract VMStorageTest is SharedTest {
     );
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -688,12 +688,12 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
     );
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -708,7 +708,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
@@ -727,7 +727,7 @@ contract VMStorageTest is SharedTest {
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -742,13 +742,13 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -763,7 +763,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -806,7 +806,7 @@ contract VMStorageTest is SharedTest {
     );
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -821,12 +821,12 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
     );
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -841,7 +841,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
@@ -860,7 +860,7 @@ contract VMStorageTest is SharedTest {
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -875,13 +875,13 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         block.timestamp + 365 days
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -896,7 +896,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         block.timestamp + 365 days
       )
@@ -939,7 +939,7 @@ contract VMStorageTest is SharedTest {
     );
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -954,12 +954,12 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
     );
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -974,7 +974,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
@@ -982,7 +982,7 @@ contract VMStorageTest is SharedTest {
     //* 🎬 Act ⬇
     // Validate Verification Method
     vm.expectRevert("VM not found");
-    didManager.validateVM(keccak256("Does Not Exist"), DEFAULT_VM_EXPIRATION);
+    didManager.validateVm(keccak256("Does Not Exist"), DEFAULT_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -994,7 +994,7 @@ contract VMStorageTest is SharedTest {
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1009,13 +1009,13 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1030,7 +1030,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
@@ -1039,7 +1039,7 @@ contract VMStorageTest is SharedTest {
     vm.stopPrank();
   }
 
-  function test_shouldNot_validateVm_withNoThisBCAddress() public {
+  function test_shouldNot_validateVm_withNoThisBcAddress() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
@@ -1069,7 +1069,7 @@ contract VMStorageTest is SharedTest {
     );
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1084,12 +1084,12 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
     );
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1104,7 +1104,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
@@ -1112,7 +1112,7 @@ contract VMStorageTest is SharedTest {
     //* 🎬 Act ⬇
     // Validate Verification Method
     vm.expectRevert("VM already validated or out");
-    didManager.validateVM(VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    didManager.validateVm(VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -1124,7 +1124,7 @@ contract VMStorageTest is SharedTest {
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1139,13 +1139,13 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1160,7 +1160,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -1199,7 +1199,7 @@ contract VMStorageTest is SharedTest {
     );
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1214,12 +1214,12 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
     );
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1234,7 +1234,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         command.expiration
       )
@@ -1243,7 +1243,7 @@ contract VMStorageTest is SharedTest {
     // Validate Verification Method
     vm.expectRevert("Cant validate VM. Invalid Sign");
     startHoax(otherUser, DEFAULT_USER_BALANCE);
-    didManager.validateVM(VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    didManager.validateVm(VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -1255,7 +1255,7 @@ contract VMStorageTest is SharedTest {
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1270,13 +1270,13 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1291,7 +1291,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
@@ -1332,7 +1332,7 @@ contract VMStorageTest is SharedTest {
     );
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1347,12 +1347,12 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
     );
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1367,7 +1367,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -1399,7 +1399,7 @@ contract VMStorageTest is SharedTest {
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1414,13 +1414,13 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         VmExpirationUpdated_expiration
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1435,7 +1435,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         VmExpirationUpdated_expiration
       )
@@ -1486,7 +1486,7 @@ contract VMStorageTest is SharedTest {
     );
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
-    VerificationMethod memory verificationMethod = didManager.getVM(
+    VerificationMethod memory verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1501,12 +1501,12 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
     );
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1521,7 +1521,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -1540,7 +1540,7 @@ contract VMStorageTest is SharedTest {
     //* 🎬 Act ⬇
     // Expire Verification Method
     vm.expectRevert("VM already expired");
-    didManager.expireVM(
+    didManager.expireVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1551,7 +1551,7 @@ contract VMStorageTest is SharedTest {
     );
     //* ☑️ Assert ⬇
     // -- final vm by ID
-    verificationMethod = didManager.getVM(
+    verificationMethod = didManager.getVm(
       didData.method0,
       didData.method1,
       didData.method2,
@@ -1566,7 +1566,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBCAddress,
+        command.thisBcAddress,
         command.relationships,
         block.number
       )
@@ -1594,7 +1594,7 @@ contract VMStorageTest is SharedTest {
     // Event recording
     vm.recordLogs();
     //* Update controller call
-    didManager.createVM(command);
+    didManager.createVm(command);
     // Get logs from previous transaction
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Get the event values
@@ -1617,7 +1617,7 @@ contract VMStorageTest is SharedTest {
     // Event recording
     vm.recordLogs();
     //* Update controller call
-    didManager.validateVM(positionHash, expiration);
+    didManager.validateVm(positionHash, expiration);
     // Get logs from previous transaction
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Get the event values
@@ -1645,7 +1645,7 @@ contract VMStorageTest is SharedTest {
     // Event recording
     vm.recordLogs();
     //* Update controller call
-    didManager.expireVM(method0, method1, method2, senderId, senderVmId, targetId, vmId);
+    didManager.expireVm(method0, method1, method2, senderId, senderVmId, targetId, vmId);
     // Get logs from previous transaction
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Get the event values
@@ -1672,7 +1672,7 @@ contract VMStorageTest is SharedTest {
     for (uint256 i = 0; i < 5; i++) {
       assertEq(verificationMethod.blockchainAccountId[i], bytes32(0));
     }
-    assertEq(verificationMethod.thisBCAddress, address(0));
+    assertEq(verificationMethod.thisBcAddress, address(0));
     assertEq(verificationMethod.relationships, bytes1(0));
     assertEq(verificationMethod.expiration, 0);
   }
@@ -1691,7 +1691,7 @@ contract VMStorageTest is SharedTest {
     for (uint256 i = 0; i < 5; i++) {
       assertEq(vmToCheck.blockchainAccountId[i], expectedVM.blockchainAccountId[i]);
     }
-    assertEq(vmToCheck.thisBCAddress, expectedVM.thisBCAddress);
+    assertEq(vmToCheck.thisBcAddress, expectedVM.thisBcAddress);
     assertEq(vmToCheck.relationships, expectedVM.relationships);
     assertEq(vmToCheck.expiration, expectedVM.expiration);
   }
