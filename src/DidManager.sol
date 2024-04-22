@@ -58,7 +58,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     );
     bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
     require(_isExpired(idHash), "DID in use");
-    (, bytes32 positionHash) = _createVM(
+    (, bytes32 positionHash) = _createVm(
       CreateVmCommand({
         didHash: idHash,
         id: vmId,
@@ -88,50 +88,50 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
           bytes32(0),
           bytes32(0)
         ],
-        thisBCAddress: msg.sender,
+        thisBcAddress: msg.sender,
         relationships: bytes1(0x01), // 0x01 (Authentication)
         expiration: 1 // Just to avoid one if statement
       })
     );
-    _validateVM(positionHash, 0, msg.sender);
+    _validateVm(positionHash, 0, msg.sender);
     _updateExpiration(idHash);
     emit DidCreated(id, idHash, msg.sender);
   }
 
-  function createVM(DidCreateVmCommand memory command) external {
+  function createVm(DidCreateVmCommand memory command) external {
     //* Params validation
     // Required
     require(command.method0 != bytes32(0), "Method0 cant be 0");
     require(command.senderId != bytes32(0) && command.targetId != bytes32(0), "DIDs cant be 0");
     require(command.relationships > bytes1(0), "Relationships cant be 0");
     //* Implementation
-    (, bytes32 targetIdHash) = _validateSenderAndTarget(
-      command.method0,
-      command.method1,
-      command.method2,
-      command.senderId,
-      command.senderVmId,
-      command.targetId
-    );
-    _createVM(
+    (, bytes32 targetIdHash) = _validateSenderAndTarget({
+      method0: command.method0,
+      method1: command.method1,
+      method2: command.method2,
+      senderId: command.senderId,
+      senderVmId: command.senderVmId,
+      targetId: command.targetId
+    });
+    _createVm(
       CreateVmCommand({
         didHash: targetIdHash,
         id: command.vmId,
         type_: command.type_,
         publicKey: command.publicKey,
         blockchainAccountId: command.blockchainAccountId,
-        thisBCAddress: command.thisBCAddress,
+        thisBcAddress: command.thisBcAddress,
         relationships: command.relationships,
         expiration: command.expiration
       })
     );
   }
 
-  function validateVM(bytes32 positionHash, uint expiration) external {
-    _validateVM(positionHash, expiration, msg.sender);
+  function validateVm(bytes32 positionHash, uint expiration) external {
+    _validateVm(positionHash, expiration, msg.sender);
   }
 
-  function expireVM(
+  function expireVm(
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
@@ -153,7 +153,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       senderVmId,
       targetId
     );
-    _expireVM(targetIdHash, vmId);
+    _expireVm(targetIdHash, vmId);
   }
 
   function updateController(
@@ -228,7 +228,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   ) external view returns (uint exp) {
     bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
     if (vmId != bytes32(0)) {
-      return _getExpirationVM(idHash, vmId);
+      return _getExpirationVm(idHash, vmId);
     } else {
       return _expirationDate[idHash];
     }
@@ -270,7 +270,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     return _controllers[_calculateIdHash(method0, method1, method2, id)];
   }
 
-  function getVM(
+  function getVm(
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
@@ -278,7 +278,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32 vmId,
     uint8 position
   ) external view returns (VerificationMethod memory vm) {
-    return _getVM(_calculateIdHash(method0, method1, method2, id), vmId, position);
+    return _getVm(_calculateIdHash(method0, method1, method2, id), vmId, position);
   }
 
   function getVmListLength(

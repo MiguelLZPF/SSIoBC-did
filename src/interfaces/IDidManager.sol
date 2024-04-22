@@ -23,7 +23,7 @@ struct CreateVmCommand {
   bytes32[2] type_; // The type of the VM.
   bytes32[16] publicKey; // The public key of the VM.
   bytes32[5] blockchainAccountId; // The blockchain account ID of the VM.
-  address thisBCAddress; // The address of the blockchain where the VM is created.
+  address thisBcAddress; // The address of the blockchain where the VM is created.
   bytes1 relationships; // The relationships of the VM.
   uint expiration; // The expiration time of the VM.
 }
@@ -87,7 +87,7 @@ interface IDidManager {
    * @param targetId The ID of the target.
    * @param vmId The ID of the Verification Method to expire.
    */
-  function expireVM(
+  function expireVm(
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
@@ -191,14 +191,18 @@ interface IDidManager {
     bytes32 id
   ) external view returns (Controller[CONTROLLERS_MAX_LENGTH] memory controllerList);
 
-  function createVM(CreateVmCommand memory command) external;
+  /**
+   * @dev Creates a new Verification Method (VM) based on the provided command.
+   * @param command The command containing the necessary information to create the VM.
+   */
+  function createVm(CreateVmCommand memory command) external;
 
   /**
    * @dev Validates a Verification Method (VM) by checking its position hash and expiration.
    * @param positionHash The position hash of the VM.
    * @param expiration The expiration timestamp of the VM.
    */
-  function validateVM(bytes32 positionHash, uint expiration) external;
+  function validateVm(bytes32 positionHash, uint expiration) external;
 
   /**
    * @dev Returns the Verification Method (VM) for a given DID and VM ID.
@@ -210,7 +214,7 @@ interface IDidManager {
    * @param position The position of the Verification Method in the array.
    * @return vm The Verification Method.
    */
-  function getVM(
+  function getVm(
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
