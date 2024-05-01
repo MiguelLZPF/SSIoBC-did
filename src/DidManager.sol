@@ -58,43 +58,22 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     );
     bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
     require(_isExpired(idHash), "DID in use");
+    _removeAllVms(idHash);
+    _removeAllServices(idHash);
     (, bytes32 positionHash) = _createVm(
       CreateVmCommand({
         didHash: idHash,
         id: vmId,
         type_: [bytes32(0), bytes32(0)],
-        publicKey: [
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0),
-          bytes32(0)
-        ],
-        blockchainAccountId: [
-          bytes32("eip155"),
-          bytes32("666"),
-          bytes32(uint256(uint160(msg.sender))),
-          bytes32(0),
-          bytes32(0)
-        ],
+        publicKey: EMPTY_PUBLIC_KEY,
+        blockchainAccountId: DEFAULT_BLOCKCHAIN_ACCOUNT_ID,
         thisBcAddress: msg.sender,
         relationships: bytes1(0x01), // 0x01 (Authentication)
         expiration: 1 // Just to avoid one if statement
       })
     );
     _validateVm(positionHash, 0, msg.sender);
-    _updateExpiration(idHash);
+    updateExpiration({ idHash: idHash, forceExpire: false });
     emit DidCreated(id, idHash, msg.sender);
   }
 
@@ -125,7 +104,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
         expiration: command.expiration
       })
     );
-    _updateExpiration(targetIdHash);
+    updateExpiration({ idHash: targetIdHash, forceExpire: false });
   }
 
   function validateVm(bytes32 positionHash, uint expiration) external {
@@ -155,7 +134,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       targetId
     );
     _expireVm(targetIdHash, vmId);
-    _updateExpiration(targetIdHash);
+    updateExpiration({ idHash: targetIdHash, forceExpire: false });
   }
 
   function updateController(
@@ -194,7 +173,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     _controllers[targetIdHash][controllerPosition] = Controller(controllerId, controllerVmId);
     // Emit the ControllerUpdated event
     emit ControllerUpdated(senderIdHash, targetIdHash, controllerPosition, controllerVmId);
-    _updateExpiration(targetIdHash);
+    updateExpiration({ idHash: targetIdHash, forceExpire: false });
   }
 
   function updateService(
@@ -218,7 +197,11 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       targetId
     );
     _updateService(targetIdHash, serviceId, type_, serviceEndpoint);
-    _updateExpiration(targetIdHash);
+    updateExpiration({ idHash: targetIdHash, forceExpire: false });
+  }
+
+  function updateExpiration(bytes32 idHash, bool forceExpire) public {
+    _expirationDate[idHash] = forceExpire ? 0 : block.timestamp + EXPIRATION;
   }
 
   //* View functions
@@ -391,14 +374,6 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32 id
   ) internal pure returns (bytes32 idHash) {
     return keccak256(abi.encodePacked(method0, method1, method2, id));
-  }
-
-  /**
-   * @dev Updates the expiration date for a given ID hash.
-   * @param idHash The hash of the ID to update the expiration date for.
-   */
-  function _updateExpiration(bytes32 idHash) internal {
-    _expirationDate[idHash] = block.timestamp + EXPIRATION;
   }
 
   /**

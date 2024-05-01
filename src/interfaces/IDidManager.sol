@@ -78,6 +78,15 @@ interface IDidManager {
   ) external;
 
   /**
+   * @dev Updates the expiration date for a given ID hash.
+   * @param idHash The hash of the ID to update the expiration date for.
+   * @param forceExpire Boolean flag indicating whether to force expiration or not.
+   *                   If set to true, the expiration date will be set to 0, effectively expiring the ID.
+   *                   If set to false, the expiration date will be set to the current block timestamp plus the EXPIRATION value.
+   */
+  function updateExpiration(bytes32 idHash, bool forceExpire) external;
+
+  /**
    * @dev Expires a Verification Method (VM).
    * @param method0 The first method component of the DID.
    * @param method1 (optional) The second method component of the DID.

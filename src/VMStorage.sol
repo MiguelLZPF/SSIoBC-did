@@ -36,6 +36,15 @@ struct CreateVmCommand {
 }
 
 abstract contract VMStorage is HashBasedList {
+  //* Constants
+  bytes32[16] internal EMPTY_PUBLIC_KEY = [bytes32(0)];
+  bytes32[5] internal DEFAULT_BLOCKCHAIN_ACCOUNT_ID = [
+    bytes32("eip155"),
+    bytes32("666"),
+    bytes32(uint256(uint160(msg.sender))),
+    bytes32(0),
+    bytes32(0)
+  ];
   //* Events
   /**
    * @dev Emitted when a new Verification Method (VM) is created for a DID.
@@ -164,6 +173,18 @@ abstract contract VMStorage is HashBasedList {
     require(vm.expiration > block.timestamp, "VM already expired");
     vm.expiration = block.timestamp;
     emit VmExpirationUpdated(didHash, id, vm.expiration <= block.timestamp, vm.expiration);
+  }
+
+  function _removeAllVms(bytes32 didHash) internal {
+    for (uint8 i = 1; i <= _getHblLength(didHash); i++) {
+      bytes32 positionHash = _calculatePositionHash(didHash, i);
+      // Set vmId --> position to 0
+      _initHblPosition(didHash, _vm[positionHash].id);
+      // Empty VM
+      delete _vm[positionHash];
+    }
+    // Set HBL length to 0
+    _initHblLength(didHash);
   }
 
   /**
