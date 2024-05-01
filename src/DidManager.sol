@@ -125,6 +125,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
         expiration: command.expiration
       })
     );
+    _updateExpiration(targetIdHash);
   }
 
   function validateVm(bytes32 positionHash, uint expiration) external {
@@ -154,6 +155,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       targetId
     );
     _expireVm(targetIdHash, vmId);
+    _updateExpiration(targetIdHash);
   }
 
   function updateController(
@@ -192,6 +194,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     _controllers[targetIdHash][controllerPosition] = Controller(controllerId, controllerVmId);
     // Emit the ControllerUpdated event
     emit ControllerUpdated(senderIdHash, targetIdHash, controllerPosition, controllerVmId);
+    _updateExpiration(targetIdHash);
   }
 
   function updateService(
@@ -215,6 +218,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       targetId
     );
     _updateService(targetIdHash, serviceId, type_, serviceEndpoint);
+    _updateExpiration(targetIdHash);
   }
 
   //* View functions
