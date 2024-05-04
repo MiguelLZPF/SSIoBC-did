@@ -64,19 +64,22 @@ abstract contract ServiceStorage is HashBasedList {
     //  Service exists and type_ and serviceEndpoint are empty ==> delete service
     if (position > 0 && type_[0] == bytes32(0) && serviceEndpoint[0] == bytes32(0)) {
       // Get latest service on array
-      uint8 lastPosition = _getHblLength(serviceDidHash);
-      bytes32 lastPositionHash = _calculatePositionHash(serviceDidHash, lastPosition);
-      Service memory lastService = _service[lastPositionHash];
-      bytes32 lastIdHash = _calculateIdHash(serviceDidHash, lastService.id);
+      // uint8 lastPosition = _getHblLength(serviceDidHash);
+      bytes32 lastPositionHash = _calculatePositionHash(
+        serviceDidHash,
+        _getHblLength(serviceDidHash)
+      );
+      bytes32 lastServiceId = _service[lastPositionHash].id;
+      bytes32 lastIdHash = _calculateIdHash(serviceDidHash, lastServiceId);
       // Replace the service with the last service
-      _service[positionHash] = lastService;
+      _service[positionHash] = _service[lastPositionHash];
       // Delete the service new last service
       delete _service[lastPositionHash];
       // Remove position of the deleted service
-      _removeHbl(serviceDidHash, id, lastService.id);
+      _removeHbl(serviceDidHash, id, lastServiceId);
       // Emit two events
       emit ServiceUpdated(didHash, id, idHash, 0);
-      emit ServiceUpdated(didHash, lastService.id, lastIdHash, positionHash);
+      emit ServiceUpdated(didHash, lastServiceId, lastIdHash, positionHash);
       return;
     }
     // Check both are defined before updating (or create)
@@ -95,6 +98,19 @@ abstract contract ServiceStorage is HashBasedList {
 
     // Emit an event
     emit ServiceUpdated(didHash, id, idHash, positionHash);
+  }
+
+  function _removeAllServices(bytes32 didHash) internal {
+    bytes32 serviceDidHash = _addServiceNameSpace(didHash);
+    for (uint8 i = 1; i <= _getHblLength(serviceDidHash); i++) {
+      bytes32 positionHash = _calculatePositionHash(serviceDidHash, i);
+      // Set serviceId --> position to 0
+      _initHblPosition(serviceDidHash, _service[positionHash].id);
+      // Delete service
+      delete _service[positionHash];
+    }
+    // Set length to 0
+    _initHblLength(serviceDidHash);
   }
 
   /**

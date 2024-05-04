@@ -260,7 +260,7 @@ contract DidManagerTest is SharedTest {
   }
 
   // ! Not possible | really difficult in real newtorks
-  function test_should_createDid_sameDidTwice() public {
+  function test_shouldNot_createDid_sameDidTwice() public {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
@@ -310,6 +310,9 @@ contract DidManagerTest is SharedTest {
     // end
     vm.stopPrank();
   }
+
+  // ! Cannot be tested: if advance time to expire, the DID hash will change
+  // function test_should_createDid_sameExpiredDid() public {
 
   // CREATE VERIFICATION METHOD
   function test_shouldNot_createVm_withMethod0Empty() public {
