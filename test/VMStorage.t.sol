@@ -152,7 +152,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -173,7 +173,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -274,7 +274,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -295,7 +295,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -396,7 +396,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -417,7 +417,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -518,7 +518,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
@@ -539,7 +539,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
@@ -688,7 +688,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -708,7 +708,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -742,7 +742,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -763,7 +763,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -821,7 +821,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -841,7 +841,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -875,7 +875,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         block.timestamp + 365 days
       )
@@ -896,7 +896,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         block.timestamp + 365 days
       )
@@ -954,7 +954,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -974,7 +974,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -1009,7 +1009,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
@@ -1030,7 +1030,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
@@ -1084,7 +1084,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -1104,7 +1104,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -1139,7 +1139,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -1160,7 +1160,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -1214,7 +1214,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -1234,7 +1234,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         command.expiration
       )
@@ -1270,7 +1270,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
@@ -1291,7 +1291,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         EMPTY_VM_EXPIRATION
       )
@@ -1347,7 +1347,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -1367,7 +1367,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -1414,7 +1414,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         VmExpirationUpdated_expiration
       )
@@ -1435,7 +1435,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         VmExpirationUpdated_expiration
       )
@@ -1501,7 +1501,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -1521,7 +1521,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         DEFAULT_VM_EXPIRATION
       )
@@ -1566,7 +1566,7 @@ contract VMStorageTest is SharedTest {
         command.type_,
         command.publicKey,
         command.blockchainAccountId,
-        command.thisBcAddress,
+        command.ethereumAddress,
         command.relationships,
         block.number
       )
@@ -1672,7 +1672,7 @@ contract VMStorageTest is SharedTest {
     for (uint256 i = 0; i < 5; i++) {
       assertEq(verificationMethod.blockchainAccountId[i], bytes32(0));
     }
-    assertEq(verificationMethod.thisBcAddress, address(0));
+    assertEq(verificationMethod.ethereumAddress, address(0));
     assertEq(verificationMethod.relationships, bytes1(0));
     assertEq(verificationMethod.expiration, 0);
   }
@@ -1691,7 +1691,7 @@ contract VMStorageTest is SharedTest {
     for (uint256 i = 0; i < 5; i++) {
       assertEq(vmToCheck.blockchainAccountId[i], expectedVM.blockchainAccountId[i]);
     }
-    assertEq(vmToCheck.thisBcAddress, expectedVM.thisBcAddress);
+    assertEq(vmToCheck.ethereumAddress, expectedVM.ethereumAddress);
     assertEq(vmToCheck.relationships, expectedVM.relationships);
     assertEq(vmToCheck.expiration, expectedVM.expiration);
   }

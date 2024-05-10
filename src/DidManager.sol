@@ -66,8 +66,8 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
         id: vmId,
         type_: [bytes32(0), bytes32(0)],
         publicKey: EMPTY_PUBLIC_KEY,
-        blockchainAccountId: DEFAULT_BLOCKCHAIN_ACCOUNT_ID,
-        thisBcAddress: msg.sender,
+        blockchainAccountId: EMPTY_BLOCKCHAIN_ACCOUNT_ID,
+        ethereumAddress: msg.sender,
         relationships: bytes1(0x01), // 0x01 (Authentication)
         expiration: 1 // Just to avoid one if statement
       })
@@ -99,7 +99,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
         type_: command.type_,
         publicKey: command.publicKey,
         blockchainAccountId: command.blockchainAccountId,
-        thisBcAddress: command.thisBcAddress,
+        ethereumAddress: command.ethereumAddress,
         relationships: command.relationships,
         expiration: command.expiration
       })

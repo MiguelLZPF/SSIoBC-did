@@ -349,7 +349,7 @@ contract DidManagerTest is SharedTest {
       type_: EMPTY_VM_TYPE,
       publicKey: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      thisBcAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      ethereumAddress: EMPTY_VM_THIS_BC_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE,
       expiration: EMPTY_VM_EXPIRATION
     });
@@ -401,7 +401,7 @@ contract DidManagerTest is SharedTest {
       type_: EMPTY_VM_TYPE,
       publicKey: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      thisBcAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      ethereumAddress: EMPTY_VM_THIS_BC_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE,
       expiration: EMPTY_VM_EXPIRATION
     });
@@ -453,7 +453,7 @@ contract DidManagerTest is SharedTest {
       type_: EMPTY_VM_TYPE,
       publicKey: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      thisBcAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      ethereumAddress: EMPTY_VM_THIS_BC_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE,
       expiration: EMPTY_VM_EXPIRATION
     });
@@ -505,7 +505,7 @@ contract DidManagerTest is SharedTest {
       type_: EMPTY_VM_TYPE,
       publicKey: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      thisBcAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      ethereumAddress: EMPTY_VM_THIS_BC_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE, // ! <-- Relationships are empty
       expiration: EMPTY_VM_EXPIRATION
     });

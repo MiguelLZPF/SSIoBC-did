@@ -1,0 +1,142 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity >=0.8.0 <0.9.0;
+
+import { Test, console } from "forge-std/Test.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
+import { W3CResolverScript, DeployCommand } from "@script/W3CResolver.s.sol";
+import { SharedTest, DidInfo } from "@test/SharedTest.sol";
+import { IDidManager, VerificationMethod, Controller, CreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
+import { IW3CResolver, W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
+
+struct UpdateControllerCommandTest {
+  bytes32 method0;
+  bytes32 method1;
+  bytes32 method2;
+  bytes32 senderId;
+  bytes32 senderVmId;
+  bytes32 targetId;
+  bytes32 controllerId;
+  bytes32 controllerVmId;
+  uint8 controllerPosition;
+}
+
+struct UpdateControllerResponseTest {
+  bytes32 ControllerUpdated_senderDidHash;
+  bytes32 ControllerUpdated_targetDidHash;
+  uint8 ControllerUpdated_controllerPosition;
+  bytes32 ControllerUpdated_vmId;
+}
+
+contract DidManagerTest is SharedTest {
+  //* Constants
+  // General
+  uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
+  // Specific
+  bytes32 private constant RANDOM_CREATE_DEFAULT = bytes32("This is a random value");
+  bytes32 private constant RANDOM_CREATE_CUSTOM = bytes32("This is another random value");
+  bytes32 private constant RANDOM_AUTHENTICATE = bytes32("Random value authenticate");
+  bytes32 private constant RANDOM_RELATIONSHIP = bytes32("Random value relationship");
+  bytes32 private constant DID_METHOD_0_CUSTOM = bytes32("method0_custom");
+  bytes32 private constant DID_METHOD_1_CUSTOM = bytes32("method1_custom");
+  bytes32 private constant DID_METHOD_2_CUSTOM = bytes32("method2_custom");
+  bytes32 private constant VM_ID_CUSTOM = bytes32("vm_custom");
+  bytes32 private constant VM_ID_CUSTOM_2 = bytes32("vm_custom_2");
+  // Variables
+  // -- users
+  address admin = DEFAULT_SENDER;
+  address user = payable(address(10));
+  address otherUser = payable(address(11));
+  address user1 = payable(address(12));
+  // -- contracts
+  uint256 lastDidManagerUsed;
+  IDidManager didManager;
+  IW3CResolver w3cResolver;
+
+  /**
+   * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
+   */
+  function setUp() public {
+    // Label users
+    vm.label(admin, "admin");
+    vm.label(user, "user");
+    vm.label(otherUser, "otherUser");
+    // Deploy initial state contracts
+    didManager = _deployNewDidManager();
+    w3cResolver = _deployNewW3cResolver(didManager);
+    // Label contracts
+    vm.label(address(didManager), "blankDidManager");
+  }
+
+  //* TESTS
+  // CREATE DID
+  function test_should_resolveVm_withDefaultParams() public {
+    //* 🗂️ Arrange ⬇
+    startHoax(user, DEFAULT_USER_BALANCE);
+    // Check initial state
+    // ! Not possible | really difficult in real newtorks
+    bytes32 id = keccak256(
+      abi.encodePacked(
+        DEFAULT_DID_METHOD0,
+        DEFAULT_DID_METHOD1,
+        DEFAULT_DID_METHOD2,
+        RANDOM_CREATE_DEFAULT,
+        user,
+        block.timestamp
+      )
+    );
+    uint256 exp = didManager.getExpiration(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      id,
+      EMPTY_VM_ID // <-- To get the expiration of the DID
+    );
+    assertEq(exp, EMPTY_EXPIRATION);
+    uint256 length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      id
+    );
+    assertEq(length, 0);
+    //* 🎬 Act ⬇
+    // Create DID
+    (DidInfo memory didInfo, , , , , , ) = _createDid(
+      didManager,
+      EMPTY_DID_METHOD,
+      EMPTY_DID_METHOD,
+      EMPTY_DID_METHOD,
+      RANDOM_CREATE_DEFAULT,
+      EMPTY_VM_ID
+    );
+    //* ☑️ Assert ⬇
+    // Check final state
+    console.logBytes(abi.encodePacked(DEFAULT_VM_TYPE));
+    W3CVerificationMethod memory w3cVm = w3cResolver.resolveVm(
+      W3CDidInput({
+        method0: DEFAULT_DID_METHOD0,
+        method1: DEFAULT_DID_METHOD1,
+        method2: DEFAULT_DID_METHOD2,
+        id: didInfo.id
+      }),
+      DEFAULT_VM_ID
+    );
+    // end
+    vm.stopPrank();
+  }
+
+  // * Internal functions
+
+  function _deployNewW3cResolver(
+    IDidManager _didManager
+  ) internal returns (IW3CResolver _w3cResolver) {
+    (_w3cResolver, ) = new W3CResolverScript().deploy(
+      DeployCommand({
+        didManager: _didManager,
+        storeInfo: DeploymentStoreInfo({ store: false, tag: bytes32(0) })
+      }),
+      false
+    );
+  }
+}

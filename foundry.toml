@@ -26,8 +26,6 @@ remappings = [
   "@lib/=lib/",
   "@test/=test/",
   # OpenZeppelin remappings
-  "@openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/",
-  "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
   "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
 ]
 
