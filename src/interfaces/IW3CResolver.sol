@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 struct W3CDidDocument {
-  string context;
+  string[] context;
   string id;
   string[] controller;
   W3CVerificationMethod[] verificationMethod;

@@ -112,7 +112,6 @@ contract DidManagerTest is SharedTest {
     );
     //* ☑️ Assert ⬇
     // Check final state
-    console.logBytes(abi.encodePacked(DEFAULT_VM_TYPE));
     W3CVerificationMethod memory w3cVm = w3cResolver.resolveVm(
       W3CDidInput({
         method0: DEFAULT_DID_METHOD0,
