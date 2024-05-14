@@ -238,7 +238,7 @@ contract W3CResolver is IW3CResolver {
         id: string(_trimBytes(abi.encodePacked(vm.id))),
         type_: string(_trimBytes(abi.encodePacked(vm.type_))),
         controller: _formatDidString(didInput),
-        publicKey: string(_trimBytes(abi.encodePacked(vm.publicKey))),
+        publicKeyMultibase: string(_trimBytes(abi.encodePacked(vm.publicKey))),
         blockchainAccountId: string(_trimBytes(abi.encodePacked(vm.blockchainAccountId))),
         ethereumAddress: Strings.toHexString(vm.ethereumAddress),
         expiration: vm.expiration * 1000 // expiration in ms

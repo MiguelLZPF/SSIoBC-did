@@ -327,7 +327,7 @@ contract DidManagerTest is SharedTest {
 
     return
       string(
-        _trimBytes(abi.encodePacked(methods, bytesToHexString(abi.encodePacked(didInput.id))))
+        _trimBytes(abi.encodePacked(methods, _bytesToHexString(abi.encodePacked(didInput.id))))
       );
   }
 
@@ -350,7 +350,7 @@ contract DidManagerTest is SharedTest {
     return output;
   }
 
-  function bytesToHexString(bytes memory input) public pure returns (string memory hexString) {
+  function _bytesToHexString(bytes memory input) public pure returns (string memory hexString) {
     // Fixed buffer size for hexadecimal convertion
     bytes memory converted = new bytes(input.length * 2);
     bytes memory _base = "0123456789abcdef";
