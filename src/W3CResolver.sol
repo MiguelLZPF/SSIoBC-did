@@ -161,7 +161,14 @@ contract W3CResolver is IW3CResolver {
         keyAgreement: methods[2],
         capabilityDelegation: methods[3],
         capabilityInvocation: methods[4],
-        service: services
+        service: services,
+        expiration: _didManager.getExpiration(
+          didInput.method0,
+          didInput.method1,
+          didInput.method2,
+          didInput.id,
+          bytes32(0)
+        ) * 1000
       });
   }
 
@@ -221,7 +228,7 @@ contract W3CResolver is IW3CResolver {
         publicKey: string(_trimBytes(abi.encodePacked(vm.publicKey))),
         blockchainAccountId: string(_trimBytes(abi.encodePacked(vm.blockchainAccountId))),
         ethereumAddress: Strings.toHexString(vm.ethereumAddress),
-        expiration: Strings.toString(vm.expiration * 1000) // expiration in ms
+        expiration: vm.expiration * 1000 // expiration in ms
       });
   }
 

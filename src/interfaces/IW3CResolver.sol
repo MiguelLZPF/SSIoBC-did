@@ -12,6 +12,7 @@ struct W3CDidDocument {
   string[] capabilityDelegation;
   string[] capabilityInvocation;
   W3CService[] service;
+  uint256 expiration; // In milliseconds
 }
 
 struct W3CVerificationMethod {
@@ -20,8 +21,8 @@ struct W3CVerificationMethod {
   string controller;
   string publicKey; // TODO: support multibase and JWK
   string blockchainAccountId;
-  string ethereumAddress; // TODO: this instead of thisBCAccountId???
-  string expiration;
+  string ethereumAddress;
+  uint256 expiration; // In milliseconds
 }
 
 struct W3CService {
