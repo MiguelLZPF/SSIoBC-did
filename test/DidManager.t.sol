@@ -29,8 +29,6 @@ struct UpdateControllerResponseTest {
 
 contract DidManagerTest is SharedTest {
   //* Constants
-  // General
-  uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
   // Specific
   bytes32 private constant RANDOM_CREATE_DEFAULT = bytes32("This is a random value");
   bytes32 private constant RANDOM_CREATE_CUSTOM = bytes32("This is another random value");

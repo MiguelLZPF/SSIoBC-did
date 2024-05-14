@@ -18,6 +18,8 @@ struct DidInfo {
 
 abstract contract SharedTest is Test {
   // * Shared Constants
+  // General
+  uint256 constant DEFAULT_USER_BALANCE = 100 ether;
   uint256 EMPTY_EXPIRATION = 0;
   // DID
   bytes32 constant EMPTY_DID_METHOD = bytes32(0);

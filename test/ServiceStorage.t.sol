@@ -18,8 +18,6 @@ enum PerformedAction {
 
 contract ServiceStorageTest is SharedTest {
   //* Constants
-  // General
-  uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
   // Specific
   bytes32 private constant DEFAULT_SERVICE_ID = bytes32("linked-domain");
   bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_TYPE = [bytes32("LinkedDomains")];

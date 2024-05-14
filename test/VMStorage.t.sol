@@ -12,9 +12,6 @@ import { SharedTest, DidInfo } from "@test/SharedTest.sol";
 
 contract VMStorageTest is SharedTest {
   //* Constants
-  // General
-  uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
-  uint256 private constant INIT_CONTRACTS = 6;
   // Specific
   address private constant RANDOM_VM_THIS_BC_ADDRESS = address(666);
   bytes1 private constant DEFAULT_VM_RELATIONSHIPS = VM_RELATIONSHIPS_AUTHENTICATION;

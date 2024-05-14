@@ -6,7 +6,8 @@ import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { W3CResolverScript, DeployCommand } from "@script/W3CResolver.s.sol";
 import { SharedTest, DidInfo } from "@test/SharedTest.sol";
-import { IDidManager, VerificationMethod, Controller, CreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
+import { PerformedAction, Service } from "@test/ServiceStorage.t.sol";
+import { IDidManager, VerificationMethod, Controller, CreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 import { IW3CResolver, W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
 
 struct UpdateControllerCommandTest {
@@ -30,9 +31,8 @@ struct UpdateControllerResponseTest {
 
 contract DidManagerTest is SharedTest {
   //* Constants
-  // General
-  uint256 private constant DEFAULT_USER_BALANCE = 100 ether;
   // Specific
+  string[] private DEFAULT_CONTEXT = ["https://www.w3.org/ns/did/v1"];
   bytes32 private constant RANDOM_CREATE_DEFAULT = bytes32("This is a random value");
   bytes32 private constant RANDOM_CREATE_CUSTOM = bytes32("This is another random value");
   bytes32 private constant RANDOM_AUTHENTICATE = bytes32("Random value authenticate");
@@ -42,6 +42,11 @@ contract DidManagerTest is SharedTest {
   bytes32 private constant DID_METHOD_2_CUSTOM = bytes32("method2_custom");
   bytes32 private constant VM_ID_CUSTOM = bytes32("vm_custom");
   bytes32 private constant VM_ID_CUSTOM_2 = bytes32("vm_custom_2");
+  bytes32 private constant DEFAULT_SERVICE_ID = bytes32("linked-domain");
+  bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_TYPE = [bytes32("LinkedDomains")];
+  bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_ENDPOINT = [
+    bytes32("https://bar.example.com")
+  ];
   // Variables
   // -- users
   address admin = DEFAULT_SENDER;
@@ -69,7 +74,7 @@ contract DidManagerTest is SharedTest {
   }
 
   //* TESTS
-  // CREATE DID
+  // Verification Method
   function test_should_resolveVm_withDefaultParams() public {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
@@ -100,7 +105,6 @@ contract DidManagerTest is SharedTest {
       id
     );
     assertEq(length, 0);
-    //* 🎬 Act ⬇
     // Create DID
     (DidInfo memory didInfo, , , , , , ) = _createDid(
       didManager,
@@ -110,7 +114,7 @@ contract DidManagerTest is SharedTest {
       RANDOM_CREATE_DEFAULT,
       EMPTY_VM_ID
     );
-    //* ☑️ Assert ⬇
+    //* 🎬 Act ⬇
     // Check final state
     W3CVerificationMethod memory w3cVm = w3cResolver.resolveVm(
       W3CDidInput({
@@ -120,6 +124,122 @@ contract DidManagerTest is SharedTest {
         id: didInfo.id
       }),
       DEFAULT_VM_ID
+    );
+    //* ☑️ Assert ⬇
+    assertEq(
+      keccak256(abi.encodePacked(w3cVm.id)),
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_VM_ID)))))
+    );
+    assertEq(
+      keccak256(abi.encodePacked(w3cVm.type_)),
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_VM_TYPE)))))
+    );
+    // end
+    vm.stopPrank();
+  }
+
+  // Service
+  function test_should_resolveService_withDefaultParams() public {
+    //* 🗂️ Arrange ⬇
+    startHoax(user, DEFAULT_USER_BALANCE);
+    // Check initial state
+    // ! Not possible | really difficult in real newtorks
+    bytes32 id = keccak256(
+      abi.encodePacked(
+        DEFAULT_DID_METHOD0,
+        DEFAULT_DID_METHOD1,
+        DEFAULT_DID_METHOD2,
+        RANDOM_CREATE_DEFAULT,
+        user,
+        block.timestamp
+      )
+    );
+    uint256 exp = didManager.getExpiration(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      id,
+      EMPTY_VM_ID // <-- To get the expiration of the DID
+    );
+    assertEq(exp, EMPTY_EXPIRATION);
+    uint256 length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      id
+    );
+    assertEq(length, 0);
+    // Create DID
+    (DidInfo memory didInfo, , , , , , ) = _createDid(
+      didManager,
+      EMPTY_DID_METHOD,
+      EMPTY_DID_METHOD,
+      EMPTY_DID_METHOD,
+      RANDOM_CREATE_DEFAULT,
+      EMPTY_VM_ID
+    );
+    // Add a new Service
+    (
+      ,
+      ,
+      bytes32 ServiceUpdated_id,
+      bytes32 ServiceUpdated_serviceIdHash,
+      bytes32 ServiceUpdated_positionHash
+    ) = _updateService(
+        didInfo.method0,
+        didInfo.method1,
+        didInfo.method2,
+        didInfo.id,
+        DEFAULT_VM_ID,
+        didInfo.id,
+        DEFAULT_SERVICE_ID,
+        DEFAULT_SERVICE_TYPE,
+        DEFAULT_SERVICE_ENDPOINT
+      );
+    //* 🎬 Act ⬇
+    // Check final state
+    W3CService memory w3cService = w3cResolver.resolveService(
+      W3CDidInput({
+        method0: DEFAULT_DID_METHOD0,
+        method1: DEFAULT_DID_METHOD1,
+        method2: DEFAULT_DID_METHOD2,
+        id: didInfo.id
+      }),
+      DEFAULT_SERVICE_ID
+    );
+    //* ☑️ Assert ⬇
+    assertEq(
+      keccak256(abi.encodePacked(w3cService.id)),
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_SERVICE_ID)))))
+    );
+    assertEq(
+      keccak256(abi.encodePacked(w3cService.id)),
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(ServiceUpdated_id)))))
+    );
+
+    W3CDidDocument memory didDocument = w3cResolver.resolve(
+      W3CDidInput({
+        method0: didInfo.method0,
+        method1: didInfo.method1,
+        method2: didInfo.method2,
+        id: didInfo.id
+      })
+    );
+    // To compare strings, we need to call the hash of the string
+    assertEq(keccak256(abi.encode(didDocument.context)), keccak256(abi.encode(DEFAULT_CONTEXT)));
+    assertEq(
+      keccak256(abi.encodePacked(didDocument.id)),
+      keccak256(
+        abi.encodePacked(
+          _formatDidString(
+            W3CDidInput(didInfo.method0, didInfo.method1, didInfo.method2, didInfo.id)
+          )
+        )
+      )
+    );
+    assertEq(
+      keccak256(abi.encodePacked(didDocument.service[0].id)),
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_SERVICE_ID)))))
     );
     // end
     vm.stopPrank();
@@ -137,5 +257,105 @@ contract DidManagerTest is SharedTest {
       }),
       false
     );
+  }
+
+  function _updateService(
+    bytes32 method0,
+    bytes32 method1,
+    bytes32 method2,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes32 serviceId,
+    bytes32[SERVICE_MAX_LENGTH] memory type_,
+    bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
+  )
+    internal
+    returns (
+      PerformedAction performedAction,
+      bytes32 ServiceUpdated_didIdHash,
+      bytes32 ServiceUpdated_id,
+      bytes32 ServiceUpdated_serviceIdHash,
+      bytes32 ServiceUpdated_positionHash
+    )
+  {
+    // Event recording
+    vm.recordLogs();
+    //* Update controller call
+    didManager.updateService(
+      method0,
+      method1,
+      method2,
+      senderId,
+      senderVmId,
+      targetId,
+      serviceId,
+      type_,
+      serviceEndpoint
+    );
+    // Get logs from previous transaction
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    // Induce performed action
+    performedAction = entries.length == 1 ? PerformedAction.CREATEorUPDATE : entries.length == 2
+      ? PerformedAction.DELETE
+      : PerformedAction.UNDEFINED;
+    // Get the event values
+    // ServiceUpdated(
+    //   bytes32 indexed didIdHash,
+    //   bytes32 indexed id,
+    //   bytes32 indexed serviceIdHash,
+    //   bytes32 positionHash
+    // );
+    ServiceUpdated_didIdHash = entries[0].topics[1];
+    ServiceUpdated_id = entries[0].topics[2];
+    ServiceUpdated_serviceIdHash = entries[0].topics[3];
+    ServiceUpdated_positionHash = bytes32(entries[0].data);
+  }
+
+  function _formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
+    bytes memory methods = abi.encodePacked(didInput.method0, ":");
+    if (didInput.method1 != bytes32(0)) {
+      methods = abi.encodePacked(methods, didInput.method1, ":");
+    }
+    if (didInput.method2 != bytes32(0)) {
+      methods = abi.encodePacked(methods, didInput.method2, ":");
+    }
+
+    return
+      string(
+        _trimBytes(abi.encodePacked(methods, bytesToHexString(abi.encodePacked(didInput.id))))
+      );
+  }
+
+  function _trimBytes(bytes memory input) internal pure returns (bytes memory output) {
+    if (input[0] == 0x00) {
+      return new bytes(0);
+    }
+    bytes memory withoutZeros = new bytes(input.length);
+    uint8 length = 0;
+    for (uint8 i = 0; i < input.length; i++) {
+      if (input[i] != 0x00) {
+        withoutZeros[length] = input[i];
+        length++;
+      }
+    }
+    output = new bytes(length);
+    for (uint8 i = 0; i < length; i++) {
+      output[i] = withoutZeros[i];
+    }
+    return output;
+  }
+
+  function bytesToHexString(bytes memory input) public pure returns (string memory hexString) {
+    // Fixed buffer size for hexadecimal convertion
+    bytes memory converted = new bytes(input.length * 2);
+    bytes memory _base = "0123456789abcdef";
+
+    for (uint256 i = 0; i < input.length; i++) {
+      converted[i * 2] = _base[uint8(input[i]) / _base.length];
+      converted[i * 2 + 1] = _base[uint8(input[i]) % _base.length];
+    }
+
+    return string(converted);
   }
 }

@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 // ! This Contract is NOT necessary, only adds ONchain DID resolution
 contract W3CResolver is IW3CResolver {
-  string[] DEFAULT_CONTEXT = ["https://www.w3.org/ns/did/v1"];
+  string[] private DEFAULT_CONTEXT = ["https://www.w3.org/ns/did/v1"];
   // * The DID Manager contract
   IDidManager internal _didManager;
 
@@ -20,35 +20,35 @@ contract W3CResolver is IW3CResolver {
   function resolve(
     W3CDidInput memory didInput
   ) external view returns (W3CDidDocument memory didDocument) {
-    // * Get controllers
-    string[] memory controller = _toW3cController(
-      _didManager.getControllerList(
-        didInput.method0,
-        didInput.method1,
-        didInput.method2,
-        didInput.id
-      ),
-      didInput.method0,
-      didInput.method1,
-      didInput.method2
-    );
     // * Get Verification Methods
-    uint8 vmListLength = _didManager.getVmListLength(
-      didInput.method0,
-      didInput.method1,
-      didInput.method2,
-      didInput.id
-    );
+    // uint8 vmListLength = _didManager.getVmListLength(
+    //   didInput.method0,
+    //   didInput.method1,
+    //   didInput.method2,
+    //   didInput.id
+    // );
     // string[] memory authTemp = new string[](vmListLength);
     // string[] memory asserTemp = new string[](vmListLength);
     // string[] memory kATemp = new string[](vmListLength);
     // string[] memory cDTemp = new string[](vmListLength);
     // string[] memory cITemp = new string[](vmListLength);
     string[][] memory methodsTemp = new string[][](5);
-    W3CVerificationMethod[] memory vmsTemp = new W3CVerificationMethod[](vmListLength);
-    // uint8[] memory methodsRealLength = new uint8[](6);
-    uint8 vmListRealLength = 0;
-    for (uint8 i = 0; i < vmsTemp.length; i++) {
+    for (uint8 i = 0; i < methodsTemp.length; i++) {
+      methodsTemp[i] = new string[](
+        _didManager.getVmListLength(
+          didInput.method0,
+          didInput.method1,
+          didInput.method2,
+          didInput.id
+        )
+      );
+    }
+    W3CVerificationMethod[] memory vmsTemp = new W3CVerificationMethod[](
+      _didManager.getVmListLength(didInput.method0, didInput.method1, didInput.method2, didInput.id)
+    );
+    uint8[] memory methodsRealLength = new uint8[](6);
+    // uint8 vmListRealLength = 0;
+    for (uint8 i = 1; i <= vmsTemp.length; i++) {
       VerificationMethod memory vm = _didManager.getVm(
         didInput.method0,
         didInput.method1,
@@ -59,36 +59,62 @@ contract W3CResolver is IW3CResolver {
       );
       if (vm.expiration != 0 && vm.expiration > block.timestamp) {
         if (vm.relationships & 0x01 == 0x01) {
-          methodsTemp[0][methodsTemp[0].length] = string(
-            abi.encodePacked(_formatDidString(didInput), "#", vmsTemp[vmListRealLength].id)
+          methodsTemp[0][methodsRealLength[1]] = string(
+            _trimBytes(abi.encodePacked(_formatDidString(didInput), "#", vm.id))
           );
+          methodsRealLength[1]++;
         }
         if (vm.relationships & 0x02 == 0x02) {
-          methodsTemp[1][methodsTemp[1].length] = string(
-            abi.encodePacked(_formatDidString(didInput), "#", vmsTemp[vmListRealLength].id)
+          methodsTemp[1][methodsRealLength[2]] = string(
+            _trimBytes(abi.encodePacked(_formatDidString(didInput), "#", vm.id))
           );
+          methodsRealLength[2]++;
         }
         if (vm.relationships & 0x04 == 0x04) {
-          methodsTemp[2][methodsTemp[2].length] = string(
-            abi.encodePacked(_formatDidString(didInput), "#", vmsTemp[vmListRealLength].id)
+          methodsTemp[2][methodsRealLength[3]] = string(
+            _trimBytes(abi.encodePacked(_formatDidString(didInput), "#", vm.id))
           );
+          methodsRealLength[3]++;
         }
         if (vm.relationships & 0x08 == 0x08) {
-          methodsTemp[3][methodsTemp[3].length] = string(
-            abi.encodePacked(_formatDidString(didInput), "#", vmsTemp[vmListRealLength].id)
+          methodsTemp[3][methodsRealLength[4]] = string(
+            _trimBytes(abi.encodePacked(_formatDidString(didInput), "#", vm.id))
           );
+          methodsRealLength[4]++;
         }
         if (vm.relationships & 0x10 == 0x10) {
-          methodsTemp[4][methodsTemp[4].length] = string(
-            abi.encodePacked(_formatDidString(didInput), "#", vmsTemp[vmListRealLength].id)
+          methodsTemp[4][methodsRealLength[5]] = string(
+            _trimBytes(abi.encodePacked(_formatDidString(didInput), "#", vm.id))
           );
+          methodsRealLength[5]++;
         }
-        vmsTemp[vmListRealLength] = _toW3cVerificationMethod(vm, didInput);
-        vmListRealLength++;
+        vmsTemp[methodsRealLength[0]] = _toW3cVerificationMethod(vm, didInput);
+        methodsRealLength[0]++;
       }
     }
-    W3CVerificationMethod[] memory vms = new W3CVerificationMethod[](vmListRealLength);
-    for (uint8 i = 0; i < vmListRealLength; i++) {
+    string[][] memory methods = new string[][](5);
+    methods[0] = new string[](methodsRealLength[1]);
+    for (uint8 i = 0; i < methodsRealLength[1]; i++) {
+      methods[0][i] = methodsTemp[0][i];
+    }
+    methods[1] = new string[](methodsRealLength[2]);
+    for (uint8 i = 0; i < methodsRealLength[2]; i++) {
+      methods[1][i] = methodsTemp[1][i];
+    }
+    methods[2] = new string[](methodsRealLength[3]);
+    for (uint8 i = 0; i < methodsRealLength[3]; i++) {
+      methods[2][i] = methodsTemp[2][i];
+    }
+    methods[3] = new string[](methodsRealLength[4]);
+    for (uint8 i = 0; i < methodsRealLength[4]; i++) {
+      methods[3][i] = methodsTemp[3][i];
+    }
+    methods[4] = new string[](methodsRealLength[5]);
+    for (uint8 i = 0; i < methodsRealLength[5]; i++) {
+      methods[4][i] = methodsTemp[4][i];
+    }
+    W3CVerificationMethod[] memory vms = new W3CVerificationMethod[](methodsRealLength[0]);
+    for (uint8 i = 0; i < methodsRealLength[0]; i++) {
       vms[i] = vmsTemp[i];
     }
     // * Get Services
@@ -100,8 +126,8 @@ contract W3CResolver is IW3CResolver {
         didInput.id
       )
     );
-    for (uint8 i = 0; i < services.length; i++) {
-      services[i] = _toW3cService(
+    for (uint8 i = 1; i <= services.length; i++) {
+      services[i - 1] = _toW3cService(
         _didManager.getService(
           didInput.method0,
           didInput.method1,
@@ -118,13 +144,23 @@ contract W3CResolver is IW3CResolver {
       W3CDidDocument({
         context: DEFAULT_CONTEXT,
         id: _formatDidString(didInput),
-        controller: controller,
+        controller: _toW3cController(
+          _didManager.getControllerList(
+            didInput.method0,
+            didInput.method1,
+            didInput.method2,
+            didInput.id
+          ),
+          didInput.method0,
+          didInput.method1,
+          didInput.method2
+        ),
         verificationMethod: vms,
-        authentication: methodsTemp[0],
-        assertionMethod: methodsTemp[1],
-        keyAgreement: methodsTemp[2],
-        capabilityDelegation: methodsTemp[3],
-        capabilityInvocation: methodsTemp[4],
+        authentication: methods[0],
+        assertionMethod: methods[1],
+        keyAgreement: methods[2],
+        capabilityDelegation: methods[3],
+        capabilityInvocation: methods[4],
         service: services
       });
   }
@@ -211,15 +247,15 @@ contract W3CResolver is IW3CResolver {
     string[] memory types = new string[](typesLength);
     string[] memory serviceEndpoints = new string[](serviceEndpointLength);
     for (uint8 i = 0; i < typesLength; i++) {
-      types[i] = string(abi.encodePacked(service.type_[i]));
+      types[i] = string(_trimBytes(abi.encodePacked(service.type_[i])));
     }
     for (uint8 i = 0; i < serviceEndpointLength; i++) {
-      serviceEndpoints[i] = string(abi.encodePacked(service.serviceEndpoint[i]));
+      serviceEndpoints[i] = string(_trimBytes(abi.encodePacked(service.serviceEndpoint[i])));
     }
-    // Finally retunr the W3CService
+    // Finally return the W3CService
     return
       W3CService({
-        id: string(abi.encodePacked(service.id)),
+        id: string(_trimBytes(abi.encodePacked(service.id))),
         type_: types,
         serviceEndpoint: serviceEndpoints
       });
