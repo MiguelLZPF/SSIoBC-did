@@ -6,7 +6,7 @@ import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { W3CResolverScript, DeployCommand } from "@script/W3CResolver.s.sol";
 import { SharedTest, DidInfo } from "@test/SharedTest.sol";
-import { PerformedAction, Service } from "@test/ServiceStorage.t.sol";
+import { PerformedAction, Service, ServiceUpdateCommandTest, ServiceUpdateResultTest } from "@test/ServiceStorage.t.sol";
 import { IDidManager, VerificationMethod, Controller, CreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 import { IW3CResolver, W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
 
@@ -180,23 +180,19 @@ contract DidManagerTest is SharedTest {
       EMPTY_VM_ID
     );
     // Add a new Service
-    (
-      ,
-      ,
-      bytes32 ServiceUpdated_id,
-      bytes32 ServiceUpdated_serviceIdHash,
-      bytes32 ServiceUpdated_positionHash
-    ) = _updateService(
-        didInfo.method0,
-        didInfo.method1,
-        didInfo.method2,
-        didInfo.id,
-        DEFAULT_VM_ID,
-        didInfo.id,
-        DEFAULT_SERVICE_ID,
-        DEFAULT_SERVICE_TYPE,
-        DEFAULT_SERVICE_ENDPOINT
-      );
+    ServiceUpdateResultTest memory result = _updateService(
+      ServiceUpdateCommandTest({
+        method0: didInfo.method0,
+        method1: didInfo.method1,
+        method2: didInfo.method2,
+        senderId: didInfo.id,
+        senderVmId: DEFAULT_VM_ID,
+        targetId: didInfo.id,
+        serviceId: DEFAULT_SERVICE_ID,
+        type_: DEFAULT_SERVICE_TYPE,
+        serviceEndpoint: DEFAULT_SERVICE_ENDPOINT
+      })
+    );
     //* 🎬 Act ⬇
     // Check final state
     W3CService memory w3cService = w3cResolver.resolveService(
@@ -216,7 +212,7 @@ contract DidManagerTest is SharedTest {
     );
     assertEq(
       keccak256(abi.encodePacked(w3cService.id)),
-      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(ServiceUpdated_id)))))
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(result.ServiceUpdated_id)))))
     );
 
     W3CDidDocument memory didDocument = w3cResolver.resolve(
@@ -263,44 +259,32 @@ contract DidManagerTest is SharedTest {
     );
   }
 
+  /**
+   * @dev Updates a service.
+   */
   function _updateService(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 senderId,
-    bytes32 senderVmId,
-    bytes32 targetId,
-    bytes32 serviceId,
-    bytes32[SERVICE_MAX_LENGTH] memory type_,
-    bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
-  )
-    internal
-    returns (
-      PerformedAction performedAction,
-      bytes32 ServiceUpdated_didIdHash,
-      bytes32 ServiceUpdated_id,
-      bytes32 ServiceUpdated_serviceIdHash,
-      bytes32 ServiceUpdated_positionHash
-    )
-  {
+    ServiceUpdateCommandTest memory command
+  ) internal returns (ServiceUpdateResultTest memory result) {
     // Event recording
     vm.recordLogs();
     //* Update controller call
     didManager.updateService(
-      method0,
-      method1,
-      method2,
-      senderId,
-      senderVmId,
-      targetId,
-      serviceId,
-      type_,
-      serviceEndpoint
+      command.method0,
+      command.method1,
+      command.method2,
+      command.senderId,
+      command.senderVmId,
+      command.targetId,
+      command.serviceId,
+      command.type_,
+      command.serviceEndpoint
     );
     // Get logs from previous transaction
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Induce performed action
-    performedAction = entries.length == 1 ? PerformedAction.CREATEorUPDATE : entries.length == 2
+    result.performedAction = entries.length == 1
+      ? PerformedAction.CREATEorUPDATE
+      : entries.length == 2
       ? PerformedAction.DELETE
       : PerformedAction.UNDEFINED;
     // Get the event values
@@ -310,10 +294,10 @@ contract DidManagerTest is SharedTest {
     //   bytes32 indexed serviceIdHash,
     //   bytes32 positionHash
     // );
-    ServiceUpdated_didIdHash = entries[0].topics[1];
-    ServiceUpdated_id = entries[0].topics[2];
-    ServiceUpdated_serviceIdHash = entries[0].topics[3];
-    ServiceUpdated_positionHash = bytes32(entries[0].data);
+    result.ServiceUpdated_didIdHash = entries[0].topics[1];
+    result.ServiceUpdated_id = entries[0].topics[2];
+    result.ServiceUpdated_serviceIdHash = entries[0].topics[3];
+    result.ServiceUpdated_positionHash = bytes32(entries[0].data);
   }
 
   function _formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {

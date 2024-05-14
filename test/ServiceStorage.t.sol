@@ -16,6 +16,26 @@ enum PerformedAction {
   UNDEFINED
 }
 
+struct ServiceUpdateCommandTest {
+  bytes32 method0;
+  bytes32 method1;
+  bytes32 method2;
+  bytes32 senderId;
+  bytes32 senderVmId;
+  bytes32 targetId;
+  bytes32 serviceId;
+  bytes32[SERVICE_MAX_LENGTH] type_;
+  bytes32[SERVICE_MAX_LENGTH] serviceEndpoint;
+}
+
+struct ServiceUpdateResultTest {
+  PerformedAction performedAction;
+  bytes32 ServiceUpdated_didIdHash;
+  bytes32 ServiceUpdated_id;
+  bytes32 ServiceUpdated_serviceIdHash;
+  bytes32 ServiceUpdated_positionHash;
+}
+
 contract ServiceStorageTest is SharedTest {
   //* Constants
   // Specific
@@ -85,21 +105,20 @@ contract ServiceStorageTest is SharedTest {
   // ADD SERVICE
   function test_should_addNewService() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
     uint256 length = didManager.getServiceListLength(
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
-      didData.id
+      userDidInfo.id
     );
     assertEq(length, 0);
     Service memory service = didManager.getService(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       bytes32(0),
       uint8(1)
     );
@@ -108,42 +127,38 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.serviceEndpoint[0], bytes32(0));
     //* 🎬 Act ⬇
     // Add new service
-    (
-      PerformedAction performedAction,
-      bytes32 ServiceUpdated_didIdHash,
-      bytes32 ServiceUpdated_id,
-      bytes32 ServiceUpdated_serviceIdHash,
-      bytes32 ServiceUpdated_positionHash
-    ) = _updateService(
-        didData.method0,
-        didData.method1,
-        didData.method2,
-        didData.id,
-        DEFAULT_VM_ID,
-        didData.id,
-        DEFAULT_SERVICE_ID,
-        DEFAULT_SERVICE_TYPE,
-        DEFAULT_SERVICE_ENDPOINT
-      );
+    ServiceUpdateResultTest memory result = _updateService(
+      ServiceUpdateCommandTest({
+        method0: userDidInfo.method0,
+        method1: userDidInfo.method1,
+        method2: userDidInfo.method2,
+        senderId: userDidInfo.id,
+        senderVmId: DEFAULT_VM_ID,
+        targetId: userDidInfo.id,
+        serviceId: DEFAULT_SERVICE_ID,
+        type_: DEFAULT_SERVICE_TYPE,
+        serviceEndpoint: DEFAULT_SERVICE_ENDPOINT
+      })
+    );
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getServiceListLength(
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
-      didData.id
+      userDidInfo.id
     );
-    bytes32 serviceDidHash = keccak256(abi.encodePacked(didData.idHash, SERVICE_NAMESPACE));
+    bytes32 serviceDidHash = keccak256(abi.encodePacked(userDidInfo.idHash, SERVICE_NAMESPACE));
     bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(serviceDidHash, DEFAULT_SERVICE_ID));
     bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(1)));
     // Check final state
     assertEq(length, 1);
     // -- final "first service"
     service = didManager.getService(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       bytes32(0),
       uint8(1)
     );
@@ -152,10 +167,10 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.serviceEndpoint[0], DEFAULT_SERVICE_ENDPOINT[0]);
     // -- final service by ID
     service = didManager.getService(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       DEFAULT_SERVICE_ID,
       uint8(0)
     );
@@ -169,11 +184,11 @@ contract ServiceStorageTest is SharedTest {
     //   bytes32 indexed serviceIdHash,
     //   bytes32 positionHash
     // );
-    assertTrue(performedAction == PerformedAction.CREATEorUPDATE);
-    assertEq(ServiceUpdated_didIdHash, didData.idHash);
-    assertEq(ServiceUpdated_id, DEFAULT_SERVICE_ID);
-    assertEq(ServiceUpdated_serviceIdHash, expectedServiceIdHash);
-    assertEq(ServiceUpdated_positionHash, expectedPositionHash);
+    assertTrue(result.performedAction == PerformedAction.CREATEorUPDATE);
+    assertEq(result.ServiceUpdated_didIdHash, userDidInfo.idHash);
+    assertEq(result.ServiceUpdated_id, DEFAULT_SERVICE_ID);
+    assertEq(result.ServiceUpdated_serviceIdHash, expectedServiceIdHash);
+    assertEq(result.ServiceUpdated_positionHash, expectedPositionHash);
     // end
     vm.stopPrank();
   }
@@ -181,53 +196,44 @@ contract ServiceStorageTest is SharedTest {
   // UPDATE SERVICE
   function test_should_updateService() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new service
-    (
-      PerformedAction performedAction,
-      bytes32 ServiceUpdated_didIdHash,
-      bytes32 ServiceUpdated_id,
-      bytes32 ServiceUpdated_serviceIdHash,
-      bytes32 ServiceUpdated_positionHash
-    ) = _updateService(
-        didData.method0,
-        didData.method1,
-        didData.method2,
-        didData.id,
-        DEFAULT_VM_ID,
-        didData.id,
-        DEFAULT_SERVICE_ID,
-        DEFAULT_SERVICE_TYPE,
-        DEFAULT_SERVICE_ENDPOINT
-      );
+    ServiceUpdateResultTest memory result = _updateService(
+      ServiceUpdateCommandTest({
+        method0: userDidInfo.method0,
+        method1: userDidInfo.method1,
+        method2: userDidInfo.method2,
+        senderId: userDidInfo.id,
+        senderVmId: DEFAULT_VM_ID,
+        targetId: userDidInfo.id,
+        serviceId: DEFAULT_SERVICE_ID,
+        type_: DEFAULT_SERVICE_TYPE,
+        serviceEndpoint: DEFAULT_SERVICE_ENDPOINT
+      })
+    );
     // Check previous state
-    assertTrue(performedAction == PerformedAction.CREATEorUPDATE);
+    assertTrue(result.performedAction == PerformedAction.CREATEorUPDATE);
     uint256 length = didManager.getServiceListLength(
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
-      didData.id
+      userDidInfo.id
     );
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Update service
-    (
-      performedAction,
-      ServiceUpdated_didIdHash,
-      ServiceUpdated_id,
-      ServiceUpdated_serviceIdHash,
-      ServiceUpdated_positionHash
-    ) = _updateService(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      DEFAULT_VM_ID,
-      didData.id,
-      DEFAULT_SERVICE_ID,
-      UPDATE_SERVICE_TYPE,
-      UPDATE_SERVICE_ENDPOINT
+    result = _updateService(
+      ServiceUpdateCommandTest({
+        method0: userDidInfo.method0,
+        method1: userDidInfo.method1,
+        method2: userDidInfo.method2,
+        senderId: userDidInfo.id,
+        senderVmId: DEFAULT_VM_ID,
+        targetId: userDidInfo.id,
+        serviceId: DEFAULT_SERVICE_ID,
+        type_: UPDATE_SERVICE_TYPE,
+        serviceEndpoint: UPDATE_SERVICE_ENDPOINT
+      })
     );
     //* ☑️ Assert ⬇
     // Final length
@@ -235,19 +241,19 @@ contract ServiceStorageTest is SharedTest {
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
-      didData.id
+      userDidInfo.id
     );
-    bytes32 serviceDidHash = keccak256(abi.encodePacked(didData.idHash, SERVICE_NAMESPACE));
+    bytes32 serviceDidHash = keccak256(abi.encodePacked(userDidInfo.idHash, SERVICE_NAMESPACE));
     bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(serviceDidHash, DEFAULT_SERVICE_ID));
     bytes32 expectedPositionHash = keccak256(abi.encodePacked(serviceDidHash, uint8(1)));
     // Check final state
     assertEq(length, 1);
     // -- final "first service"
     Service memory service = didManager.getService(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       bytes32(0),
       uint8(1)
     );
@@ -260,10 +266,10 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.serviceEndpoint[2], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       DEFAULT_SERVICE_ID,
       uint8(0)
     );
@@ -281,11 +287,11 @@ contract ServiceStorageTest is SharedTest {
     //   bytes32 indexed serviceIdHash,
     //   bytes32 positionHash
     // );
-    assertTrue(performedAction == PerformedAction.CREATEorUPDATE);
-    assertEq(ServiceUpdated_didIdHash, didData.idHash);
-    assertEq(ServiceUpdated_id, DEFAULT_SERVICE_ID);
-    assertEq(ServiceUpdated_serviceIdHash, expectedServiceIdHash);
-    assertEq(ServiceUpdated_positionHash, expectedPositionHash);
+    assertTrue(result.performedAction == PerformedAction.CREATEorUPDATE);
+    assertEq(result.ServiceUpdated_didIdHash, userDidInfo.idHash);
+    assertEq(result.ServiceUpdated_id, DEFAULT_SERVICE_ID);
+    assertEq(result.ServiceUpdated_serviceIdHash, expectedServiceIdHash);
+    assertEq(result.ServiceUpdated_positionHash, expectedPositionHash);
     // end
     vm.stopPrank();
   }
@@ -370,21 +376,20 @@ contract ServiceStorageTest is SharedTest {
 
   function test_shouldNot_updateService_emptyId() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didUserData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
     uint256 length = didManager.getServiceListLength(
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
-      didUserData.id
+      userDidInfo.id
     );
     assertEq(length, 0);
     Service memory service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       bytes32(0),
       uint8(1)
     );
@@ -395,12 +400,12 @@ contract ServiceStorageTest is SharedTest {
     vm.expectRevert("ID cannot be 0");
     // Add new service from other user
     didManager.updateService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       DEFAULT_VM_ID,
-      didUserData.id,
+      userDidInfo.id,
       bytes32(0), //! <---- empty ID
       DEFAULT_SERVICE_TYPE,
       DEFAULT_SERVICE_ENDPOINT
@@ -411,16 +416,16 @@ contract ServiceStorageTest is SharedTest {
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
-      didUserData.id
+      userDidInfo.id
     );
     // Check final state
     assertEq(length, 0);
     // -- final "first service"
     service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       bytes32(0),
       uint8(1)
     );
@@ -429,10 +434,10 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.serviceEndpoint[0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       bytes32(0),
       uint8(0)
     );
@@ -445,21 +450,20 @@ contract ServiceStorageTest is SharedTest {
 
   function test_shouldNot_updateService_emptyType() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didUserData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
     uint256 length = didManager.getServiceListLength(
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
-      didUserData.id
+      userDidInfo.id
     );
     assertEq(length, 0);
     Service memory service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       bytes32(0),
       uint8(1)
     );
@@ -470,12 +474,12 @@ contract ServiceStorageTest is SharedTest {
     vm.expectRevert("Type cannot be 0");
     // Add new service from other user
     didManager.updateService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       DEFAULT_VM_ID,
-      didUserData.id,
+      userDidInfo.id,
       DEFAULT_SERVICE_ID,
       EMPTY_SERVICE_TYPE, //! <---- empty type
       DEFAULT_SERVICE_ENDPOINT
@@ -486,16 +490,16 @@ contract ServiceStorageTest is SharedTest {
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
-      didUserData.id
+      userDidInfo.id
     );
     // Check final state
     assertEq(length, 0);
     // -- final "first service"
     service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       bytes32(0),
       uint8(1)
     );
@@ -504,10 +508,10 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.serviceEndpoint[0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       DEFAULT_SERVICE_ID,
       uint8(0)
     );
@@ -520,21 +524,20 @@ contract ServiceStorageTest is SharedTest {
 
   function test_shouldNot_updateService_emptyEndpoint() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didUserData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
     uint256 length = didManager.getServiceListLength(
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
-      didUserData.id
+      userDidInfo.id
     );
     assertEq(length, 0);
     Service memory service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       bytes32(0),
       uint8(1)
     );
@@ -545,12 +548,12 @@ contract ServiceStorageTest is SharedTest {
     vm.expectRevert("Endpoint cannot be 0");
     // Add new service from other user
     didManager.updateService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       DEFAULT_VM_ID,
-      didUserData.id,
+      userDidInfo.id,
       DEFAULT_SERVICE_ID,
       DEFAULT_SERVICE_TYPE,
       EMPTY_SERVICE_ENDPOINT //! <---- empty endpoint
@@ -561,16 +564,16 @@ contract ServiceStorageTest is SharedTest {
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
       DEFAULT_DID_METHOD2,
-      didUserData.id
+      userDidInfo.id
     );
     // Check final state
     assertEq(length, 0);
     // -- final "first service"
     service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       bytes32(0),
       uint8(1)
     );
@@ -579,10 +582,10 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.serviceEndpoint[0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
+      userDidInfo.method0,
+      userDidInfo.method1,
+      userDidInfo.method2,
+      userDidInfo.id,
       DEFAULT_SERVICE_ID,
       uint8(0)
     );
@@ -599,25 +602,21 @@ contract ServiceStorageTest is SharedTest {
     DidInfo memory didData = userDidInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new service
-    (
-      PerformedAction performedAction,
-      bytes32 ServiceUpdated_didIdHash,
-      bytes32 ServiceUpdated_id,
-      bytes32 ServiceUpdated_serviceIdHash,
-      bytes32 ServiceUpdated_positionHash
-    ) = _updateService(
-        didData.method0,
-        didData.method1,
-        didData.method2,
-        didData.id,
-        DEFAULT_VM_ID,
-        didData.id,
-        DEFAULT_SERVICE_ID,
-        DEFAULT_SERVICE_TYPE,
-        DEFAULT_SERVICE_ENDPOINT
-      );
+    ServiceUpdateResultTest memory result = _updateService(
+      ServiceUpdateCommandTest({
+        method0: didData.method0,
+        method1: didData.method1,
+        method2: didData.method2,
+        senderId: didData.id,
+        senderVmId: DEFAULT_VM_ID,
+        targetId: didData.id,
+        serviceId: DEFAULT_SERVICE_ID,
+        type_: DEFAULT_SERVICE_TYPE,
+        serviceEndpoint: DEFAULT_SERVICE_ENDPOINT
+      })
+    );
     // Check previous state
-    assertTrue(performedAction == PerformedAction.CREATEorUPDATE);
+    assertTrue(result.performedAction == PerformedAction.CREATEorUPDATE);
     uint256 length = didManager.getServiceListLength(
       DEFAULT_DID_METHOD0,
       DEFAULT_DID_METHOD1,
@@ -627,22 +626,18 @@ contract ServiceStorageTest is SharedTest {
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Delete service
-    (
-      performedAction,
-      ServiceUpdated_didIdHash,
-      ServiceUpdated_id,
-      ServiceUpdated_serviceIdHash,
-      ServiceUpdated_positionHash
-    ) = _updateService(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      DEFAULT_VM_ID,
-      didData.id,
-      DEFAULT_SERVICE_ID,
-      EMPTY_SERVICE_TYPE,
-      EMPTY_SERVICE_ENDPOINT
+    result = _updateService(
+      ServiceUpdateCommandTest({
+        method0: didData.method0,
+        method1: didData.method1,
+        method2: didData.method2,
+        senderId: didData.id,
+        senderVmId: DEFAULT_VM_ID,
+        targetId: didData.id,
+        serviceId: DEFAULT_SERVICE_ID,
+        type_: EMPTY_SERVICE_TYPE,
+        serviceEndpoint: EMPTY_SERVICE_ENDPOINT
+      })
     );
     //* ☑️ Assert ⬇
     // Final length
@@ -688,11 +683,11 @@ contract ServiceStorageTest is SharedTest {
     //   bytes32 indexed serviceIdHash,
     //   bytes32 positionHash
     // );
-    assertTrue(performedAction == PerformedAction.DELETE);
-    assertEq(ServiceUpdated_didIdHash, didData.idHash);
-    assertEq(ServiceUpdated_id, DEFAULT_SERVICE_ID);
-    assertEq(ServiceUpdated_serviceIdHash, expectedServiceIdHash);
-    assertEq(ServiceUpdated_positionHash, expectedPositionHash);
+    assertTrue(result.performedAction == PerformedAction.DELETE);
+    assertEq(result.ServiceUpdated_didIdHash, didData.idHash);
+    assertEq(result.ServiceUpdated_id, DEFAULT_SERVICE_ID);
+    assertEq(result.ServiceUpdated_serviceIdHash, expectedServiceIdHash);
+    assertEq(result.ServiceUpdated_positionHash, expectedPositionHash);
     // end
     vm.stopPrank();
   }
@@ -703,43 +698,28 @@ contract ServiceStorageTest is SharedTest {
    * @dev Updates a service.
    */
   function _updateService(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 senderId,
-    bytes32 senderVmId,
-    bytes32 targetId,
-    bytes32 serviceId,
-    bytes32[SERVICE_MAX_LENGTH] memory type_,
-    bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
-  )
-    internal
-    returns (
-      PerformedAction performedAction,
-      bytes32 ServiceUpdated_didIdHash,
-      bytes32 ServiceUpdated_id,
-      bytes32 ServiceUpdated_serviceIdHash,
-      bytes32 ServiceUpdated_positionHash
-    )
-  {
+    ServiceUpdateCommandTest memory command
+  ) internal returns (ServiceUpdateResultTest memory result) {
     // Event recording
     vm.recordLogs();
     //* Update controller call
     didManager.updateService(
-      method0,
-      method1,
-      method2,
-      senderId,
-      senderVmId,
-      targetId,
-      serviceId,
-      type_,
-      serviceEndpoint
+      command.method0,
+      command.method1,
+      command.method2,
+      command.senderId,
+      command.senderVmId,
+      command.targetId,
+      command.serviceId,
+      command.type_,
+      command.serviceEndpoint
     );
     // Get logs from previous transaction
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Induce performed action
-    performedAction = entries.length == 1 ? PerformedAction.CREATEorUPDATE : entries.length == 2
+    result.performedAction = entries.length == 1
+      ? PerformedAction.CREATEorUPDATE
+      : entries.length == 2
       ? PerformedAction.DELETE
       : PerformedAction.UNDEFINED;
     // Get the event values
@@ -749,9 +729,9 @@ contract ServiceStorageTest is SharedTest {
     //   bytes32 indexed serviceIdHash,
     //   bytes32 positionHash
     // );
-    ServiceUpdated_didIdHash = entries[0].topics[1];
-    ServiceUpdated_id = entries[0].topics[2];
-    ServiceUpdated_serviceIdHash = entries[0].topics[3];
-    ServiceUpdated_positionHash = bytes32(entries[0].data);
+    result.ServiceUpdated_didIdHash = entries[0].topics[1];
+    result.ServiceUpdated_id = entries[0].topics[2];
+    result.ServiceUpdated_serviceIdHash = entries[0].topics[3];
+    result.ServiceUpdated_positionHash = bytes32(entries[0].data);
   }
 }
