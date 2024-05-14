@@ -18,105 +18,14 @@ contract W3CResolver is IW3CResolver {
   }
 
   function resolve(
-    W3CDidInput memory didInput
+    W3CDidInput memory didInput,
+    bool includeExpired
   ) external view returns (W3CDidDocument memory didDocument) {
     // * Get Verification Methods
-    // uint8 vmListLength = _didManager.getVmListLength(
-    //   didInput.method0,
-    //   didInput.method1,
-    //   didInput.method2,
-    //   didInput.id
-    // );
-    // string[] memory authTemp = new string[](vmListLength);
-    // string[] memory asserTemp = new string[](vmListLength);
-    // string[] memory kATemp = new string[](vmListLength);
-    // string[] memory cDTemp = new string[](vmListLength);
-    // string[] memory cITemp = new string[](vmListLength);
-    string[][] memory methodsTemp = new string[][](5);
-    for (uint8 i = 0; i < methodsTemp.length; i++) {
-      methodsTemp[i] = new string[](
-        _didManager.getVmListLength(
-          didInput.method0,
-          didInput.method1,
-          didInput.method2,
-          didInput.id
-        )
-      );
-    }
-    W3CVerificationMethod[] memory vmsTemp = new W3CVerificationMethod[](
-      _didManager.getVmListLength(didInput.method0, didInput.method1, didInput.method2, didInput.id)
+    (W3CVerificationMethod[] memory vms, string[][] memory methods) = _getAllVerificationMethods(
+      didInput,
+      includeExpired
     );
-    uint8[] memory methodsRealLength = new uint8[](6);
-    // uint8 vmListRealLength = 0;
-    for (uint8 i = 1; i <= vmsTemp.length; i++) {
-      VerificationMethod memory vm = _didManager.getVm(
-        didInput.method0,
-        didInput.method1,
-        didInput.method2,
-        didInput.id,
-        bytes32(0),
-        i
-      );
-      if (vm.expiration != 0 && vm.expiration > block.timestamp) {
-        if (vm.relationships & 0x01 == 0x01) {
-          methodsTemp[0][methodsRealLength[1]] = string(
-            _trimBytes(abi.encodePacked(_formatDidString(didInput), "#", vm.id))
-          );
-          methodsRealLength[1]++;
-        }
-        if (vm.relationships & 0x02 == 0x02) {
-          methodsTemp[1][methodsRealLength[2]] = string(
-            _trimBytes(abi.encodePacked(_formatDidString(didInput), "#", vm.id))
-          );
-          methodsRealLength[2]++;
-        }
-        if (vm.relationships & 0x04 == 0x04) {
-          methodsTemp[2][methodsRealLength[3]] = string(
-            _trimBytes(abi.encodePacked(_formatDidString(didInput), "#", vm.id))
-          );
-          methodsRealLength[3]++;
-        }
-        if (vm.relationships & 0x08 == 0x08) {
-          methodsTemp[3][methodsRealLength[4]] = string(
-            _trimBytes(abi.encodePacked(_formatDidString(didInput), "#", vm.id))
-          );
-          methodsRealLength[4]++;
-        }
-        if (vm.relationships & 0x10 == 0x10) {
-          methodsTemp[4][methodsRealLength[5]] = string(
-            _trimBytes(abi.encodePacked(_formatDidString(didInput), "#", vm.id))
-          );
-          methodsRealLength[5]++;
-        }
-        vmsTemp[methodsRealLength[0]] = _toW3cVerificationMethod(vm, didInput);
-        methodsRealLength[0]++;
-      }
-    }
-    string[][] memory methods = new string[][](5);
-    methods[0] = new string[](methodsRealLength[1]);
-    for (uint8 i = 0; i < methodsRealLength[1]; i++) {
-      methods[0][i] = methodsTemp[0][i];
-    }
-    methods[1] = new string[](methodsRealLength[2]);
-    for (uint8 i = 0; i < methodsRealLength[2]; i++) {
-      methods[1][i] = methodsTemp[1][i];
-    }
-    methods[2] = new string[](methodsRealLength[3]);
-    for (uint8 i = 0; i < methodsRealLength[3]; i++) {
-      methods[2][i] = methodsTemp[2][i];
-    }
-    methods[3] = new string[](methodsRealLength[4]);
-    for (uint8 i = 0; i < methodsRealLength[4]; i++) {
-      methods[3][i] = methodsTemp[3][i];
-    }
-    methods[4] = new string[](methodsRealLength[5]);
-    for (uint8 i = 0; i < methodsRealLength[5]; i++) {
-      methods[4][i] = methodsTemp[4][i];
-    }
-    W3CVerificationMethod[] memory vms = new W3CVerificationMethod[](methodsRealLength[0]);
-    for (uint8 i = 0; i < methodsRealLength[0]; i++) {
-      vms[i] = vmsTemp[i];
-    }
     // * Get Services
     W3CService[] memory services = new W3CService[](
       _didManager.getServiceListLength(
@@ -215,6 +124,110 @@ contract W3CResolver is IW3CResolver {
       );
   }
 
+  // * Internal functions
+
+  function _getAllVerificationMethods(
+    W3CDidInput memory didInput,
+    bool includeExpired
+  ) internal view returns (W3CVerificationMethod[] memory vms, string[][] memory methods) {
+    // * (0) Temporal variables creation
+    // Create temporal arrays for each method (5 methods)
+    string[][] memory methodsTemp = new string[][](5);
+    // Get the max length of the VM list (including expired ones)
+    uint8 maxLength = _didManager.getVmListLength(
+      didInput.method0,
+      didInput.method1,
+      didInput.method2,
+      didInput.id
+    );
+    // Set the max length of the arrays to the max length of the VM list
+    for (uint8 i = 0; i < 5; i++) {
+      methodsTemp[i] = new string[](maxLength);
+    }
+    // Create an array to store temporary VMs
+    W3CVerificationMethod[] memory vmsTemp = new W3CVerificationMethod[](maxLength);
+    // Create an array to store the real length of each method (positions 1-5) and the vms (position 0)
+    uint8[] memory realLength = new uint8[](6);
+    // * (1) Iterate over the VM list
+    // Iterate over the VM list (remember that the first position is 1, not 0)
+    for (uint8 i = 1; i <= maxLength; i++) {
+      VerificationMethod memory vm = _didManager.getVm(
+        didInput.method0,
+        didInput.method1,
+        didInput.method2,
+        didInput.id,
+        bytes32(0),
+        i
+      );
+      // Check if exired should be included or if the VM is not expired
+      if (includeExpired || (vm.expiration != 0 && vm.expiration > block.timestamp)) {
+        // Add the VM to the temporary array in W3C format
+        vmsTemp[realLength[0]] = _toW3cVerificationMethod(vm, didInput);
+        realLength[0]++;
+        // Add the VM to the corresponding method array
+        string memory methodString = _formatDidString(
+          W3CDidInput({
+            method0: didInput.method0,
+            method1: didInput.method1,
+            method2: didInput.method2,
+            id: didInput.id,
+            fragment: vm.id
+          })
+        );
+        if (vm.relationships & 0x01 == 0x01) {
+          methodsTemp[0][realLength[1]] = methodString;
+          realLength[1]++;
+        }
+        if (vm.relationships & 0x02 == 0x02) {
+          methodsTemp[1][realLength[2]] = methodString;
+          realLength[2]++;
+        }
+        if (vm.relationships & 0x04 == 0x04) {
+          methodsTemp[2][realLength[3]] = methodString;
+          realLength[3]++;
+        }
+        if (vm.relationships & 0x08 == 0x08) {
+          methodsTemp[3][realLength[4]] = methodString;
+          realLength[4]++;
+        }
+        if (vm.relationships & 0x10 == 0x10) {
+          methodsTemp[4][realLength[5]] = methodString;
+          realLength[5]++;
+        }
+      }
+    }
+    // * (2) Create the final arrays
+    // Create the final array for the VMs
+    vms = new W3CVerificationMethod[](realLength[0]);
+    for (uint8 i = 0; i < realLength[0]; i++) {
+      vms[i] = vmsTemp[i];
+    }
+    // Create the final arrays for the methods
+    methods = new string[][](5);
+    methods[0] = new string[](realLength[1]);
+    for (uint8 i = 0; i < realLength[1]; i++) {
+      methods[0][i] = methodsTemp[0][i];
+    }
+    methods[1] = new string[](realLength[2]);
+    for (uint8 i = 0; i < realLength[2]; i++) {
+      methods[1][i] = methodsTemp[1][i];
+    }
+    methods[2] = new string[](realLength[3]);
+    for (uint8 i = 0; i < realLength[3]; i++) {
+      methods[2][i] = methodsTemp[2][i];
+    }
+    methods[3] = new string[](realLength[4]);
+    for (uint8 i = 0; i < realLength[4]; i++) {
+      methods[3][i] = methodsTemp[3][i];
+    }
+    methods[4] = new string[](realLength[5]);
+    for (uint8 i = 0; i < realLength[5]; i++) {
+      methods[4][i] = methodsTemp[4][i];
+    }
+
+    return (vms, methods);
+  }
+
   function _toW3cVerificationMethod(
     VerificationMethod memory vm,
     W3CDidInput memory didInput
@@ -274,48 +287,24 @@ contract W3CResolver is IW3CResolver {
     bytes32 method1,
     bytes32 method2
   ) internal pure returns (string[] memory w3cControllers) {
-    uint8 length = 0;
+    uint8 realLenght = 0;
     string[] memory temporalControllers = new string[](controllers.length);
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
       if (controllers[i].id != bytes32(0)) {
-        if (controllers[i].vmId != bytes32(0)) {
-          temporalControllers[length] = string(
-            _trimBytes(
-              abi.encodePacked(
-                _formatDidString(
-                  W3CDidInput({
-                    method0: method0,
-                    method1: method1,
-                    method2: method2,
-                    id: controllers[i].id
-                  })
-                ),
-                "#",
-                controllers[i].vmId
-              )
-            )
-          );
-        } else {
-          temporalControllers[length] = string(
-            _trimBytes(
-              abi.encodePacked(
-                _formatDidString(
-                  W3CDidInput({
-                    method0: method0,
-                    method1: method1,
-                    method2: method2,
-                    id: controllers[i].id
-                  })
-                )
-              )
-            )
-          );
-        }
-        length++;
+        temporalControllers[realLenght] = _formatDidString(
+          W3CDidInput({
+            method0: method0,
+            method1: method1,
+            method2: method2,
+            id: controllers[i].id,
+            fragment: controllers[i].vmId
+          })
+        );
+        realLenght++;
       }
     }
-    w3cControllers = new string[](length);
-    for (uint8 i = 0; i < length; i++) {
+    w3cControllers = new string[](realLenght);
+    for (uint8 i = 0; i < realLenght; i++) {
       w3cControllers[i] = temporalControllers[i];
     }
     return w3cControllers;
@@ -339,18 +328,19 @@ contract W3CResolver is IW3CResolver {
   }
 
   function _formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
-    bytes memory methods = abi.encodePacked(didInput.method0, ":");
+    // The final bytes buffer to be converted to string
+    bytes memory finalEncode = abi.encodePacked(didInput.method0, ":");
     if (didInput.method1 != bytes32(0)) {
-      methods = abi.encodePacked(methods, didInput.method1, ":");
+      finalEncode = abi.encodePacked(finalEncode, didInput.method1, ":");
     }
     if (didInput.method2 != bytes32(0)) {
-      methods = abi.encodePacked(methods, didInput.method2, ":");
+      finalEncode = abi.encodePacked(finalEncode, didInput.method2, ":");
     }
-
-    return
-      string(
-        _trimBytes(abi.encodePacked(methods, bytesToHexString(abi.encodePacked(didInput.id))))
-      );
+    finalEncode = abi.encodePacked(finalEncode, _bytesToHexString(abi.encodePacked(didInput.id)));
+    if (didInput.fragment != bytes32(0)) {
+      finalEncode = abi.encodePacked(finalEncode, "#", didInput.fragment);
+    }
+    return string(_trimBytes(finalEncode));
   }
 
   function _trimBytes(bytes memory input) internal pure returns (bytes memory output) {
@@ -372,7 +362,7 @@ contract W3CResolver is IW3CResolver {
     return output;
   }
 
-  function bytesToHexString(bytes memory input) public pure returns (string memory hexString) {
+  function _bytesToHexString(bytes memory input) public pure returns (string memory hexString) {
     // Fixed buffer size for hexadecimal convertion
     bytes memory converted = new bytes(input.length * 2);
     bytes memory _base = "0123456789abcdef";

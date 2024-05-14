@@ -36,12 +36,14 @@ struct W3CDidInput {
   bytes32 method1;
   bytes32 method2;
   bytes32 id;
+  bytes32 fragment; // Optional
 }
 
 // ! This Contract is NOT necessary, only adds ONchain DID resolution
 interface IW3CResolver {
   function resolve(
-    W3CDidInput memory didInput
+    W3CDidInput memory didInput,
+    bool includeExpired
   ) external view returns (W3CDidDocument memory didDocument);
 
   function resolveVm(

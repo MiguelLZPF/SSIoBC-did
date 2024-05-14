@@ -121,7 +121,8 @@ contract DidManagerTest is SharedTest {
         method0: DEFAULT_DID_METHOD0,
         method1: DEFAULT_DID_METHOD1,
         method2: DEFAULT_DID_METHOD2,
-        id: didInfo.id
+        id: didInfo.id,
+        fragment: EMPTY_VM_ID
       }),
       DEFAULT_VM_ID
     );
@@ -203,7 +204,8 @@ contract DidManagerTest is SharedTest {
         method0: DEFAULT_DID_METHOD0,
         method1: DEFAULT_DID_METHOD1,
         method2: DEFAULT_DID_METHOD2,
-        id: didInfo.id
+        id: didInfo.id,
+        fragment: EMPTY_VM_ID
       }),
       DEFAULT_SERVICE_ID
     );
@@ -222,8 +224,10 @@ contract DidManagerTest is SharedTest {
         method0: didInfo.method0,
         method1: didInfo.method1,
         method2: didInfo.method2,
-        id: didInfo.id
-      })
+        id: didInfo.id,
+        fragment: EMPTY_VM_ID
+      }),
+      false
     );
     // To compare strings, we need to call the hash of the string
     assertEq(keccak256(abi.encode(didDocument.context)), keccak256(abi.encode(DEFAULT_CONTEXT)));
@@ -232,7 +236,7 @@ contract DidManagerTest is SharedTest {
       keccak256(
         abi.encodePacked(
           _formatDidString(
-            W3CDidInput(didInfo.method0, didInfo.method1, didInfo.method2, didInfo.id)
+            W3CDidInput(didInfo.method0, didInfo.method1, didInfo.method2, didInfo.id, bytes32(0))
           )
         )
       )
