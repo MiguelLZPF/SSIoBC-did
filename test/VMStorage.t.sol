@@ -17,7 +17,7 @@ contract VMStorageTest is SharedTest {
   bytes1 private constant DEFAULT_VM_RELATIONSHIPS = VM_RELATIONSHIPS_AUTHENTICATION;
   bytes32[10] VM_ID = [bytes32("vm-create-test"), bytes32("vm-validate-test")];
   // Variables
-  address private DEFAULT_VM_THIS_BC_ADDRESS;
+  address private DEFAULT_ETH_ADDRESS;
   uint256 private DEFAULT_VM_EXPIRATION;
   // -- users
   address admin = DEFAULT_SENDER;
@@ -33,7 +33,7 @@ contract VMStorageTest is SharedTest {
    * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
    */
   function setUp() public {
-    DEFAULT_VM_THIS_BC_ADDRESS = user;
+    DEFAULT_ETH_ADDRESS = user;
     DEFAULT_VM_EXPIRATION = block.timestamp + 60; // Now + 1 minute
     // Label users
     vm.label(admin, "admin");
@@ -111,7 +111,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       EMPTY_VM_PUBLIC_KEY,
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      DEFAULT_VM_THIS_BC_ADDRESS,
+      DEFAULT_ETH_ADDRESS,
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
@@ -477,7 +477,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       EMPTY_VM_PUBLIC_KEY,
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      DEFAULT_VM_THIS_BC_ADDRESS, // * <-- important
+      DEFAULT_ETH_ADDRESS, // * <-- important
       DEFAULT_VM_RELATIONSHIPS,
       DEFAULT_VM_EXPIRATION // * <-- important: should change to 0
     );
@@ -656,7 +656,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       EMPTY_VM_PUBLIC_KEY,
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      DEFAULT_VM_THIS_BC_ADDRESS,
+      DEFAULT_ETH_ADDRESS,
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
@@ -789,7 +789,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       EMPTY_VM_PUBLIC_KEY,
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      DEFAULT_VM_THIS_BC_ADDRESS,
+      DEFAULT_ETH_ADDRESS,
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
@@ -922,7 +922,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       EMPTY_VM_PUBLIC_KEY,
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      DEFAULT_VM_THIS_BC_ADDRESS,
+      DEFAULT_ETH_ADDRESS,
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
@@ -1182,7 +1182,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       EMPTY_VM_PUBLIC_KEY,
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      DEFAULT_VM_THIS_BC_ADDRESS,
+      DEFAULT_ETH_ADDRESS,
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
@@ -1314,7 +1314,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       EMPTY_VM_PUBLIC_KEY,
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      DEFAULT_VM_THIS_BC_ADDRESS,
+      DEFAULT_ETH_ADDRESS,
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
@@ -1468,7 +1468,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       EMPTY_VM_PUBLIC_KEY,
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      DEFAULT_VM_THIS_BC_ADDRESS,
+      DEFAULT_ETH_ADDRESS,
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );

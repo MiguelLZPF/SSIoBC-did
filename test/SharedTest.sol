@@ -54,6 +54,7 @@ abstract contract SharedTest is Test {
   bytes1 constant VM_RELATIONSHIPS_KEY_AGREEMENT = bytes1(0x04);
   bytes1 constant VM_RELATIONSHIPS_CAPABILITY_INVOCATION = bytes1(0x08);
   bytes1 constant VM_RELATIONSHIPS_CAPABILITY_DELEGATION = bytes1(0x10);
+  bytes1 constant VM_RELATIONSHIPS_ALL = bytes1(0x1F);
 
   address constant EMPTY_SENDER = address(0);
 

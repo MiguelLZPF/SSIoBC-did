@@ -139,6 +139,93 @@ contract DidManagerTest is SharedTest {
     vm.stopPrank();
   }
 
+  function test_should_resolveVm_withAllVmMethods() public {
+    //* 🗂️ Arrange ⬇
+    startHoax(user, DEFAULT_USER_BALANCE);
+    // Check initial state
+    // ! Not possible | really difficult in real newtorks
+    bytes32 id = keccak256(
+      abi.encodePacked(
+        DEFAULT_DID_METHOD0,
+        DEFAULT_DID_METHOD1,
+        DEFAULT_DID_METHOD2,
+        RANDOM_CREATE_DEFAULT,
+        user,
+        block.timestamp
+      )
+    );
+    uint256 exp = didManager.getExpiration(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      id,
+      EMPTY_VM_ID // <-- To get the expiration of the DID
+    );
+    assertEq(exp, EMPTY_EXPIRATION);
+    uint256 length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      id
+    );
+    assertEq(length, 0);
+    // Create DID
+    (DidInfo memory didData, , , , , , ) = _createDid(
+      didManager,
+      EMPTY_DID_METHOD,
+      EMPTY_DID_METHOD,
+      EMPTY_DID_METHOD,
+      RANDOM_CREATE_DEFAULT,
+      EMPTY_VM_ID
+    );
+    // Add a new VM with all methods
+    // Add new Verification Method
+    CreateVmCommand memory command = CreateVmCommand(
+      didData.method0,
+      didData.method1,
+      didData.method2,
+      didData.id,
+      DEFAULT_VM_ID,
+      didData.id,
+      VM_ID_CUSTOM,
+      DEFAULT_VM_TYPE,
+      DEFAULT_VM_PUBLIC_KEY, // ! <== Public Key
+      EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID, // * <-- important
+      EMPTY_VM_THIS_BC_ADDRESS, // * <-- important
+      VM_RELATIONSHIPS_ALL,
+      DEFAULT_VM_EXPIRATION // * <-- important
+    );
+    (
+      bytes32 VmCreated_didIdHash,
+      bytes32 VmCreated_id,
+      bytes32 VmCreated_idHash,
+      bytes32 VmCreated_positionHash
+    ) = _createVm(command);
+    //* 🎬 Act ⬇
+    // Check final state
+    W3CVerificationMethod memory w3cVm = w3cResolver.resolveVm(
+      W3CDidInput({
+        method0: DEFAULT_DID_METHOD0,
+        method1: DEFAULT_DID_METHOD1,
+        method2: DEFAULT_DID_METHOD2,
+        id: didData.id,
+        fragment: EMPTY_VM_ID
+      }),
+      VM_ID_CUSTOM
+    );
+    //* ☑️ Assert ⬇
+    assertEq(
+      keccak256(abi.encodePacked(w3cVm.id)),
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_VM_ID)))))
+    );
+    assertEq(
+      keccak256(abi.encodePacked(w3cVm.type_)),
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_VM_TYPE)))))
+    );
+    // end
+    vm.stopPrank();
+  }
+
   // Service
   function test_should_resolveService_withDefaultParams() public {
     //* 🗂️ Arrange ⬇
