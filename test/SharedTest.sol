@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager } from "@src/interfaces/IDidManager.sol";
+import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfaces/IDidManager.sol";
 
 struct DidInfo {
   bytes32 method0;
@@ -14,6 +14,13 @@ struct DidInfo {
   bytes32 id;
   bytes32 idHash;
   address creator;
+}
+
+struct CreateVmResultTest {
+  bytes32 VmCreated_didIdHash;
+  bytes32 VmCreated_id;
+  bytes32 VmCreated_idHash;
+  bytes32 VmCreated_positionHash;
 }
 
 abstract contract SharedTest is Test {
@@ -55,18 +62,22 @@ abstract contract SharedTest is Test {
   bytes1 constant VM_RELATIONSHIPS_CAPABILITY_INVOCATION = bytes1(0x08);
   bytes1 constant VM_RELATIONSHIPS_CAPABILITY_DELEGATION = bytes1(0x10);
   bytes1 constant VM_RELATIONSHIPS_ALL = bytes1(0x1F);
+  bytes1 internal constant DEFAULT_VM_RELATIONSHIPS = VM_RELATIONSHIPS_AUTHENTICATION;
 
   address constant EMPTY_SENDER = address(0);
+  // * Shared Variables
+  // -- Contracts
+  IDidManager didManager;
 
-  function _deployNewDidManager() internal returns (IDidManager didManager) {
+  function _deployNewDidManager() internal returns (IDidManager) {
     (didManager, ) = new DidManagerScript().deploy(
       DeployCommand({ storeInfo: DeploymentStoreInfo({ store: false, tag: bytes32(0) }) }),
       false
     );
+    return didManager;
   }
 
   function _createDid(
-    IDidManager didManager,
     bytes32 method0,
     bytes32 method1,
     bytes32 method2,
@@ -109,6 +120,31 @@ abstract contract SharedTest is Test {
       idHash: DidCreated_idHash,
       creator: DidCreated_creator
     });
+  }
+
+  /**
+   * @dev Creates a new verification method.
+   */
+  function _createVm(
+    DidCreateVmCommand memory command
+  ) internal returns (CreateVmResultTest memory result) {
+    // Event recording
+    vm.recordLogs();
+    //* Update controller call
+    didManager.createVm(command);
+    // Get logs from previous transaction
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    // Get the event values
+    // event VmCreated(
+    //   bytes32 indexed didIdHash,
+    //   bytes32 indexed id,
+    //   bytes32 indexed idHash,
+    //   bytes32 positionHash
+    // );
+    result.VmCreated_didIdHash = entries[0].topics[1];
+    result.VmCreated_id = entries[0].topics[2];
+    result.VmCreated_idHash = entries[0].topics[3];
+    result.VmCreated_positionHash = bytes32(entries[0].data);
   }
 
   function _calculateDidHash(

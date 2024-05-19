@@ -5,7 +5,7 @@ import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { W3CResolverScript, DeployCommand } from "@script/W3CResolver.s.sol";
-import { SharedTest, DidInfo } from "@test/SharedTest.sol";
+import { SharedTest, DidInfo, CreateVmResultTest } from "@test/SharedTest.sol";
 import { PerformedAction, Service, ServiceUpdateCommandTest, ServiceUpdateResultTest } from "@test/ServiceStorage.t.sol";
 import { IDidManager, VerificationMethod, Controller, CreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 import { IW3CResolver, W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
@@ -48,6 +48,7 @@ contract DidManagerTest is SharedTest {
     bytes32("https://bar.example.com")
   ];
   // Variables
+  uint256 private DEFAULT_VM_EXPIRATION;
   // -- users
   address admin = DEFAULT_SENDER;
   address user = payable(address(10));
@@ -55,13 +56,13 @@ contract DidManagerTest is SharedTest {
   address user1 = payable(address(12));
   // -- contracts
   uint256 lastDidManagerUsed;
-  IDidManager didManager;
   IW3CResolver w3cResolver;
 
   /**
    * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
    */
   function setUp() public {
+    DEFAULT_VM_EXPIRATION = block.timestamp + 60; // Now + 1 minute
     // Label users
     vm.label(admin, "admin");
     vm.label(user, "user");
@@ -107,7 +108,6 @@ contract DidManagerTest is SharedTest {
     assertEq(length, 0);
     // Create DID
     (DidInfo memory didInfo, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -125,93 +125,6 @@ contract DidManagerTest is SharedTest {
         fragment: EMPTY_VM_ID
       }),
       DEFAULT_VM_ID
-    );
-    //* ☑️ Assert ⬇
-    assertEq(
-      keccak256(abi.encodePacked(w3cVm.id)),
-      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_VM_ID)))))
-    );
-    assertEq(
-      keccak256(abi.encodePacked(w3cVm.type_)),
-      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_VM_TYPE)))))
-    );
-    // end
-    vm.stopPrank();
-  }
-
-  function test_should_resolveVm_withAllVmMethods() public {
-    //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
-    // Check initial state
-    // ! Not possible | really difficult in real newtorks
-    bytes32 id = keccak256(
-      abi.encodePacked(
-        DEFAULT_DID_METHOD0,
-        DEFAULT_DID_METHOD1,
-        DEFAULT_DID_METHOD2,
-        RANDOM_CREATE_DEFAULT,
-        user,
-        block.timestamp
-      )
-    );
-    uint256 exp = didManager.getExpiration(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      id,
-      EMPTY_VM_ID // <-- To get the expiration of the DID
-    );
-    assertEq(exp, EMPTY_EXPIRATION);
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      id
-    );
-    assertEq(length, 0);
-    // Create DID
-    (DidInfo memory didData, , , , , , ) = _createDid(
-      didManager,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
-      EMPTY_VM_ID
-    );
-    // Add a new VM with all methods
-    // Add new Verification Method
-    CreateVmCommand memory command = CreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      DEFAULT_VM_ID,
-      didData.id,
-      VM_ID_CUSTOM,
-      DEFAULT_VM_TYPE,
-      DEFAULT_VM_PUBLIC_KEY, // ! <== Public Key
-      EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID, // * <-- important
-      EMPTY_VM_THIS_BC_ADDRESS, // * <-- important
-      VM_RELATIONSHIPS_ALL,
-      DEFAULT_VM_EXPIRATION // * <-- important
-    );
-    (
-      bytes32 VmCreated_didIdHash,
-      bytes32 VmCreated_id,
-      bytes32 VmCreated_idHash,
-      bytes32 VmCreated_positionHash
-    ) = _createVm(command);
-    //* 🎬 Act ⬇
-    // Check final state
-    W3CVerificationMethod memory w3cVm = w3cResolver.resolveVm(
-      W3CDidInput({
-        method0: DEFAULT_DID_METHOD0,
-        method1: DEFAULT_DID_METHOD1,
-        method2: DEFAULT_DID_METHOD2,
-        id: didData.id,
-        fragment: EMPTY_VM_ID
-      }),
-      VM_ID_CUSTOM
     );
     //* ☑️ Assert ⬇
     assertEq(
@@ -259,7 +172,6 @@ contract DidManagerTest is SharedTest {
     assertEq(length, 0);
     // Create DID
     (DidInfo memory didInfo, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -301,7 +213,69 @@ contract DidManagerTest is SharedTest {
       keccak256(abi.encodePacked(w3cService.id)),
       keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(result.ServiceUpdated_id)))))
     );
+    // end
+    vm.stopPrank();
+  }
 
+  // DID Document
+  function test_should_resolveDid_withMultVmNServices() public {
+    //* 🗂️ Arrange ⬇
+    startHoax(user, DEFAULT_USER_BALANCE);
+    // Check initial state
+    // ! Not possible | really difficult in real newtorks
+    bytes32 id = keccak256(
+      abi.encodePacked(
+        DEFAULT_DID_METHOD0,
+        DEFAULT_DID_METHOD1,
+        DEFAULT_DID_METHOD2,
+        RANDOM_CREATE_DEFAULT,
+        user,
+        block.timestamp
+      )
+    );
+    uint256 exp = didManager.getExpiration(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      id,
+      EMPTY_VM_ID // <-- To get the expiration of the DID
+    );
+    assertEq(exp, EMPTY_EXPIRATION);
+    uint256 length = didManager.getVmListLength(
+      DEFAULT_DID_METHOD0,
+      DEFAULT_DID_METHOD1,
+      DEFAULT_DID_METHOD2,
+      id
+    );
+    assertEq(length, 0);
+    // Create DID
+    (DidInfo memory didInfo, , , , , , ) = _createDid(
+      EMPTY_DID_METHOD,
+      EMPTY_DID_METHOD,
+      EMPTY_DID_METHOD,
+      RANDOM_CREATE_DEFAULT,
+      EMPTY_VM_ID
+    );
+    // Add a new VM with all methods
+    // Add new Verification Method
+    CreateVmCommand memory command = CreateVmCommand(
+      didInfo.method0,
+      didInfo.method1,
+      didInfo.method2,
+      didInfo.id,
+      DEFAULT_VM_ID,
+      didInfo.id,
+      VM_ID_CUSTOM,
+      DEFAULT_VM_TYPE,
+      DEFAULT_VM_PUBLIC_KEY, // ! <== Public Key
+      EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID, // * <-- important
+      EMPTY_VM_THIS_BC_ADDRESS, // * <-- important
+      VM_RELATIONSHIPS_ALL,
+      DEFAULT_VM_EXPIRATION // * <-- important
+    );
+    CreateVmResultTest memory result = _createVm(command);
+    //* 🎬 Act ⬇
+    // Check final state
     W3CDidDocument memory didDocument = w3cResolver.resolve(
       W3CDidInput({
         method0: didInfo.method0,

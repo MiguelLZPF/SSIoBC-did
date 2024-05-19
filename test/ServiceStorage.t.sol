@@ -80,7 +80,6 @@ contract ServiceStorageTest is SharedTest {
     // Create a DID for user
     startHoax(user, DEFAULT_USER_BALANCE);
     (userDidInfo, , , , , , ) = _createDid(
-      didManager,
       bytes32(0),
       bytes32(0),
       bytes32(0),
@@ -91,7 +90,6 @@ contract ServiceStorageTest is SharedTest {
     // Create a DID for other user
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     (otherUserDidInfo, , , , , , ) = _createDid(
-      didManager,
       bytes32(0),
       bytes32(0),
       bytes32(0),

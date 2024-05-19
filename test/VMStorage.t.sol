@@ -8,15 +8,13 @@ import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
 import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfaces/IDidManager.sol";
 import { DidManager } from "@src/DidManager.sol";
 import { VMStorage, VerificationMethod, CreateVmCommand } from "@src/VMStorage.sol";
-import { SharedTest, DidInfo } from "@test/SharedTest.sol";
+import { SharedTest, DidInfo, CreateVmResultTest } from "@test/SharedTest.sol";
 
 contract VMStorageTest is SharedTest {
-  //* Constants
+  // * Constants
   // Specific
-  address private constant RANDOM_VM_THIS_BC_ADDRESS = address(666);
-  bytes1 private constant DEFAULT_VM_RELATIONSHIPS = VM_RELATIONSHIPS_AUTHENTICATION;
   bytes32[10] VM_ID = [bytes32("vm-create-test"), bytes32("vm-validate-test")];
-  // Variables
+  // * Variables
   address private DEFAULT_ETH_ADDRESS;
   uint256 private DEFAULT_VM_EXPIRATION;
   // -- users
@@ -45,7 +43,6 @@ contract VMStorageTest is SharedTest {
     // Create a DID for user
     startHoax(user, DEFAULT_USER_BALANCE);
     (userDidInfo, , , , , , ) = _createDid(
-      didManager,
       bytes32(0),
       bytes32(0),
       bytes32(0),
@@ -56,7 +53,6 @@ contract VMStorageTest is SharedTest {
     // Create a DID for other user
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     (otherUserDidInfo, , , , , , ) = _createDid(
-      didManager,
       bytes32(0),
       bytes32(0),
       bytes32(0),
@@ -115,12 +111,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
-    (
-      bytes32 VmCreated_didIdHash,
-      bytes32 VmCreated_id,
-      bytes32 VmCreated_idHash,
-      bytes32 VmCreated_positionHash
-    ) = _createVm(command);
+    CreateVmResultTest memory result = _createVm(command);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -182,10 +173,10 @@ contract VMStorageTest is SharedTest {
     //   bytes32 indexed idHash,
     //   bytes32 positionHash
     // );
-    assertEq(VmCreated_didIdHash, didData.idHash);
-    assertEq(VmCreated_id, command.vmId);
-    assertEq(VmCreated_idHash, expectedVmIdHash);
-    assertEq(VmCreated_positionHash, expectedPositionHash);
+    assertEq(result.VmCreated_didIdHash, didData.idHash);
+    assertEq(result.VmCreated_id, command.vmId);
+    assertEq(result.VmCreated_idHash, expectedVmIdHash);
+    assertEq(result.VmCreated_positionHash, expectedPositionHash);
     // end
     vm.stopPrank();
   }
@@ -237,12 +228,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       DEFAULT_VM_EXPIRATION // * <-- important
     );
-    (
-      bytes32 VmCreated_didIdHash,
-      bytes32 VmCreated_id,
-      bytes32 VmCreated_idHash,
-      bytes32 VmCreated_positionHash
-    ) = _createVm(command);
+    CreateVmResultTest memory result = _createVm(command);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -304,10 +290,10 @@ contract VMStorageTest is SharedTest {
     //   bytes32 indexed idHash,
     //   bytes32 positionHash
     // );
-    assertEq(VmCreated_didIdHash, didData.idHash);
-    assertEq(VmCreated_id, command.vmId);
-    assertEq(VmCreated_idHash, expectedVmIdHash);
-    assertEq(VmCreated_positionHash, expectedPositionHash);
+    assertEq(result.VmCreated_didIdHash, didData.idHash);
+    assertEq(result.VmCreated_id, command.vmId);
+    assertEq(result.VmCreated_idHash, expectedVmIdHash);
+    assertEq(result.VmCreated_positionHash, expectedPositionHash);
     // end
     vm.stopPrank();
   }
@@ -359,12 +345,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       DEFAULT_VM_EXPIRATION // * <-- important
     );
-    (
-      bytes32 VmCreated_didIdHash,
-      bytes32 VmCreated_id,
-      bytes32 VmCreated_idHash,
-      bytes32 VmCreated_positionHash
-    ) = _createVm(command);
+    CreateVmResultTest memory result = _createVm(command);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -426,10 +407,10 @@ contract VMStorageTest is SharedTest {
     //   bytes32 indexed idHash,
     //   bytes32 positionHash
     // );
-    assertEq(VmCreated_didIdHash, didData.idHash);
-    assertEq(VmCreated_id, command.vmId);
-    assertEq(VmCreated_idHash, expectedVmIdHash);
-    assertEq(VmCreated_positionHash, expectedPositionHash);
+    assertEq(result.VmCreated_didIdHash, didData.idHash);
+    assertEq(result.VmCreated_id, command.vmId);
+    assertEq(result.VmCreated_idHash, expectedVmIdHash);
+    assertEq(result.VmCreated_positionHash, expectedPositionHash);
     // end
     vm.stopPrank();
   }
@@ -481,12 +462,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       DEFAULT_VM_EXPIRATION // * <-- important: should change to 0
     );
-    (
-      bytes32 VmCreated_didIdHash,
-      bytes32 VmCreated_id,
-      bytes32 VmCreated_idHash,
-      bytes32 VmCreated_positionHash
-    ) = _createVm(command);
+    CreateVmResultTest memory result = _createVm(command);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -548,10 +524,10 @@ contract VMStorageTest is SharedTest {
     //   bytes32 indexed idHash,
     //   bytes32 positionHash
     // );
-    assertEq(VmCreated_didIdHash, didData.idHash);
-    assertEq(VmCreated_id, command.vmId);
-    assertEq(VmCreated_idHash, expectedVmIdHash);
-    assertEq(VmCreated_positionHash, expectedPositionHash);
+    assertEq(result.VmCreated_didIdHash, didData.idHash);
+    assertEq(result.VmCreated_id, command.vmId);
+    assertEq(result.VmCreated_idHash, expectedVmIdHash);
+    assertEq(result.VmCreated_positionHash, expectedPositionHash);
     // end
     vm.stopPrank();
   }
@@ -660,7 +636,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
-    (, bytes32 VmCreated_id, , bytes32 VmCreated_positionHash) = _createVm(command);
+    CreateVmResultTest memory result = _createVm(command);
     // Check previous state
     uint256 length = didManager.getVmListLength(
       DEFAULT_DID_METHOD0,
@@ -675,7 +651,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -712,7 +688,7 @@ contract VMStorageTest is SharedTest {
     );
     //* 🎬 Act ⬇
     // Validate Verification Method
-    bytes32 VmValidated_id = _validateVm(VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    bytes32 VmValidated_id = _validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -768,7 +744,7 @@ contract VMStorageTest is SharedTest {
     // Check Events
     // event VmValidated(bytes32 indexed id);
     assertEq(VmValidated_id, VM_ID[0]);
-    assertEq(VmValidated_id, VmCreated_id);
+    assertEq(VmValidated_id, result.VmCreated_id);
     // end
     vm.stopPrank();
   }
@@ -793,7 +769,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
-    (, bytes32 VmCreated_id, , bytes32 VmCreated_positionHash) = _createVm(command);
+    CreateVmResultTest memory result = _createVm(command);
     // Check previous state
     uint256 length = didManager.getVmListLength(
       DEFAULT_DID_METHOD0,
@@ -808,7 +784,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -845,7 +821,7 @@ contract VMStorageTest is SharedTest {
     );
     //* 🎬 Act ⬇
     // Validate Verification Method
-    bytes32 VmValidated_id = _validateVm(VmCreated_positionHash, EMPTY_VM_EXPIRATION);
+    bytes32 VmValidated_id = _validateVm(result.VmCreated_positionHash, EMPTY_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -901,7 +877,7 @@ contract VMStorageTest is SharedTest {
     // Check Events
     // event VmValidated(bytes32 indexed id);
     assertEq(VmValidated_id, VM_ID[0]);
-    assertEq(VmValidated_id, VmCreated_id);
+    assertEq(VmValidated_id, result.VmCreated_id);
     // end
     vm.stopPrank();
   }
@@ -926,7 +902,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
-    (, bytes32 VmCreated_id, , ) = _createVm(command);
+    CreateVmResultTest memory result = _createVm(command);
     // Check previous state
     uint256 length = didManager.getVmListLength(
       DEFAULT_DID_METHOD0,
@@ -941,7 +917,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -1017,7 +993,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -1056,7 +1032,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       DEFAULT_VM_EXPIRATION
     );
-    (, bytes32 VmCreated_id, , bytes32 VmCreated_positionHash) = _createVm(command);
+    CreateVmResultTest memory result = _createVm(command);
     // Check previous state
     uint256 length = didManager.getVmListLength(
       DEFAULT_DID_METHOD0,
@@ -1071,7 +1047,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -1109,7 +1085,7 @@ contract VMStorageTest is SharedTest {
     //* 🎬 Act ⬇
     // Validate Verification Method
     vm.expectRevert("VM already validated or out");
-    didManager.validateVm(VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    didManager.validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -1147,7 +1123,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -1186,7 +1162,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
-    (, bytes32 VmCreated_id, , bytes32 VmCreated_positionHash) = _createVm(command);
+    CreateVmResultTest memory result = _createVm(command);
     // Check previous state
     uint256 length = didManager.getVmListLength(
       DEFAULT_DID_METHOD0,
@@ -1201,7 +1177,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -1240,7 +1216,7 @@ contract VMStorageTest is SharedTest {
     // Validate Verification Method
     vm.expectRevert("Cant validate VM. Invalid Sign");
     startHoax(otherUser, DEFAULT_USER_BALANCE);
-    didManager.validateVm(VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    didManager.validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(
@@ -1278,7 +1254,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -1318,8 +1294,8 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
-    (, bytes32 VmCreated_id, , bytes32 VmCreated_positionHash) = _createVm(command);
-    _validateVm(VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    CreateVmResultTest memory result = _createVm(command);
+    _validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     // Check previous state
     uint256 length = didManager.getVmListLength(
       DEFAULT_DID_METHOD0,
@@ -1334,7 +1310,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -1422,7 +1398,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -1472,8 +1448,8 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
-    (, bytes32 VmCreated_id, , bytes32 VmCreated_positionHash) = _createVm(command);
-    _validateVm(VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    CreateVmResultTest memory result = _createVm(command);
+    _validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     // Check previous state
     uint256 length = didManager.getVmListLength(
       DEFAULT_DID_METHOD0,
@@ -1488,7 +1464,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -1553,7 +1529,7 @@ contract VMStorageTest is SharedTest {
       didData.method1,
       didData.method2,
       didData.id,
-      VmCreated_id,
+      result.VmCreated_id,
       uint8(0)
     );
     _assertVm(
@@ -1574,43 +1550,10 @@ contract VMStorageTest is SharedTest {
 
   // * Internal functions
 
-  /**
-   * @dev Creates a new verification method.
-   */
-  function _createVm(
-    DidCreateVmCommand memory command
-  )
-    internal
-    returns (
-      bytes32 VmCreated_didIdHash,
-      bytes32 VmCreated_id,
-      bytes32 VmCreated_idHash,
-      bytes32 VmCreated_positionHash
-    )
-  {
-    // Event recording
-    vm.recordLogs();
-    //* Update controller call
-    didManager.createVm(command);
-    // Get logs from previous transaction
-    Vm.Log[] memory entries = vm.getRecordedLogs();
-    // Get the event values
-    // event VmCreated(
-    //   bytes32 indexed didIdHash,
-    //   bytes32 indexed id,
-    //   bytes32 indexed idHash,
-    //   bytes32 positionHash
-    // );
-    VmCreated_didIdHash = entries[0].topics[1];
-    VmCreated_id = entries[0].topics[2];
-    VmCreated_idHash = entries[0].topics[3];
-    VmCreated_positionHash = bytes32(entries[0].data);
-  }
-
   function _validateVm(
     bytes32 positionHash,
     uint expiration
-  ) internal returns (bytes32 VmValidated_id) {
+  ) private returns (bytes32 VmValidated_id) {
     // Event recording
     vm.recordLogs();
     //* Update controller call
@@ -1658,7 +1601,7 @@ contract VMStorageTest is SharedTest {
     VmExpirationUpdated_expiration = uint256(bytes32(entries[0].data));
   }
 
-  function _assertEmptyVm(VerificationMethod memory verificationMethod) internal {
+  function _assertEmptyVm(VerificationMethod memory verificationMethod) private {
     assertEq(verificationMethod.id, bytes32(0));
     for (uint256 i = 0; i < 2; i++) {
       assertEq(verificationMethod.type_[i], bytes32(0));
@@ -1677,7 +1620,7 @@ contract VMStorageTest is SharedTest {
   function _assertVm(
     VerificationMethod memory vmToCheck,
     VerificationMethod memory expectedVM
-  ) internal {
+  ) private {
     assertEq(vmToCheck.id, expectedVM.id);
     for (uint256 i = 0; i < 2; i++) {
       assertEq(vmToCheck.type_[i], expectedVM.type_[i]);
