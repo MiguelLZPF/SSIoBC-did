@@ -17,7 +17,7 @@ bytes32 constant VM_ID = bytes32("vm-0");
 struct VerificationMethod {
   bytes32 id;
   bytes32[2] type_;
-  bytes32[16] publicKey;
+  bytes32[16] publicKeyMultibase; // The public key associated with the verification method (VM) in multibase format
   bytes32[5] blockchainAccountId; // firstPart:secondPart:thirdPart = 32:32:32x3 // External blockchain account ID
   address ethereumAddress; // An address (account ID) of the blockchain where the VM is stored
   bytes1 relationships; // Relationships XX00000
@@ -28,7 +28,7 @@ struct CreateVmCommand {
   bytes32 didHash; // The hash of the decentralized identifier (DID)
   bytes32 id; // The identifier of the verification method (VM)
   bytes32[2] type_; // The type of the verification method (VM)
-  bytes32[16] publicKey; // The public key associated with the verification method (VM)
+  bytes32[16] publicKeyMultibase; // The public key associated with the verification method (VM) in multibase format
   bytes32[5] blockchainAccountId; // The blockchain account ID associated with the verification method (VM)
   address ethereumAddress; // The address of the blockchain associated with the verification method (VM)
   bytes1 relationships; // The relationships associated with the verification method (VM)
@@ -94,7 +94,7 @@ abstract contract VMStorage is HashBasedList {
     // Required
     // require(command.didHash != bytes32(0), "DID hash required"); //! Unreachable code
     require(
-      command.publicKey[0] != bytes32(0) ||
+      command.publicKeyMultibase[0] != bytes32(0) ||
         command.blockchainAccountId[0] != bytes32(0) ||
         command.ethereumAddress != address(0),
       "4th or 5th or 6th param required"
@@ -124,7 +124,7 @@ abstract contract VMStorage is HashBasedList {
     // Store VM
     vm.id = command.id;
     vm.type_ = command.type_;
-    vm.publicKey = command.publicKey;
+    vm.publicKeyMultibase = command.publicKeyMultibase;
     vm.blockchainAccountId = command.blockchainAccountId;
     vm.ethereumAddress = command.ethereumAddress;
     vm.relationships = command.relationships;

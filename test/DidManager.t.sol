@@ -106,7 +106,6 @@ contract DidManagerTest is SharedTest {
       bytes32 DidCreated_idHash,
       address DidCreated_creator
     ) = _createDid(
-        didManager,
         EMPTY_DID_METHOD,
         EMPTY_DID_METHOD,
         EMPTY_DID_METHOD,
@@ -193,7 +192,6 @@ contract DidManagerTest is SharedTest {
       bytes32 DidCreated_idHash,
       address DidCreated_creator
     ) = _createDid(
-        didManager,
         DID_METHOD_0_CUSTOM,
         DID_METHOD_1_CUSTOM,
         DID_METHOD_2_CUSTOM,
@@ -263,7 +261,6 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     (DidInfo memory didInfo, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -318,7 +315,6 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     (DidInfo memory didInfo, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -345,9 +341,9 @@ contract DidManagerTest is SharedTest {
       targetId: didInfo.id,
       vmId: VM_ID_CUSTOM,
       type_: EMPTY_VM_TYPE,
-      publicKey: EMPTY_VM_PUBLIC_KEY,
+      publicKeyMultibase: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      ethereumAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      ethereumAddress: EMPTY_VM_ETHEREUM_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE,
       expiration: EMPTY_VM_EXPIRATION
     });
@@ -370,7 +366,6 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     (DidInfo memory didInfo, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -397,9 +392,9 @@ contract DidManagerTest is SharedTest {
       targetId: didInfo.id,
       vmId: VM_ID_CUSTOM,
       type_: EMPTY_VM_TYPE,
-      publicKey: EMPTY_VM_PUBLIC_KEY,
+      publicKeyMultibase: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      ethereumAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      ethereumAddress: EMPTY_VM_ETHEREUM_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE,
       expiration: EMPTY_VM_EXPIRATION
     });
@@ -422,7 +417,6 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     (DidInfo memory didInfo, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -449,9 +443,9 @@ contract DidManagerTest is SharedTest {
       targetId: EMPTY_DID_ID, // ! <-- Target ID is empty
       vmId: VM_ID_CUSTOM,
       type_: EMPTY_VM_TYPE,
-      publicKey: EMPTY_VM_PUBLIC_KEY,
+      publicKeyMultibase: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      ethereumAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      ethereumAddress: EMPTY_VM_ETHEREUM_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE,
       expiration: EMPTY_VM_EXPIRATION
     });
@@ -474,7 +468,6 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     (DidInfo memory didInfo, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -501,9 +494,9 @@ contract DidManagerTest is SharedTest {
       targetId: didInfo.id,
       vmId: VM_ID_CUSTOM,
       type_: EMPTY_VM_TYPE,
-      publicKey: EMPTY_VM_PUBLIC_KEY,
+      publicKeyMultibase: EMPTY_VM_PUBLIC_KEY,
       blockchainAccountId: EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      ethereumAddress: EMPTY_VM_THIS_BC_ADDRESS,
+      ethereumAddress: EMPTY_VM_ETHEREUM_ADDRESS,
       relationships: VM_RELATIONSHIPS_NONE, // ! <-- Relationships are empty
       expiration: EMPTY_VM_EXPIRATION
     });
@@ -528,7 +521,6 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     (DidInfo memory didInfo, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -595,7 +587,6 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     (DidInfo memory defaultDid, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -661,7 +652,6 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     (DidInfo memory userDid, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -670,7 +660,6 @@ contract DidManagerTest is SharedTest {
     );
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     (DidInfo memory otherDid, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -741,7 +730,6 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     (DidInfo memory defaultDid, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -807,7 +795,6 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     (DidInfo memory defaultDid, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -896,7 +883,6 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     (DidInfo memory userDid, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -905,7 +891,6 @@ contract DidManagerTest is SharedTest {
     );
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     (DidInfo memory otherDid, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -975,7 +960,6 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     (DidInfo memory userDid, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -984,7 +968,6 @@ contract DidManagerTest is SharedTest {
     );
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     (DidInfo memory otherDid, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -1052,7 +1035,6 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     (DidInfo memory userDid, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -1061,7 +1043,6 @@ contract DidManagerTest is SharedTest {
     );
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     (DidInfo memory otherDid, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -1070,7 +1051,6 @@ contract DidManagerTest is SharedTest {
     );
     startHoax(user1, DEFAULT_USER_BALANCE);
     (DidInfo memory user1Did, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -1139,7 +1119,6 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     (DidInfo memory did, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -1166,7 +1145,6 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     (DidInfo memory did, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -1194,7 +1172,6 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     (DidInfo memory did, , , , , , ) = _createDid(
-      didManager,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,

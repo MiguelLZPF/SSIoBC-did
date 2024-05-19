@@ -218,6 +218,7 @@ contract DidManagerTest is SharedTest {
   }
 
   // DID Document
+  // It creates a DID with multiple VMs and Services and resolves it
   function test_should_resolveDid_withMultVmNServices() public {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
@@ -258,22 +259,36 @@ contract DidManagerTest is SharedTest {
     );
     // Add a new VM with all methods
     // Add new Verification Method
-    CreateVmCommand memory command = CreateVmCommand(
-      didInfo.method0,
-      didInfo.method1,
-      didInfo.method2,
-      didInfo.id,
-      DEFAULT_VM_ID,
-      didInfo.id,
-      VM_ID_CUSTOM,
-      DEFAULT_VM_TYPE,
-      DEFAULT_VM_PUBLIC_KEY, // ! <== Public Key
-      EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID, // * <-- important
-      EMPTY_VM_THIS_BC_ADDRESS, // * <-- important
-      VM_RELATIONSHIPS_ALL,
-      DEFAULT_VM_EXPIRATION // * <-- important
+    CreateVmResultTest memory createVmResult = _createVm(
+      CreateVmCommand({
+        method0: didInfo.method0,
+        method1: didInfo.method1,
+        method2: didInfo.method2,
+        senderId: didInfo.id,
+        senderVmId: DEFAULT_VM_ID,
+        id: VM_ID_CUSTOM,
+        type_: DEFAULT_VM_TYPE,
+        publicKeyMultibase: DEFAULT_VM_PUBLIC_KEY,
+        blockchainAccountId: DEFAULT_VM_BLOCKCHAIN_ACCOUNT_ID,
+        ethereumAddress: DEFAULT_VM_ETHEREUM_ADDRESS,
+        relationships: VM_RELATIONSHIPS_ALL,
+        expiration: DEFAULT_VM_EXPIRATION
+      })
     );
-    CreateVmResultTest memory result = _createVm(command);
+    // Add a new Service
+    ServiceUpdateResultTest memory result = _updateService(
+      ServiceUpdateCommandTest({
+        method0: didInfo.method0,
+        method1: didInfo.method1,
+        method2: didInfo.method2,
+        senderId: didInfo.id,
+        senderVmId: DEFAULT_VM_ID,
+        targetId: didInfo.id,
+        serviceId: DEFAULT_SERVICE_ID,
+        type_: DEFAULT_SERVICE_TYPE,
+        serviceEndpoint: DEFAULT_SERVICE_ENDPOINT
+      })
+    );
     //* 🎬 Act ⬇
     // Check final state
     W3CDidDocument memory didDocument = w3cResolver.resolve(

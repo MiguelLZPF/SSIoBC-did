@@ -21,7 +21,7 @@ struct CreateVmCommand {
   bytes32 targetId; // The ID of the target.
   bytes32 vmId; // The ID of the verification method.
   bytes32[2] type_; // The type of the VM.
-  bytes32[16] publicKey; // The public key of the VM.
+  bytes32[16] publicKeyMultibase; // The public key of the VM.
   bytes32[5] blockchainAccountId; // The blockchain account ID of the VM.
   address ethereumAddress; // The address of the blockchain where the VM is created.
   bytes1 relationships; // The relationships of the VM.

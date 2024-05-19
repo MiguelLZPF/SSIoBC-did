@@ -65,7 +65,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
         didHash: idHash,
         id: vmId,
         type_: [bytes32(0), bytes32(0)],
-        publicKey: EMPTY_PUBLIC_KEY,
+        publicKeyMultibase: EMPTY_PUBLIC_KEY,
         blockchainAccountId: EMPTY_BLOCKCHAIN_ACCOUNT_ID,
         ethereumAddress: msg.sender,
         relationships: bytes1(0x01), // 0x01 (Authentication)
@@ -97,7 +97,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
         didHash: targetIdHash,
         id: command.vmId,
         type_: command.type_,
-        publicKey: command.publicKey,
+        publicKeyMultibase: command.publicKeyMultibase,
         blockchainAccountId: command.blockchainAccountId,
         ethereumAddress: command.ethereumAddress,
         relationships: command.relationships,

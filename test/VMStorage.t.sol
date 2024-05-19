@@ -224,7 +224,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       DEFAULT_VM_PUBLIC_KEY, // ! <== Public Key
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID, // * <-- important
-      EMPTY_VM_THIS_BC_ADDRESS, // * <-- important
+      EMPTY_VM_ETHEREUM_ADDRESS, // * <-- important
       DEFAULT_VM_RELATIONSHIPS,
       DEFAULT_VM_EXPIRATION // * <-- important
     );
@@ -341,7 +341,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       EMPTY_VM_PUBLIC_KEY, // * <-- important
       DEFAULT_VM_BLOCKCHAIN_ACCOUNT_ID, // ! <== Blockchain Account ID
-      EMPTY_VM_THIS_BC_ADDRESS, // * <-- important
+      EMPTY_VM_ETHEREUM_ADDRESS, // * <-- important
       DEFAULT_VM_RELATIONSHIPS,
       DEFAULT_VM_EXPIRATION // * <-- important
     );
@@ -576,7 +576,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       EMPTY_VM_PUBLIC_KEY, //! <== Empty
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID, //! <== Empty
-      EMPTY_VM_THIS_BC_ADDRESS, //! <== Empty
+      EMPTY_VM_ETHEREUM_ADDRESS, //! <== Empty
       DEFAULT_VM_RELATIONSHIPS,
       EMPTY_VM_EXPIRATION
     );
@@ -1028,7 +1028,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_TYPE,
       DEFAULT_VM_PUBLIC_KEY,
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
-      EMPTY_VM_THIS_BC_ADDRESS,
+      EMPTY_VM_ETHEREUM_ADDRESS,
       DEFAULT_VM_RELATIONSHIPS,
       DEFAULT_VM_EXPIRATION
     );
