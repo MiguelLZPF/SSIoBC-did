@@ -259,7 +259,7 @@ contract DidManagerTest is SharedTest {
     );
     // Add a new VM with all methods
     // Add new Verification Method
-    CreateVmResultTest memory createVmResult = _createVm(
+    /* CreateVmResultTest memory createVmResult = */ _createVm(
       DidCreateVmCommand({
         method0: didInfo.method0,
         method1: didInfo.method1,
@@ -277,7 +277,7 @@ contract DidManagerTest is SharedTest {
       })
     );
     // Add a new Service
-    ServiceUpdateResultTest memory createServiceResult0 = _updateService(
+    /* ServiceUpdateResultTest memory createServiceResult0 = */ _updateService(
       ServiceUpdateCommandTest({
         method0: didInfo.method0,
         method1: didInfo.method1,
@@ -290,7 +290,7 @@ contract DidManagerTest is SharedTest {
         serviceEndpoint: DEFAULT_SERVICE_ENDPOINT
       })
     );
-    ServiceUpdateResultTest memory createServiceResult1 = _updateService(
+    /* ServiceUpdateResultTest memory createServiceResult1 = */ _updateService(
       ServiceUpdateCommandTest({
         method0: didInfo.method0,
         method1: didInfo.method1,
