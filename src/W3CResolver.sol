@@ -238,7 +238,7 @@ contract W3CResolver is IW3CResolver {
         id: string(_trimBytes(abi.encodePacked(vm.id))),
         type_: string(_trimBytes(abi.encodePacked(vm.type_))),
         controller: _formatDidString(didInput),
-        publicKeyMultibase: string(_trimBytes(abi.encodePacked(vm.publicKey))),
+        publicKeyMultibase: string(_trimBytes(abi.encodePacked(vm.publicKeyMultibase))),
         blockchainAccountId: string(_trimBytes(abi.encodePacked(vm.blockchainAccountId))),
         ethereumAddress: Strings.toHexString(vm.ethereumAddress),
         expiration: vm.expiration * 1000 // expiration in ms
@@ -249,27 +249,27 @@ contract W3CResolver is IW3CResolver {
     Service memory service
   ) internal pure returns (W3CService memory w3cService) {
     // First count the length of the arrays
-    uint8 typesLength = 0;
-    uint8 serviceEndpointLength = 0;
-    for (uint8 i = 0; i < SERVICE_MAX_LENGTH; i++) {
+    uint typesLength = 0;
+    uint serviceEndpointLength = 0;
+    for (uint i = 0; i < SERVICE_MAX_LENGTH; i++) {
       // Break if both are empty
-      if (service.type_[i] == bytes32(0) && service.serviceEndpoint[i] == bytes32(0)) {
+      if (service.type_[i][0] == bytes32(0) && service.serviceEndpoint[i][0] == bytes32(0)) {
         break;
       }
-      if (service.type_[i] != bytes32(0)) {
+      if (service.type_[i][0] != bytes32(0)) {
         typesLength++;
       }
-      if (service.serviceEndpoint[i] != bytes32(0)) {
+      if (service.serviceEndpoint[i][0] != bytes32(0)) {
         serviceEndpointLength++;
       }
     }
     // Then create the final arrays
     string[] memory types = new string[](typesLength);
     string[] memory serviceEndpoints = new string[](serviceEndpointLength);
-    for (uint8 i = 0; i < typesLength; i++) {
+    for (uint i = 0; i < typesLength; i++) {
       types[i] = string(_trimBytes(abi.encodePacked(service.type_[i])));
     }
-    for (uint8 i = 0; i < serviceEndpointLength; i++) {
+    for (uint i = 0; i < serviceEndpointLength; i++) {
       serviceEndpoints[i] = string(_trimBytes(abi.encodePacked(service.serviceEndpoint[i])));
     }
     // Finally return the W3CService
@@ -348,15 +348,15 @@ contract W3CResolver is IW3CResolver {
       return new bytes(0);
     }
     bytes memory withoutZeros = new bytes(input.length);
-    uint8 length = 0;
-    for (uint8 i = 0; i < input.length; i++) {
+    uint length = 0;
+    for (uint i = 0; i < input.length; i++) {
       if (input[i] != 0x00) {
         withoutZeros[length] = input[i];
         length++;
       }
     }
     output = new bytes(length);
-    for (uint8 i = 0; i < length; i++) {
+    for (uint i = 0; i < length; i++) {
       output[i] = withoutZeros[i];
     }
     return output;

@@ -47,7 +47,6 @@ contract DidManagerTest is SharedTest {
   address user1 = payable(address(12));
   // -- contracts
   uint256 lastDidManagerUsed;
-  IDidManager didManager;
 
   /**
    * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.

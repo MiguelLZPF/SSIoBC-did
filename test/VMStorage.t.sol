@@ -23,7 +23,6 @@ contract VMStorageTest is SharedTest {
   address otherUser = payable(address(11));
   // -- contracts
   uint256 lastDidManagerUsed;
-  IDidManager didManager;
   DidInfo userDidInfo;
   DidInfo otherUserDidInfo;
 
@@ -138,7 +137,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -159,7 +158,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -255,7 +254,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -276,7 +275,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -372,7 +371,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -393,7 +392,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -489,7 +488,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -510,7 +509,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -659,7 +658,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -679,7 +678,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -713,7 +712,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -734,7 +733,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -792,7 +791,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -812,7 +811,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -846,7 +845,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -867,7 +866,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -925,7 +924,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -945,7 +944,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -980,7 +979,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1001,7 +1000,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1055,7 +1054,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1075,7 +1074,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1110,7 +1109,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1131,7 +1130,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1185,7 +1184,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1205,7 +1204,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1241,7 +1240,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1262,7 +1261,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1318,7 +1317,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1338,7 +1337,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1385,7 +1384,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1406,7 +1405,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1472,7 +1471,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1492,7 +1491,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1537,7 +1536,7 @@ contract VMStorageTest is SharedTest {
       VerificationMethod(
         command.vmId,
         command.type_,
-        command.publicKey,
+        command.publicKeyMultibase,
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
@@ -1607,7 +1606,7 @@ contract VMStorageTest is SharedTest {
       assertEq(verificationMethod.type_[i], bytes32(0));
     }
     for (uint256 i = 0; i < 16; i++) {
-      assertEq(verificationMethod.publicKey[i], bytes32(0));
+      assertEq(verificationMethod.publicKeyMultibase[i], bytes32(0));
     }
     for (uint256 i = 0; i < 5; i++) {
       assertEq(verificationMethod.blockchainAccountId[i], bytes32(0));
@@ -1626,7 +1625,7 @@ contract VMStorageTest is SharedTest {
       assertEq(vmToCheck.type_[i], expectedVM.type_[i]);
     }
     for (uint256 i = 0; i < 16; i++) {
-      assertEq(vmToCheck.publicKey[i], expectedVM.publicKey[i]);
+      assertEq(vmToCheck.publicKeyMultibase[i], expectedVM.publicKeyMultibase[i]);
     }
     for (uint256 i = 0; i < 5; i++) {
       assertEq(vmToCheck.blockchainAccountId[i], expectedVM.blockchainAccountId[i]);

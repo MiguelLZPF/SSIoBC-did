@@ -7,7 +7,7 @@ import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { W3CResolverScript, DeployCommand } from "@script/W3CResolver.s.sol";
 import { SharedTest, DidInfo, CreateVmResultTest } from "@test/SharedTest.sol";
 import { PerformedAction, Service, ServiceUpdateCommandTest, ServiceUpdateResultTest } from "@test/ServiceStorage.t.sol";
-import { IDidManager, VerificationMethod, Controller, CreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
+import { IDidManager, VerificationMethod, Controller, CreateVmCommand as DidCreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 import { IW3CResolver, W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
 
 struct UpdateControllerCommandTest {
@@ -42,11 +42,7 @@ contract DidManagerTest is SharedTest {
   bytes32 private constant DID_METHOD_2_CUSTOM = bytes32("method2_custom");
   bytes32 private constant VM_ID_CUSTOM = bytes32("vm_custom");
   bytes32 private constant VM_ID_CUSTOM_2 = bytes32("vm_custom_2");
-  bytes32 private constant DEFAULT_SERVICE_ID = bytes32("linked-domain");
-  bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_TYPE = [bytes32("LinkedDomains")];
-  bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_ENDPOINT = [
-    bytes32("https://bar.example.com")
-  ];
+  bytes32 private constant SERVICE_ID_SC = bytes32("issue-vc");
   // Variables
   uint256 private DEFAULT_VM_EXPIRATION;
   // -- users
@@ -179,7 +175,7 @@ contract DidManagerTest is SharedTest {
       EMPTY_VM_ID
     );
     // Add a new Service
-    ServiceUpdateResultTest memory result = _updateService(
+    ServiceUpdateResultTest memory updateServiceResult = _updateService(
       ServiceUpdateCommandTest({
         method0: didInfo.method0,
         method1: didInfo.method1,
@@ -211,7 +207,11 @@ contract DidManagerTest is SharedTest {
     );
     assertEq(
       keccak256(abi.encodePacked(w3cService.id)),
-      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(result.ServiceUpdated_id)))))
+      keccak256(
+        abi.encodePacked(
+          string(_trimBytes(abi.encodePacked(updateServiceResult.ServiceUpdated_id)))
+        )
+      )
     );
     // end
     vm.stopPrank();
@@ -260,13 +260,14 @@ contract DidManagerTest is SharedTest {
     // Add a new VM with all methods
     // Add new Verification Method
     CreateVmResultTest memory createVmResult = _createVm(
-      CreateVmCommand({
+      DidCreateVmCommand({
         method0: didInfo.method0,
         method1: didInfo.method1,
         method2: didInfo.method2,
         senderId: didInfo.id,
         senderVmId: DEFAULT_VM_ID,
-        id: VM_ID_CUSTOM,
+        targetId: didInfo.id,
+        vmId: VM_ID_CUSTOM,
         type_: DEFAULT_VM_TYPE,
         publicKeyMultibase: DEFAULT_VM_PUBLIC_KEY,
         blockchainAccountId: DEFAULT_VM_BLOCKCHAIN_ACCOUNT_ID,
@@ -276,7 +277,7 @@ contract DidManagerTest is SharedTest {
       })
     );
     // Add a new Service
-    ServiceUpdateResultTest memory result = _updateService(
+    ServiceUpdateResultTest memory createServiceResult0 = _updateService(
       ServiceUpdateCommandTest({
         method0: didInfo.method0,
         method1: didInfo.method1,
@@ -287,6 +288,19 @@ contract DidManagerTest is SharedTest {
         serviceId: DEFAULT_SERVICE_ID,
         type_: DEFAULT_SERVICE_TYPE,
         serviceEndpoint: DEFAULT_SERVICE_ENDPOINT
+      })
+    );
+    ServiceUpdateResultTest memory createServiceResult1 = _updateService(
+      ServiceUpdateCommandTest({
+        method0: didInfo.method0,
+        method1: didInfo.method1,
+        method2: didInfo.method2,
+        senderId: didInfo.id,
+        senderVmId: DEFAULT_VM_ID,
+        targetId: didInfo.id,
+        serviceId: SERVICE_ID_SC,
+        type_: SERVICE_TYPE_SC,
+        serviceEndpoint: SERVICE_ENDPOINT_SC
       })
     );
     //* 🎬 Act ⬇
@@ -392,19 +406,19 @@ contract DidManagerTest is SharedTest {
   }
 
   function _trimBytes(bytes memory input) internal pure returns (bytes memory output) {
-    if (input[0] == 0x00) {
+    if (input.length == 0 || input[0] == 0x00) {
       return new bytes(0);
     }
     bytes memory withoutZeros = new bytes(input.length);
-    uint8 length = 0;
-    for (uint8 i = 0; i < input.length; i++) {
+    uint256 length = 0;
+    for (uint256 i = 0; i < input.length; i++) {
       if (input[i] != 0x00) {
         withoutZeros[length] = input[i];
         length++;
       }
     }
     output = new bytes(length);
-    for (uint8 i = 0; i < length; i++) {
+    for (uint256 i = 0; i < length; i++) {
       output[i] = withoutZeros[i];
     }
     return output;

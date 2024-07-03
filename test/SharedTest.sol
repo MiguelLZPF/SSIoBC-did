@@ -6,6 +6,7 @@ import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
 import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfaces/IDidManager.sol";
+import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 
 struct DidInfo {
   bytes32 method0;
@@ -54,8 +55,23 @@ abstract contract SharedTest is Test {
   ];
   address constant EMPTY_VM_ETHEREUM_ADDRESS = address(0);
   address constant DEFAULT_VM_ETHEREUM_ADDRESS =
-    address(0xab16a96d359ec26a11e2c2b3d8f8b8942d5bfcdb);
+    address(0xab16a96D359eC26a11e2C2b3d8f8B8942d5Bfcdb);
   uint256 constant EMPTY_VM_EXPIRATION = 0;
+  // Service
+  bytes32 constant DEFAULT_SERVICE_ID = bytes32("linked-domain");
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] DEFAULT_SERVICE_TYPE = [
+    [bytes32("LinkedDomains")]
+  ];
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] internal DEFAULT_SERVICE_ENDPOINT = [
+    [bytes32("https://bar.example.com")]
+  ];
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] SERVICE_TYPE_SC = [
+    [bytes32("VerifiableCredentialService")],
+    [bytes32("SmartContractEndpoint")]
+  ];
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] internal SERVICE_ENDPOINT_SC = [
+    [bytes32("0xe7f1725E7734CE288F8367e1Bb143E"), bytes32("90bb3F0512")]
+  ];
   // -- relation
   bytes1 constant VM_RELATIONSHIPS_NONE = bytes1(0x00);
   bytes1 constant VM_RELATIONSHIPS_AUTHENTICATION = bytes1(0x01);

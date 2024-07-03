@@ -12,13 +12,16 @@ import { HashBasedList } from "@lib/hash-based-list/src/HashBasedList.sol";
 //   }]
 // }
 
-uint8 constant SERVICE_MAX_LENGTH = 20;
 bytes32 constant SERVICE_NAMESPACE = bytes32("service");
+// Maximum length (x times 32 bytes) of the service type and service endpoint. Each one is 32 bytes x SERVICE_MAX_LENGTH
+uint8 constant SERVICE_MAX_LENGTH = 4;
+// Maximum length of the service type and endpoint list (max number of different endpoints amd types for a service)
+uint8 constant SERVICE_MAX_LENGTH_LIST = 20;
 
 struct Service {
   bytes32 id;
-  bytes32[SERVICE_MAX_LENGTH] type_;
-  bytes32[SERVICE_MAX_LENGTH] serviceEndpoint;
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] type_;
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] serviceEndpoint;
 }
 
 abstract contract ServiceStorage is HashBasedList {
@@ -52,8 +55,8 @@ abstract contract ServiceStorage is HashBasedList {
   function _updateService(
     bytes32 didHash,
     bytes32 id,
-    bytes32[SERVICE_MAX_LENGTH] memory type_,
-    bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
+    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory type_,
+    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint
   ) internal {
     bytes32 serviceDidHash = _addServiceNameSpace(didHash);
     // Check parameters
@@ -62,7 +65,7 @@ abstract contract ServiceStorage is HashBasedList {
     // Get service
     (bytes32 idHash, bytes32 positionHash, uint8 position) = _calculateHashes(serviceDidHash, id);
     //  Service exists and type_ and serviceEndpoint are empty ==> delete service
-    if (position > 0 && type_[0] == bytes32(0) && serviceEndpoint[0] == bytes32(0)) {
+    if (position > 0 && type_[0][0] == bytes32(0) && serviceEndpoint[0][0] == bytes32(0)) {
       // Get latest service on array
       // uint8 lastPosition = _getHblLength(serviceDidHash);
       bytes32 lastPositionHash = _calculatePositionHash(
@@ -83,8 +86,8 @@ abstract contract ServiceStorage is HashBasedList {
       return;
     }
     // Check both are defined before updating (or create)
-    require(type_[0] != bytes32(0), "Type cannot be 0");
-    require(serviceEndpoint[0] != bytes32(0), "Endpoint cannot be 0");
+    require(type_[0][0] != bytes32(0), "Type cannot be 0");
+    require(serviceEndpoint[0][0] != bytes32(0), "Endpoint cannot be 0");
     if (position == 0) {
       // Does not exist --> update service list length and position by ID
       (idHash, position) = _addHbl(serviceDidHash, id);

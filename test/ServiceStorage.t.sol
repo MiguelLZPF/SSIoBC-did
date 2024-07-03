@@ -7,7 +7,7 @@ import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
 import { IDidManager } from "@src/interfaces/IDidManager.sol";
 import { DidManager } from "@src/DidManager.sol";
-import { ServiceStorage, Service, SERVICE_MAX_LENGTH, SERVICE_NAMESPACE } from "@src/ServiceStorage.sol";
+import { ServiceStorage, Service, SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH, SERVICE_NAMESPACE } from "@src/ServiceStorage.sol";
 import { SharedTest, DidInfo } from "@test/SharedTest.sol";
 
 enum PerformedAction {
@@ -24,8 +24,8 @@ struct ServiceUpdateCommandTest {
   bytes32 senderVmId;
   bytes32 targetId;
   bytes32 serviceId;
-  bytes32[SERVICE_MAX_LENGTH] type_;
-  bytes32[SERVICE_MAX_LENGTH] serviceEndpoint;
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] type_;
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] serviceEndpoint;
 }
 
 struct ServiceUpdateResultTest {
@@ -39,21 +39,18 @@ struct ServiceUpdateResultTest {
 contract ServiceStorageTest is SharedTest {
   //* Constants
   // Specific
-  bytes32 private constant DEFAULT_SERVICE_ID = bytes32("linked-domain");
-  bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_TYPE = [bytes32("LinkedDomains")];
-  bytes32[SERVICE_MAX_LENGTH] private DEFAULT_SERVICE_ENDPOINT = [
-    bytes32("https://bar.example.com")
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] private UPDATE_SERVICE_TYPE = [
+    [DEFAULT_SERVICE_TYPE[0][0]],
+    [bytes32("NewType")]
   ];
-  bytes32[SERVICE_MAX_LENGTH] private UPDATE_SERVICE_TYPE = [
-    DEFAULT_SERVICE_TYPE[0],
-    bytes32("NewType")
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] private UPDATE_SERVICE_ENDPOINT = [
+    [DEFAULT_SERVICE_ENDPOINT[0][0]],
+    [bytes32("https://new.endpoint.com")]
   ];
-  bytes32[SERVICE_MAX_LENGTH] private UPDATE_SERVICE_ENDPOINT = [
-    DEFAULT_SERVICE_ENDPOINT[0],
-    bytes32("https://new.endpoint.com")
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] private EMPTY_SERVICE_TYPE = [[bytes32(0)]];
+  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] private EMPTY_SERVICE_ENDPOINT = [
+    [bytes32(0)]
   ];
-  bytes32[SERVICE_MAX_LENGTH] private EMPTY_SERVICE_TYPE = [bytes32(0)];
-  bytes32[SERVICE_MAX_LENGTH] private EMPTY_SERVICE_ENDPOINT = [bytes32(0)];
 
   // Variables
   // -- users
@@ -62,7 +59,6 @@ contract ServiceStorageTest is SharedTest {
   address otherUser = payable(address(11));
   // -- contracts
   uint256 lastDidManagerUsed;
-  IDidManager didManager;
   DidInfo userDidInfo;
   DidInfo otherUserDidInfo;
 
@@ -121,8 +117,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(1)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     //* 🎬 Act ⬇
     // Add new service
     ServiceUpdateResultTest memory result = _updateService(
@@ -160,9 +156,10 @@ contract ServiceStorageTest is SharedTest {
       bytes32(0),
       uint8(1)
     );
+    // TODO: Check all fields. Maybe a checkService function?
     assertEq(service.id, DEFAULT_SERVICE_ID);
-    assertEq(service.type_[0], DEFAULT_SERVICE_TYPE[0]);
-    assertEq(service.serviceEndpoint[0], DEFAULT_SERVICE_ENDPOINT[0]);
+    assertEq(service.type_[0][0], DEFAULT_SERVICE_TYPE[0][0]);
+    assertEq(service.serviceEndpoint[0][0], DEFAULT_SERVICE_ENDPOINT[0][0]);
     // -- final service by ID
     service = didManager.getService(
       userDidInfo.method0,
@@ -173,8 +170,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(0)
     );
     assertEq(service.id, DEFAULT_SERVICE_ID);
-    assertEq(service.type_[0], DEFAULT_SERVICE_TYPE[0]);
-    assertEq(service.serviceEndpoint[0], DEFAULT_SERVICE_ENDPOINT[0]);
+    assertEq(service.type_[0][0], DEFAULT_SERVICE_TYPE[0][0]);
+    assertEq(service.serviceEndpoint[0][0], DEFAULT_SERVICE_ENDPOINT[0][0]);
     // Check Events
     // ServiceUpdated(
     //   bytes32 indexed didIdHash,
@@ -256,12 +253,12 @@ contract ServiceStorageTest is SharedTest {
       uint8(1)
     );
     assertEq(service.id, DEFAULT_SERVICE_ID);
-    assertEq(service.type_[0], UPDATE_SERVICE_TYPE[0]);
-    assertEq(service.type_[1], UPDATE_SERVICE_TYPE[1]);
-    assertEq(service.type_[2], bytes32(0));
-    assertEq(service.serviceEndpoint[0], UPDATE_SERVICE_ENDPOINT[0]);
-    assertEq(service.serviceEndpoint[1], UPDATE_SERVICE_ENDPOINT[1]);
-    assertEq(service.serviceEndpoint[2], bytes32(0));
+    assertEq(service.type_[0][0], UPDATE_SERVICE_TYPE[0][0]);
+    assertEq(service.type_[1][0], UPDATE_SERVICE_TYPE[1][0]);
+    assertEq(service.type_[2][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], UPDATE_SERVICE_ENDPOINT[0][0]);
+    assertEq(service.serviceEndpoint[1][0], UPDATE_SERVICE_ENDPOINT[1][0]);
+    assertEq(service.serviceEndpoint[2][0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
       userDidInfo.method0,
@@ -272,12 +269,12 @@ contract ServiceStorageTest is SharedTest {
       uint8(0)
     );
     assertEq(service.id, DEFAULT_SERVICE_ID);
-    assertEq(service.type_[0], UPDATE_SERVICE_TYPE[0]);
-    assertEq(service.type_[1], UPDATE_SERVICE_TYPE[1]);
-    assertEq(service.type_[2], bytes32(0));
-    assertEq(service.serviceEndpoint[0], UPDATE_SERVICE_ENDPOINT[0]);
-    assertEq(service.serviceEndpoint[1], UPDATE_SERVICE_ENDPOINT[1]);
-    assertEq(service.serviceEndpoint[2], bytes32(0));
+    assertEq(service.type_[0][0], UPDATE_SERVICE_TYPE[0][0]);
+    assertEq(service.type_[1][0], UPDATE_SERVICE_TYPE[1][0]);
+    assertEq(service.type_[2][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], UPDATE_SERVICE_ENDPOINT[0][0]);
+    assertEq(service.serviceEndpoint[1][0], UPDATE_SERVICE_ENDPOINT[1][0]);
+    assertEq(service.serviceEndpoint[2][0], bytes32(0));
     // Check Events
     // ServiceUpdated(
     //   bytes32 indexed didIdHash,
@@ -316,8 +313,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(1)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     //* 🎬 Act ⬇
     vm.expectRevert("Not a controller for target");
     // Add new service from other user
@@ -352,8 +349,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(1)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
       didUserData.method0,
@@ -364,8 +361,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(0)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // end
     vm.stopPrank();
   }
@@ -392,8 +389,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(1)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     //* 🎬 Act ⬇
     vm.expectRevert("ID cannot be 0");
     // Add new service from other user
@@ -428,8 +425,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(1)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
       userDidInfo.method0,
@@ -440,8 +437,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(0)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // end
     vm.stopPrank();
   }
@@ -466,8 +463,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(1)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     //* 🎬 Act ⬇
     vm.expectRevert("Type cannot be 0");
     // Add new service from other user
@@ -502,8 +499,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(1)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
       userDidInfo.method0,
@@ -514,8 +511,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(0)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // end
     vm.stopPrank();
   }
@@ -540,8 +537,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(1)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     //* 🎬 Act ⬇
     vm.expectRevert("Endpoint cannot be 0");
     // Add new service from other user
@@ -576,8 +573,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(1)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
       userDidInfo.method0,
@@ -588,8 +585,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(0)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // end
     vm.stopPrank();
   }
@@ -660,8 +657,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(1)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
       didData.method0,
@@ -672,8 +669,8 @@ contract ServiceStorageTest is SharedTest {
       uint8(0)
     );
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0], bytes32(0));
-    assertEq(service.serviceEndpoint[0], bytes32(0));
+    assertEq(service.type_[0][0], bytes32(0));
+    assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // Check Events
     // ServiceUpdated(
     //   bytes32 indexed didIdHash,
