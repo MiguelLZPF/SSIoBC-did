@@ -19,7 +19,7 @@ struct W3CVerificationMethod {
   string id;
   string type_;
   string controller;
-  string publicKeyMultibase; // TODO: add support JWK
+  string publicKeyMultibase; // TODO: add support JWK?
   string blockchainAccountId;
   string ethereumAddress;
   uint256 expiration; // In milliseconds

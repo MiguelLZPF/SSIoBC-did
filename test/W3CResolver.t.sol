@@ -7,8 +7,10 @@ import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { W3CResolverScript, DeployCommand } from "@script/W3CResolver.s.sol";
 import { SharedTest, DidInfo, CreateVmResultTest } from "@test/SharedTest.sol";
 import { PerformedAction, Service, ServiceUpdateCommandTest, ServiceUpdateResultTest } from "@test/ServiceStorage.t.sol";
+import { VM_DEFAULT_EXPIRATION } from "@src/VMStorage.sol";
 import { IDidManager, VerificationMethod, Controller, CreateVmCommand as DidCreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 import { IW3CResolver, W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 struct UpdateControllerCommandTest {
   bytes32 method0;
@@ -131,6 +133,41 @@ contract DidManagerTest is SharedTest {
       keccak256(abi.encodePacked(w3cVm.type_)),
       keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_VM_TYPE)))))
     );
+    assertEq(
+      keccak256(abi.encodePacked(w3cVm.controller)),
+      keccak256(
+        abi.encodePacked(
+          string(
+            (
+              _formatDidString(
+                W3CDidInput(
+                  didInfo.method0,
+                  didInfo.method1,
+                  didInfo.method2,
+                  didInfo.id,
+                  bytes32(0)
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+    assertEq(
+      keccak256(abi.encodePacked(w3cVm.publicKeyMultibase)),
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(EMPTY_VM_PUBLIC_KEY)))))
+    );
+    assertEq(
+      keccak256(abi.encodePacked(w3cVm.blockchainAccountId)),
+      keccak256(
+        abi.encodePacked(string(_trimBytes(abi.encodePacked(EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID))))
+      )
+    );
+    assertEq(
+      keccak256(abi.encodePacked(w3cVm.ethereumAddress)),
+      keccak256(abi.encodePacked(Strings.toHexString(user)))
+    );
+    assertEq(w3cVm.expiration, (block.timestamp + VM_DEFAULT_EXPIRATION) * 1000);
     // end
     vm.stopPrank();
   }
