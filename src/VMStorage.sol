@@ -13,10 +13,12 @@ import { HashBasedList } from "@lib/hash-based-list/src/HashBasedList.sol";
 // All                              => 00011111 => 0x1F => 31
 
 bytes32 constant VM_ID = bytes32("vm-0");
+uint256 constant VM_DEFAULT_EXPIRATION = 365 days;
 
 struct VerificationMethod {
   bytes32 id;
   bytes32[2] type_;
+  // "controller" field is automatically set to this DID.id
   bytes32[16] publicKeyMultibase; // The public key associated with the verification method (VM) in multibase format
   bytes32[5] blockchainAccountId; // firstPart:secondPart:thirdPart = 32:32:32x3 // External blockchain account ID
   address ethereumAddress; // An address (account ID) of the blockchain where the VM is stored
@@ -107,7 +109,7 @@ abstract contract VMStorage is HashBasedList {
       command.type_ = [VM_TYPE[0], VM_TYPE[1]]; // "EcdsaSecp256k1VerificationKey20", "19"
     }
     if (command.expiration == 0) {
-      command.expiration = block.timestamp + 365 days;
+      command.expiration = block.timestamp + VM_DEFAULT_EXPIRATION;
     }
     if (command.ethereumAddress != address(0)) {
       // Needed to validate thisBcAddress
@@ -149,7 +151,7 @@ abstract contract VMStorage is HashBasedList {
     //* Params validation
     // Optional
     if (expiration == 0) {
-      expiration = block.timestamp + 365 days;
+      expiration = block.timestamp + VM_DEFAULT_EXPIRATION;
     }
     //* Implementation
     VerificationMethod storage vm = _vm[positionHash];
