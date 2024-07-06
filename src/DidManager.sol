@@ -3,7 +3,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { IDidManager, Controller, CreateVmCommand as DidCreateVmCommand, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "src/interfaces/IDidManager.sol";
 import { VMStorage, VerificationMethod, CreateVmCommand } from "src/VMStorage.sol";
-import { ServiceStorage, Service, SERVICE_MAX_LENGTH } from "src/ServiceStorage.sol";
+import { ServiceStorage, Service, SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "src/ServiceStorage.sol";
 
 // import {ServiceStorage} from "./ServiceStorage.sol";
 
@@ -65,9 +65,9 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
         didHash: idHash,
         id: vmId,
         type_: [bytes32(0), bytes32(0)],
-        publicKey: EMPTY_PUBLIC_KEY,
-        blockchainAccountId: DEFAULT_BLOCKCHAIN_ACCOUNT_ID,
-        thisBcAddress: msg.sender,
+        publicKeyMultibase: EMPTY_PUBLIC_KEY,
+        blockchainAccountId: EMPTY_BLOCKCHAIN_ACCOUNT_ID,
+        ethereumAddress: msg.sender,
         relationships: bytes1(0x01), // 0x01 (Authentication)
         expiration: 1 // Just to avoid one if statement
       })
@@ -97,9 +97,9 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
         didHash: targetIdHash,
         id: command.vmId,
         type_: command.type_,
-        publicKey: command.publicKey,
+        publicKeyMultibase: command.publicKeyMultibase,
         blockchainAccountId: command.blockchainAccountId,
-        thisBcAddress: command.thisBcAddress,
+        ethereumAddress: command.ethereumAddress,
         relationships: command.relationships,
         expiration: command.expiration
       })
@@ -184,8 +184,8 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32 senderVmId,
     bytes32 targetId,
     bytes32 serviceId,
-    bytes32[SERVICE_MAX_LENGTH] memory type_,
-    bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
+    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory type_,
+    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint
   ) external {
     //* Implementation
     (, bytes32 targetIdHash) = _validateSenderAndTarget(

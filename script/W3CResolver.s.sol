@@ -3,7 +3,8 @@ pragma solidity ^0.8.24;
 
 import { Script, console } from "forge-std/Script.sol";
 import { Configuration, Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
-import { DidManager } from "@src/DidManager.sol";
+import { IDidManager } from "@src/interfaces/IDidManager.sol";
+import { W3CResolver } from "@src/W3CResolver.sol";
 
 /**
  * @title DeployCommand
@@ -11,22 +12,27 @@ import { DidManager } from "@src/DidManager.sol";
  */
 struct DeployCommand {
   DeploymentStoreInfo storeInfo; // Deployment store information.
+  IDidManager didManager;
 }
 
-contract DidManagerScript is Script {
-  string private constant CONTRACT_NAME = "DidManager";
-  string private constant CONTRACT_FILE_NAME = "DidManager.sol";
+contract W3CResolverScript is Script {
+  string private constant CONTRACT_NAME = "W3CResolver";
+  string private constant CONTRACT_FILE_NAME = "W3CResolver.sol";
   Configuration config = new Configuration();
 
   function deploy(
+    IDidManager didManager,
     bool store,
     string calldata tag,
     bool broadcast
-  ) external returns (DidManager w3cResolver, Deployment memory deployment) {
+  ) external returns (W3CResolver w3cResolver, Deployment memory deployment) {
     bytes32 tag_ = bytes32(bytes(tag));
     return
       this.deploy(
-        DeployCommand({ storeInfo: DeploymentStoreInfo({ store: store, tag: tag_ }) }),
+        DeployCommand({
+          didManager: didManager,
+          storeInfo: DeploymentStoreInfo({ store: store, tag: tag_ })
+        }),
         broadcast
       );
   }
@@ -34,14 +40,14 @@ contract DidManagerScript is Script {
   function deploy(
     DeployCommand memory command,
     bool broadcast
-  ) external returns (DidManager w3cResolver, Deployment memory deployment) {
+  ) external returns (W3CResolver w3cResolver, Deployment memory deployment) {
     // Only thing that is executed in the blockchain
     if (broadcast) {
       vm.startBroadcast();
-      w3cResolver = new DidManager();
+      w3cResolver = new W3CResolver(command.didManager);
       vm.stopBroadcast();
     } else {
-      w3cResolver = new DidManager();
+      w3cResolver = new W3CResolver(command.didManager);
     }
     // Generate deployment data
     deployment = Deployment({

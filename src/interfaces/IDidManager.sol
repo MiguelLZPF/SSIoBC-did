@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { VerificationMethod } from "@src/VMStorage.sol";
-import { Service, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
+import { Service, SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 
 /**
  * @dev Struct representing a controller of a DID.
@@ -21,9 +21,9 @@ struct CreateVmCommand {
   bytes32 targetId; // The ID of the target.
   bytes32 vmId; // The ID of the verification method.
   bytes32[2] type_; // The type of the VM.
-  bytes32[16] publicKey; // The public key of the VM.
+  bytes32[16] publicKeyMultibase; // The public key of the VM.
   bytes32[5] blockchainAccountId; // The blockchain account ID of the VM.
-  address thisBcAddress; // The address of the blockchain where the VM is created.
+  address ethereumAddress; // The address of the blockchain where the VM is created.
   bytes1 relationships; // The relationships of the VM.
   uint expiration; // The expiration time of the VM.
 }
@@ -267,8 +267,8 @@ interface IDidManager {
     bytes32 senderVmId,
     bytes32 targetId,
     bytes32 serviceId,
-    bytes32[SERVICE_MAX_LENGTH] memory type_,
-    bytes32[SERVICE_MAX_LENGTH] memory serviceEndpoint
+    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory type_,
+    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint
   ) external;
 
   /**
