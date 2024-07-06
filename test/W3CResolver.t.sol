@@ -5,7 +5,7 @@ import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { W3CResolverScript, DeployCommand } from "@script/W3CResolver.s.sol";
-import { SharedTest, DidInfo, CreateVmResultTest } from "@test/SharedTest.sol";
+import { SharedTest, DidInfo, CreateDidResultTest, CreateVmResultTest } from "@test/SharedTest.sol";
 import { PerformedAction, Service, ServiceUpdateCommandTest, ServiceUpdateResultTest } from "@test/ServiceStorage.t.sol";
 import { VM_DEFAULT_EXPIRATION } from "@src/VMStorage.sol";
 import { IDidManager, VerificationMethod, Controller, CreateVmCommand as DidCreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
@@ -105,7 +105,7 @@ contract DidManagerTest is SharedTest {
     );
     assertEq(length, 0);
     // Create DID
-    (DidInfo memory didInfo, , , , , , ) = _createDid(
+    CreateDidResultTest memory result = _createDid(
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -119,7 +119,7 @@ contract DidManagerTest is SharedTest {
         method0: DEFAULT_DID_METHOD0,
         method1: DEFAULT_DID_METHOD1,
         method2: DEFAULT_DID_METHOD2,
-        id: didInfo.id,
+        id: result.didInfo.id,
         fragment: EMPTY_VM_ID
       }),
       DEFAULT_VM_ID
@@ -127,7 +127,11 @@ contract DidManagerTest is SharedTest {
     //* ☑️ Assert ⬇
     assertEq(
       keccak256(abi.encodePacked(w3cVm.id)),
-      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_VM_ID)))))
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(result.VmCreated_id)))))
+    );
+    assertEq(
+      keccak256(abi.encodePacked(w3cVm.id)),
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(result.VmValidated_id)))))
     );
     assertEq(
       keccak256(abi.encodePacked(w3cVm.type_)),
@@ -141,10 +145,10 @@ contract DidManagerTest is SharedTest {
             (
               _formatDidString(
                 W3CDidInput(
-                  didInfo.method0,
-                  didInfo.method1,
-                  didInfo.method2,
-                  didInfo.id,
+                  result.didInfo.method0,
+                  result.didInfo.method1,
+                  result.didInfo.method2,
+                  result.didInfo.id,
                   bytes32(0)
                 )
               )
@@ -204,7 +208,7 @@ contract DidManagerTest is SharedTest {
     );
     assertEq(length, 0);
     // Create DID
-    (DidInfo memory didInfo, , , , , , ) = _createDid(
+    CreateDidResultTest memory result = _createDid(
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -214,12 +218,12 @@ contract DidManagerTest is SharedTest {
     // Add a new Service
     ServiceUpdateResultTest memory updateServiceResult = _updateService(
       ServiceUpdateCommandTest({
-        method0: didInfo.method0,
-        method1: didInfo.method1,
-        method2: didInfo.method2,
-        senderId: didInfo.id,
+        method0: result.didInfo.method0,
+        method1: result.didInfo.method1,
+        method2: result.didInfo.method2,
+        senderId: result.didInfo.id,
         senderVmId: DEFAULT_VM_ID,
-        targetId: didInfo.id,
+        targetId: result.didInfo.id,
         serviceId: DEFAULT_SERVICE_ID,
         type_: DEFAULT_SERVICE_TYPE,
         serviceEndpoint: DEFAULT_SERVICE_ENDPOINT
@@ -232,7 +236,7 @@ contract DidManagerTest is SharedTest {
         method0: DEFAULT_DID_METHOD0,
         method1: DEFAULT_DID_METHOD1,
         method2: DEFAULT_DID_METHOD2,
-        id: didInfo.id,
+        id: result.didInfo.id,
         fragment: EMPTY_VM_ID
       }),
       DEFAULT_SERVICE_ID
@@ -249,6 +253,14 @@ contract DidManagerTest is SharedTest {
           string(_trimBytes(abi.encodePacked(updateServiceResult.ServiceUpdated_id)))
         )
       )
+    );
+    assertEq(
+      keccak256(abi.encodePacked(w3cService.type_[0])),
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_SERVICE_TYPE[0])))))
+    );
+    assertEq(
+      keccak256(abi.encodePacked(w3cService.serviceEndpoint[0])),
+      keccak256(abi.encodePacked(string(_trimBytes(abi.encodePacked(DEFAULT_SERVICE_ENDPOINT[0])))))
     );
     // end
     vm.stopPrank();
@@ -287,7 +299,7 @@ contract DidManagerTest is SharedTest {
     );
     assertEq(length, 0);
     // Create DID
-    (DidInfo memory didInfo, , , , , , ) = _createDid(
+    CreateDidResultTest memory result = _createDid(
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
       EMPTY_DID_METHOD,
@@ -298,12 +310,12 @@ contract DidManagerTest is SharedTest {
     // Add new Verification Method
     /* CreateVmResultTest memory createVmResult = */ _createVm(
       DidCreateVmCommand({
-        method0: didInfo.method0,
-        method1: didInfo.method1,
-        method2: didInfo.method2,
-        senderId: didInfo.id,
+        method0: result.didInfo.method0,
+        method1: result.didInfo.method1,
+        method2: result.didInfo.method2,
+        senderId: result.didInfo.id,
         senderVmId: DEFAULT_VM_ID,
-        targetId: didInfo.id,
+        targetId: result.didInfo.id,
         vmId: VM_ID_CUSTOM,
         type_: DEFAULT_VM_TYPE,
         publicKeyMultibase: DEFAULT_VM_PUBLIC_KEY,
@@ -316,12 +328,12 @@ contract DidManagerTest is SharedTest {
     // Add a new Service
     /* ServiceUpdateResultTest memory createServiceResult0 = */ _updateService(
       ServiceUpdateCommandTest({
-        method0: didInfo.method0,
-        method1: didInfo.method1,
-        method2: didInfo.method2,
-        senderId: didInfo.id,
+        method0: result.didInfo.method0,
+        method1: result.didInfo.method1,
+        method2: result.didInfo.method2,
+        senderId: result.didInfo.id,
         senderVmId: DEFAULT_VM_ID,
-        targetId: didInfo.id,
+        targetId: result.didInfo.id,
         serviceId: DEFAULT_SERVICE_ID,
         type_: DEFAULT_SERVICE_TYPE,
         serviceEndpoint: DEFAULT_SERVICE_ENDPOINT
@@ -329,12 +341,12 @@ contract DidManagerTest is SharedTest {
     );
     /* ServiceUpdateResultTest memory createServiceResult1 = */ _updateService(
       ServiceUpdateCommandTest({
-        method0: didInfo.method0,
-        method1: didInfo.method1,
-        method2: didInfo.method2,
-        senderId: didInfo.id,
+        method0: result.didInfo.method0,
+        method1: result.didInfo.method1,
+        method2: result.didInfo.method2,
+        senderId: result.didInfo.id,
         senderVmId: DEFAULT_VM_ID,
-        targetId: didInfo.id,
+        targetId: result.didInfo.id,
         serviceId: SERVICE_ID_SC,
         type_: SERVICE_TYPE_SC,
         serviceEndpoint: SERVICE_ENDPOINT_SC
@@ -344,10 +356,10 @@ contract DidManagerTest is SharedTest {
     // Check final state
     W3CDidDocument memory didDocument = w3cResolver.resolve(
       W3CDidInput({
-        method0: didInfo.method0,
-        method1: didInfo.method1,
-        method2: didInfo.method2,
-        id: didInfo.id,
+        method0: result.didInfo.method0,
+        method1: result.didInfo.method1,
+        method2: result.didInfo.method2,
+        id: result.didInfo.id,
         fragment: EMPTY_VM_ID
       }),
       false
@@ -359,7 +371,13 @@ contract DidManagerTest is SharedTest {
       keccak256(
         abi.encodePacked(
           _formatDidString(
-            W3CDidInput(didInfo.method0, didInfo.method1, didInfo.method2, didInfo.id, bytes32(0))
+            W3CDidInput(
+              result.didInfo.method0,
+              result.didInfo.method1,
+              result.didInfo.method2,
+              result.didInfo.id,
+              bytes32(0)
+            )
           )
         )
       )

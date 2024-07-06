@@ -8,7 +8,7 @@ import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
 import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfaces/IDidManager.sol";
 import { DidManager } from "@src/DidManager.sol";
 import { VMStorage, VerificationMethod, CreateVmCommand } from "@src/VMStorage.sol";
-import { SharedTest, DidInfo, CreateVmResultTest } from "@test/SharedTest.sol";
+import { SharedTest, DidInfo, CreateVmResultTest, CreateDidResultTest } from "@test/SharedTest.sol";
 
 contract VMStorageTest is SharedTest {
   // * Constants
@@ -23,8 +23,8 @@ contract VMStorageTest is SharedTest {
   address otherUser = payable(address(11));
   // -- contracts
   uint256 lastDidManagerUsed;
-  DidInfo userDidInfo;
-  DidInfo otherUserDidInfo;
+  CreateDidResultTest userResult;
+  CreateDidResultTest otherUserResult;
 
   /**
    * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
@@ -41,17 +41,11 @@ contract VMStorageTest is SharedTest {
     vm.label(address(didManager), "initDidManager");
     // Create a DID for user
     startHoax(user, DEFAULT_USER_BALANCE);
-    (userDidInfo, , , , , , ) = _createDid(
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32("random0"),
-      bytes32(0)
-    );
+    userResult = _createDid(bytes32(0), bytes32(0), bytes32(0), bytes32("random0"), bytes32(0));
     vm.stopPrank();
     // Create a DID for other user
     startHoax(otherUser, DEFAULT_USER_BALANCE);
-    (otherUserDidInfo, , , , , , ) = _createDid(
+    otherUserResult = _createDid(
       bytes32(0),
       bytes32(0),
       bytes32(0),
@@ -65,7 +59,7 @@ contract VMStorageTest is SharedTest {
   // CREATE VERIFICATION METHOD
   function test_should_createVm() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
     uint256 length = didManager.getVmListLength(
@@ -182,7 +176,7 @@ contract VMStorageTest is SharedTest {
 
   function test_should_createVm_WithPublicKey() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
     uint256 length = didManager.getVmListLength(
@@ -299,7 +293,7 @@ contract VMStorageTest is SharedTest {
 
   function test_should_createVm_WithBlockchainAccountId() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
     uint256 length = didManager.getVmListLength(
@@ -416,7 +410,7 @@ contract VMStorageTest is SharedTest {
 
   function test_should_createVm_andChangeExpirationTo0() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
     uint256 length = didManager.getVmListLength(
@@ -533,7 +527,7 @@ contract VMStorageTest is SharedTest {
 
   function test_shouldNot_createVm_withPubKeyBlockchainAccountIdAndThisBcAddressEmpty() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
     uint256 length = didManager.getVmListLength(
@@ -617,7 +611,7 @@ contract VMStorageTest is SharedTest {
   // VALIDATE VERIFICATION METHOD
   function test_should_validateVm() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
@@ -750,7 +744,7 @@ contract VMStorageTest is SharedTest {
 
   function test_should_validateVm_withExpEmpty() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
@@ -883,7 +877,7 @@ contract VMStorageTest is SharedTest {
 
   function test_shouldNot_validateVm_withOtherVmPositionHash() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
@@ -1013,7 +1007,7 @@ contract VMStorageTest is SharedTest {
 
   function test_shouldNot_validateVm_withNoThisBcAddress() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
@@ -1143,7 +1137,7 @@ contract VMStorageTest is SharedTest {
 
   function test_shouldNot_validateVm_withOtherSender() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
@@ -1275,7 +1269,7 @@ contract VMStorageTest is SharedTest {
   // VALIDATE VERIFICATION METHOD
   function test_should_expireVm() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
@@ -1429,7 +1423,7 @@ contract VMStorageTest is SharedTest {
 
   function test_shouldNot_expireVm_alreadyExpired() public {
     //* 🗂️ Arrange ⬇
-    DidInfo memory didData = userDidInfo;
+    DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(

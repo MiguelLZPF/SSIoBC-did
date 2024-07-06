@@ -17,6 +17,16 @@ struct DidInfo {
   address creator;
 }
 
+struct CreateDidResultTest {
+  DidInfo didInfo;
+  bytes32 VmCreated_didIdHash;
+  bytes32 VmCreated_id;
+  bytes32 VmValidated_id;
+  bytes32 DidCreated_id;
+  bytes32 DidCreated_idHash;
+  address DidCreated_creator;
+}
+
 struct CreateVmResultTest {
   bytes32 VmCreated_didIdHash;
   bytes32 VmCreated_id;
@@ -101,18 +111,7 @@ abstract contract SharedTest is Test {
     bytes32 method2,
     bytes32 random,
     bytes32 vmId
-  )
-    internal
-    returns (
-      DidInfo memory didInfo,
-      bytes32 VmCreated_didIdHash,
-      bytes32 VmCreated_id,
-      bytes32 VmValidated_id,
-      bytes32 DidCreated_id,
-      bytes32 DidCreated_idHash,
-      address DidCreated_creator
-    )
-  {
+  ) internal returns (CreateDidResultTest memory result) {
     // Event recording
     vm.recordLogs();
     //* Create DID call
@@ -121,22 +120,22 @@ abstract contract SharedTest is Test {
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Get the event values
     // VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed vmIdHash, bytes32 positionHash);
-    VmCreated_didIdHash = entries[0].topics[1];
-    VmCreated_id = entries[0].topics[2];
+    result.VmCreated_didIdHash = entries[0].topics[1];
+    result.VmCreated_id = entries[0].topics[2];
     // VmValidated(bytes32 indexed id);
-    VmValidated_id = entries[1].topics[1];
+    result.VmValidated_id = entries[1].topics[1];
     // DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
-    DidCreated_id = entries[2].topics[1];
-    DidCreated_idHash = entries[2].topics[2];
-    DidCreated_creator = address(uint160(uint256((entries[2].topics[3]))));
+    result.DidCreated_id = entries[2].topics[1];
+    result.DidCreated_idHash = entries[2].topics[2];
+    result.DidCreated_creator = address(uint160(uint256((entries[2].topics[3]))));
     // Return structured Data
-    didInfo = DidInfo({
+    result.didInfo = DidInfo({
       method0: DEFAULT_DID_METHOD0,
       method1: DEFAULT_DID_METHOD1,
       method2: DEFAULT_DID_METHOD2,
-      id: DidCreated_id,
-      idHash: DidCreated_idHash,
-      creator: DidCreated_creator
+      id: result.DidCreated_id,
+      idHash: result.DidCreated_idHash,
+      creator: result.DidCreated_creator
     });
   }
 
