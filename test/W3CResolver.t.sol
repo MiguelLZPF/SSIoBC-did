@@ -31,7 +31,7 @@ struct UpdateControllerResponseTest {
   bytes32 ControllerUpdated_vmId;
 }
 
-contract DidManagerTest is SharedTest {
+contract W3CResolverTest is SharedTest {
   //* Constants
   // Specific
   string[] private DEFAULT_CONTEXT = ["https://www.w3.org/ns/did/v1"];
