@@ -12,7 +12,7 @@ https://github.com/MiguelLZPF/hardhat-base
   - [2.4. System Architecture](#24-system-architecture)
 - [3. Creating a New DID](#3-creating-a-new-did)
 - [4. Advantages of this Implementation](#4-advantages-of-this-implementation)
-- [5. Getting Started](#5-getting-started)
+- [5. Deploy smart contracts](#5-deploy-smart-contracts)
 - [6. Conclusion](#6-conclusion)
 
 ## 1. Project Overview
@@ -65,21 +65,23 @@ Compared to other DID solutions, this implementation offers several advantages:
 
 For more detailed information about the project structure, contracts, and functionality, please refer to the corresponding source code files in the project repository.
 
-## 5. Getting Started
+## 5. Deploy smart contracts
 
 To get started with the project, follow these steps:
 
-1. Install the required dependencies by running `npm install`.
+1. Configure the project environmental variables in a `.env` file as [`.env.example`](./.env.example).
 
-2. Configure the project settings in [`configuration.ts`](command:_github.copilot.openRelativePath?%5B%22configuration.ts%22%5D "configuration.ts") and [`hardhat.config.ts`](command:_github.copilot.openRelativePath?%5B%22hardhat.config.ts%22%5D "hardhat.config.ts") files.
+2. Compile the contracts using the Foundry framework by running `forge build`.
 
-3. Compile the contracts using the Hardhat framework by running `npx hardhat compile`.
+3. Deploy the contracts to the desired network using the deployment scripts in the [`scripts/`](./script/) directory.
 
-4. Deploy the contracts to the desired network using the deployment scripts in the [`scripts/`](command:_github.copilot.openRelativePath?%5B%22scripts%2F%22%5D "scripts/") directory.
+  ```bash
+    # Example for deploying DidManager contract
+    forge script script/DidManager.s.sol:DidManagerScript --sig "deploy(bool,string,bool)" true "DidManager_Test" true --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
+  ```
+  3.1 If deployed with `store` option set to `true`, the deployment information will be stored in [.last-deployment.json](./.last-deployment.json)
 
-5. Interact with the deployed `DidManager` contract to create and manage DIDs.
-
-For more detailed instructions and additional tasks, please refer to the project's documentation and the [`README.md`](command:_github.copilot.openRelativePath?%5B%22README.md%22%5D "README.md") file.
+4. Interact with the deployed `DidManager` contract to create and manage DIDs.
 
 ## 6. Conclusion
 

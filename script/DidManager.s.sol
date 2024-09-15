@@ -37,10 +37,12 @@ contract DidManagerScript is Script {
   ) external returns (DidManager w3cResolver, Deployment memory deployment) {
     // Only thing that is executed in the blockchain
     if (broadcast) {
+      console.logString("WARN: Broadcasting deployment, make sure to use --broadcast flag");
       vm.startBroadcast();
       w3cResolver = new DidManager();
       vm.stopBroadcast();
     } else {
+      console.logString("WARN: Dry-run deployment. The transaction will NOT be executed.");
       w3cResolver = new DidManager();
     }
     // Generate deployment data
