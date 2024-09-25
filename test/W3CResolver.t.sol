@@ -446,18 +446,19 @@ contract W3CResolverTest is SharedTest {
   }
 
   function _formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
-    bytes memory methods = abi.encodePacked(didInput.method0, ":");
+    // The final bytes buffer to be converted to string
+    bytes memory finalEncode = abi.encodePacked("did:", didInput.method0, ":");
     if (didInput.method1 != bytes32(0)) {
-      methods = abi.encodePacked(methods, didInput.method1, ":");
+      finalEncode = abi.encodePacked(finalEncode, didInput.method1, ":");
     }
     if (didInput.method2 != bytes32(0)) {
-      methods = abi.encodePacked(methods, didInput.method2, ":");
+      finalEncode = abi.encodePacked(finalEncode, didInput.method2, ":");
     }
-
-    return
-      string(
-        _trimBytes(abi.encodePacked(methods, _bytesToHexString(abi.encodePacked(didInput.id))))
-      );
+    finalEncode = abi.encodePacked(finalEncode, _bytesToHexString(abi.encodePacked(didInput.id)));
+    if (didInput.fragment != bytes32(0)) {
+      finalEncode = abi.encodePacked(finalEncode, "#", didInput.fragment);
+    }
+    return string(_trimBytes(finalEncode));
   }
 
   function _trimBytes(bytes memory input) internal pure returns (bytes memory output) {

@@ -329,7 +329,7 @@ contract W3CResolver is IW3CResolver {
 
   function _formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
     // The final bytes buffer to be converted to string
-    bytes memory finalEncode = abi.encodePacked(didInput.method0, ":");
+    bytes memory finalEncode = abi.encodePacked("did:", didInput.method0, ":");
     if (didInput.method1 != bytes32(0)) {
       finalEncode = abi.encodePacked(finalEncode, didInput.method1, ":");
     }
