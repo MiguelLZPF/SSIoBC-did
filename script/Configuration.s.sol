@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {Script, console} from "forge-std/Script.sol";
+import { Script, console } from "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
+import { Helper } from "@script/Helper.sol";
 
 /**
  * @title Deployment
@@ -30,7 +31,7 @@ struct DeploymentStoreInfo {
   bytes32 tag; // Tag associated with the deployment.
 }
 
-contract Configuration is Script {
+contract Configuration is Script, Helper {
   using stdJson for string;
 
   uint256 PORT = vm.envUint("PORT");
@@ -50,33 +51,43 @@ contract Configuration is Script {
   function storeDeployment(Deployment calldata deployment) external {
     // Serialize the deployment
     string memory toBeDeployment = "deployment";
-    vm.serializeBytes32(toBeDeployment, "tag", deployment.tag);
-    vm.serializeBytes32(toBeDeployment, "name", deployment.name);
+    vm.serializeString(toBeDeployment, "tag", string(_trimBytes(abi.encodePacked(deployment.tag))));
+    vm.serializeString(
+      toBeDeployment,
+      "name",
+      string(_trimBytes(abi.encodePacked(deployment.name)))
+    );
     vm.serializeAddress(toBeDeployment, "proxyAddr", deployment.proxyAddr);
     vm.serializeAddress(toBeDeployment, "logicAddr", deployment.logicAddr);
     vm.serializeUint(toBeDeployment, "chainId", deployment.chainId);
-    vm.serializeBytes32(toBeDeployment, "timestamp", bytes32(deployment.timestamp));
+    vm.serializeUint(toBeDeployment, "timestamp", deployment.timestamp);
     string memory serializedDeployment = vm.serializeBytes32(
       toBeDeployment,
       "bytecodeHash",
       deployment.bytecodeHash
     );
-    // // Serialize the deployment by tag
-    // string memory deploymentByTag = "serDeploymentByTag";
-    // string memory serDeploymentByTag = vm.serializeString(
-    //   deploymentByTag,
-    //   vm.toString(deployment.tag),
-    //   serializedDeployment
-    // );
-    // // Serialize the deployment by network
-    // string memory deploymentsByNetwork = "deploymentsByNetwork";
-    // string memory serDeploymentsByNetwork = vm.serializeString(
-    //   deploymentsByNetwork,
-    //   vm.toString(deployment.chainId),
-    //   serDeploymentByTag
-    // );
-    // Write the deployment to the deployments.json file
-    vm.writeJson(serializedDeployment, LAST_DEPLOYMENT_PATH);
+
+    // Read the existing deployments
+    string memory existingDeployments = vm.readFile(LAST_DEPLOYMENT_PATH);
+
+    // Prepare the new deployments list
+    string memory newDeployments;
+
+    if (bytes(existingDeployments).length > 0) {
+      // Trim the surrounding brackets from the existing deployments
+      string memory trimmedExistingDeployments = _trimBrackets(existingDeployments);
+
+      // Insert the new deployment at the beginning and add brackets around the whole array
+      newDeployments = string(
+        abi.encodePacked("[", serializedDeployment, ",", trimmedExistingDeployments, "]")
+      );
+    } else {
+      // If no existing deployments, create a new array with only the new deployment
+      newDeployments = string(abi.encodePacked("[", serializedDeployment, "]"));
+    }
+
+    // Write the updated deployments list to the JSON file
+    vm.writeJson(newDeployments, LAST_DEPLOYMENT_PATH);
   }
 
   /**

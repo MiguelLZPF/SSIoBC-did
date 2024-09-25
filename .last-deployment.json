@@ -1,9 +1,38 @@
-{
-  "bytecodeHash": "0xec8d17abd037d18b766a240ec572b5650aadf439f502c1d38d55f48f23f27bd0",
-  "chainId": 6660,
-  "logicAddr": "0x2B54EcBb7bA4BFB9219215A9605f787764441Fc6",
-  "name": "0x4469644d616e6167657200000000000000000000000000000000000000000000",
-  "proxyAddr": "0x0000000000000000000000000000000000000000",
-  "tag": "0x4469644d616e616765725f546573740000000000000000000000000000000000",
-  "timestamp": "0x0000000000000000000000000000000000000000000000000000000066e6eff1"
-}
+[
+  {
+    "bytecodeHash": "0xec8d17abd037d18b766a240ec572b5650aadf439f502c1d38d55f48f23f27bd0",
+    "chainId": 6660,
+    "logicAddr": "0xd46B65627F3248b3b456fEd499B52bE3B4ffFF93",
+    "name": "DidManager",
+    "proxyAddr": "0x0000000000000000000000000000000000000000",
+    "tag": "DidManager_Test",
+    "timestamp": 1727284209
+  },
+  {
+    "bytecodeHash": "0xec8d17abd037d18b766a240ec572b5650aadf439f502c1d38d55f48f23f27bd0",
+    "chainId": 6660,
+    "logicAddr": "0x8856Ac132fD2108acb7c3F55f804e781bEBA4217",
+    "name": "DidManager",
+    "proxyAddr": "0x0000000000000000000000000000000000000000",
+    "tag": "DidManager_Test",
+    "timestamp": 1727284195
+  },
+  {
+    "bytecodeHash": "0xec8d17abd037d18b766a240ec572b5650aadf439f502c1d38d55f48f23f27bd0",
+    "chainId": 6660,
+    "logicAddr": "0x8f709a16A8d46d2f00EFa41D1d207c569a0B19D7",
+    "name": "DidManager",
+    "proxyAddr": "0x0000000000000000000000000000000000000000",
+    "tag": "DidManager_Test",
+    "timestamp": 1727284189
+  },
+  {
+    "bytecodeHash": "0xec8d17abd037d18b766a240ec572b5650aadf439f502c1d38d55f48f23f27bd0",
+    "chainId": 6660,
+    "logicAddr": "0x15Bbb28D53F53Ffc94Ee8D148255161BA8a26cef",
+    "name": "DidManager",
+    "proxyAddr": "0x0000000000000000000000000000000000000000",
+    "tag": "DidManager_Test",
+    "timestamp": 1727283715
+  }
+]

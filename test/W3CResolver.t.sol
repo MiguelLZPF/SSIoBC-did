@@ -3,6 +3,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
+import { Helper } from "@script/Helper.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { W3CResolverScript, DeployCommand } from "@script/W3CResolver.s.sol";
 import { SharedTest, DidInfo, CreateDidResultTest, CreateVmResultTest } from "@test/SharedTest.sol";
@@ -31,7 +32,7 @@ struct UpdateControllerResponseTest {
   bytes32 ControllerUpdated_vmId;
 }
 
-contract W3CResolverTest is SharedTest {
+contract W3CResolverTest is SharedTest, Helper {
   //* Constants
   // Specific
   string[] private DEFAULT_CONTEXT = ["https://www.w3.org/ns/did/v1"];
@@ -459,37 +460,5 @@ contract W3CResolverTest is SharedTest {
       finalEncode = abi.encodePacked(finalEncode, "#", didInput.fragment);
     }
     return string(_trimBytes(finalEncode));
-  }
-
-  function _trimBytes(bytes memory input) internal pure returns (bytes memory output) {
-    if (input.length == 0 || input[0] == 0x00) {
-      return new bytes(0);
-    }
-    bytes memory withoutZeros = new bytes(input.length);
-    uint256 length = 0;
-    for (uint256 i = 0; i < input.length; i++) {
-      if (input[i] != 0x00) {
-        withoutZeros[length] = input[i];
-        length++;
-      }
-    }
-    output = new bytes(length);
-    for (uint256 i = 0; i < length; i++) {
-      output[i] = withoutZeros[i];
-    }
-    return output;
-  }
-
-  function _bytesToHexString(bytes memory input) public pure returns (string memory hexString) {
-    // Fixed buffer size for hexadecimal convertion
-    bytes memory converted = new bytes(input.length * 2);
-    bytes memory _base = "0123456789abcdef";
-
-    for (uint256 i = 0; i < input.length; i++) {
-      converted[i * 2] = _base[uint8(input[i]) / _base.length];
-      converted[i * 2 + 1] = _base[uint8(input[i]) % _base.length];
-    }
-
-    return string(converted);
   }
 }
