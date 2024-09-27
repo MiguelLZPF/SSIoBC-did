@@ -1,38 +1,20 @@
 [
   {
-    "bytecodeHash": "0xec8d17abd037d18b766a240ec572b5650aadf439f502c1d38d55f48f23f27bd0",
+    "bytecodeHash": "0x6690d8aaf1b87f7564269890214a658bd7917cbf25e48d3d5c3ae3a0f5075ef9",
     "chainId": 6660,
-    "logicAddr": "0xd46B65627F3248b3b456fEd499B52bE3B4ffFF93",
-    "name": "DidManager",
+    "logicAddr": "0xc6d99D099A0FF6339689aa505C5E07a24C7DF360",
+    "name": "W3CResolver",
     "proxyAddr": "0x0000000000000000000000000000000000000000",
     "tag": "DidManager_Test",
-    "timestamp": 1727284209
+    "timestamp": 1727453944
   },
   {
     "bytecodeHash": "0xec8d17abd037d18b766a240ec572b5650aadf439f502c1d38d55f48f23f27bd0",
     "chainId": 6660,
-    "logicAddr": "0x8856Ac132fD2108acb7c3F55f804e781bEBA4217",
+    "logicAddr": "0x771C01bC3883cA4bDB59C8a552d9E14E98b9C68F",
     "name": "DidManager",
     "proxyAddr": "0x0000000000000000000000000000000000000000",
     "tag": "DidManager_Test",
-    "timestamp": 1727284195
-  },
-  {
-    "bytecodeHash": "0xec8d17abd037d18b766a240ec572b5650aadf439f502c1d38d55f48f23f27bd0",
-    "chainId": 6660,
-    "logicAddr": "0x8f709a16A8d46d2f00EFa41D1d207c569a0B19D7",
-    "name": "DidManager",
-    "proxyAddr": "0x0000000000000000000000000000000000000000",
-    "tag": "DidManager_Test",
-    "timestamp": 1727284189
-  },
-  {
-    "bytecodeHash": "0xec8d17abd037d18b766a240ec572b5650aadf439f502c1d38d55f48f23f27bd0",
-    "chainId": 6660,
-    "logicAddr": "0x15Bbb28D53F53Ffc94Ee8D148255161BA8a26cef",
-    "name": "DidManager",
-    "proxyAddr": "0x0000000000000000000000000000000000000000",
-    "tag": "DidManager_Test",
-    "timestamp": 1727283715
+    "timestamp": 1727284213
   }
 ]
