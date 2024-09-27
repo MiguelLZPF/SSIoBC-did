@@ -40,7 +40,7 @@ contract Configuration is Script, Helper {
   uint256 ACCOUNT_NUMBER = vm.envUint("ACCOUNT_NUMBER");
   string MNEMONIC = vm.envString("MNEMONIC");
   string ANVIL_CONFIG_OUT = vm.envString("ANVIL_CONFIG_OUT");
-  string LAST_DEPLOYMENT_PATH = vm.envString("LAST_DEPLOYMENT_PATH");
+  string DEPLOYMENTS_PATH = vm.envString("DEPLOYMENTS_PATH");
 
   constructor() {}
 
@@ -68,7 +68,7 @@ contract Configuration is Script, Helper {
     );
 
     // Read the existing deployments
-    string memory existingDeployments = vm.readFile(LAST_DEPLOYMENT_PATH);
+    string memory existingDeployments = vm.readFile(DEPLOYMENTS_PATH);
 
     // Prepare the new deployments list
     string memory newDeployments;
@@ -87,7 +87,7 @@ contract Configuration is Script, Helper {
     }
 
     // Write the updated deployments list to the JSON file
-    vm.writeJson(newDeployments, LAST_DEPLOYMENT_PATH);
+    vm.writeJson(newDeployments, DEPLOYMENTS_PATH);
   }
 
   /**
@@ -96,7 +96,7 @@ contract Configuration is Script, Helper {
    */
   function retrieveDeployment() external view returns (Deployment memory deployment) {
     // Read the deployments.json file
-    string memory serializedDeployments = vm.readFile(LAST_DEPLOYMENT_PATH);
+    string memory serializedDeployments = vm.readFile(DEPLOYMENTS_PATH);
     // Set the filter
     // string memory filter = string(abi.encodePacked(".", vm.toString(chainId), ".", tag));
     // Search for the encoded deployment
