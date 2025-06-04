@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { IW3CResolver, W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "./interfaces/IW3CResolver.sol";
-import { IDidManager, METHOD0, METHOD1, METHOD2, Controller, CONTROLLERS_MAX_LENGTH } from "./interfaces/IDidManager.sol";
+import { IDidManager, DEFAULT_METHOD0, DEFAULT_METHOD1, DEFAULT_METHOD2, Controller, CONTROLLERS_MAX_LENGTH } from "./interfaces/IDidManager.sol";
 import { VerificationMethod } from "./VMStorage.sol";
 import { Service, SERVICE_MAX_LENGTH } from "./ServiceStorage.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -28,22 +28,15 @@ contract W3CResolver is IW3CResolver {
     );
     // * Get Services
     W3CService[] memory services = new W3CService[](
-      _didManager.getServiceListLength(
-        didInput.method0,
-        didInput.method1,
-        didInput.method2,
-        didInput.id
-      )
+      _didManager.getServiceListLength(didInput.methods, didInput.id)
     );
-    for (uint8 i = 1; i <= services.length; i++) {
-      services[i - 1] = _toW3cService(
+    for (uint8 i = 0; i < services.length; i++) {
+      services[i] = _toW3cService(
         _didManager.getService(
-          didInput.method0,
-          didInput.method1,
-          didInput.method2,
+          didInput.methods,
           didInput.id,
           bytes32(0),
-          i
+          i + 1 // service list starts at 1
         )
       );
     }
@@ -54,15 +47,8 @@ contract W3CResolver is IW3CResolver {
         context: DEFAULT_CONTEXT,
         id: _formatDidString(didInput),
         controller: _toW3cController(
-          _didManager.getControllerList(
-            didInput.method0,
-            didInput.method1,
-            didInput.method2,
-            didInput.id
-          ),
-          didInput.method0,
-          didInput.method1,
-          didInput.method2
+          _didManager.getControllerList(didInput.methods, didInput.id),
+          didInput.methods
         ),
         verificationMethod: vms,
         authentication: methods[0],
@@ -71,13 +57,7 @@ contract W3CResolver is IW3CResolver {
         capabilityDelegation: methods[3],
         capabilityInvocation: methods[4],
         service: services,
-        expiration: _didManager.getExpiration(
-          didInput.method0,
-          didInput.method1,
-          didInput.method2,
-          didInput.id,
-          bytes32(0)
-        ) * 1000
+        expiration: _didManager.getExpiration(didInput.methods, didInput.id, bytes32(0)) * 1000
       });
   }
 
@@ -90,17 +70,7 @@ contract W3CResolver is IW3CResolver {
     _checkDidInput(didInput);
     // * Implementation
     return
-      _toW3cVerificationMethod(
-        _didManager.getVm(
-          didInput.method0,
-          didInput.method1,
-          didInput.method2,
-          didInput.id,
-          vmId,
-          0
-        ),
-        didInput
-      );
+      _toW3cVerificationMethod(_didManager.getVm(didInput.methods, didInput.id, vmId, 0), didInput);
   }
 
   function resolveService(
@@ -111,17 +81,7 @@ contract W3CResolver is IW3CResolver {
     // Required
     _checkDidInput(didInput);
     // * Implementation
-    return
-      _toW3cService(
-        _didManager.getService(
-          didInput.method0,
-          didInput.method1,
-          didInput.method2,
-          didInput.id,
-          serviceId,
-          0
-        )
-      );
+    return _toW3cService(_didManager.getService(didInput.methods, didInput.id, serviceId, 0));
   }
 
   // * Internal functions
@@ -134,12 +94,7 @@ contract W3CResolver is IW3CResolver {
     // Create temporal arrays for each method (5 methods)
     string[][] memory methodsTemp = new string[][](5);
     // Get the max length of the VM list (including expired ones)
-    uint8 maxLength = _didManager.getVmListLength(
-      didInput.method0,
-      didInput.method1,
-      didInput.method2,
-      didInput.id
-    );
+    uint8 maxLength = _didManager.getVmListLength(didInput.methods, didInput.id);
     // Set the max length of the arrays to the max length of the VM list
     for (uint8 i = 0; i < 5; i++) {
       methodsTemp[i] = new string[](maxLength);
@@ -152,9 +107,7 @@ contract W3CResolver is IW3CResolver {
     // Iterate over the VM list (remember that the first position is 1, not 0)
     for (uint8 i = 1; i <= maxLength; i++) {
       VerificationMethod memory vm = _didManager.getVm(
-        didInput.method0,
-        didInput.method1,
-        didInput.method2,
+        didInput.methods,
         didInput.id,
         bytes32(0),
         i
@@ -166,13 +119,7 @@ contract W3CResolver is IW3CResolver {
         realLength[0]++;
         // Add the VM to the corresponding method array
         string memory methodString = _formatDidString(
-          W3CDidInput({
-            method0: didInput.method0,
-            method1: didInput.method1,
-            method2: didInput.method2,
-            id: didInput.id,
-            fragment: vm.id
-          })
+          W3CDidInput({ methods: didInput.methods, id: didInput.id, fragment: vm.id })
         );
         if (vm.relationships & 0x01 == 0x01) {
           methodsTemp[0][realLength[1]] = methodString;
@@ -283,22 +230,14 @@ contract W3CResolver is IW3CResolver {
 
   function _toW3cController(
     Controller[CONTROLLERS_MAX_LENGTH] memory controllers,
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2
+    bytes32 methods
   ) internal pure returns (string[] memory w3cControllers) {
     uint8 realLenght = 0;
     string[] memory temporalControllers = new string[](controllers.length);
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
       if (controllers[i].id != bytes32(0)) {
         temporalControllers[realLenght] = _formatDidString(
-          W3CDidInput({
-            method0: method0,
-            method1: method1,
-            method2: method2,
-            id: controllers[i].id,
-            fragment: controllers[i].vmId
-          })
+          W3CDidInput({ methods: methods, id: controllers[i].id, fragment: controllers[i].vmId })
         );
         realLenght++;
       }
@@ -315,26 +254,30 @@ contract W3CResolver is IW3CResolver {
     // Required
     require(didInput.id != bytes32(0), "DID cant be 0");
     // Optional
-    // -- reverse order to check method0 before is changed
-    if (didInput.method0 == bytes32(0) && didInput.method2 == bytes32(0)) {
-      didInput.method2 = METHOD2;
-    }
-    if (didInput.method0 == bytes32(0) && didInput.method1 == bytes32(0)) {
-      didInput.method1 = METHOD1;
-    }
-    if (didInput.method0 == bytes32(0)) {
-      didInput.method0 = METHOD0;
+    // Get the method identifiers from the provided bytes32 value
+    bytes10 method0 = bytes10(didInput.methods);
+    bytes10 method1 = bytes10(bytes32(uint256(didInput.methods) << 80)); // Shift to get the second 10 bytes
+    bytes10 method2 = bytes10(bytes32(uint256(didInput.methods) << 160)); // Shift to get the third 10 bytes
+    // Default values if not provided
+    if (method0 == bytes10(0)) {
+      method0 = DEFAULT_METHOD0;
+      method1 = DEFAULT_METHOD1;
+      method2 = DEFAULT_METHOD2;
     }
   }
 
   function _formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
+    // Get the method identifiers from the provided bytes32 value
+    bytes10 method0 = bytes10(didInput.methods);
+    bytes10 method1 = bytes10(bytes32(uint256(didInput.methods) << 80)); // Shift to get the second 10 bytes
+    bytes10 method2 = bytes10(bytes32(uint256(didInput.methods) << 160)); // Shift to get the third 10 bytes
     // The final bytes buffer to be converted to string
-    bytes memory finalEncode = abi.encodePacked("did:", didInput.method0, ":");
-    if (didInput.method1 != bytes32(0)) {
-      finalEncode = abi.encodePacked(finalEncode, didInput.method1, ":");
+    bytes memory finalEncode = abi.encodePacked("did:", method0, ":");
+    if (method1 != bytes10(0)) {
+      finalEncode = abi.encodePacked(finalEncode, method1, ":");
     }
-    if (didInput.method2 != bytes32(0)) {
-      finalEncode = abi.encodePacked(finalEncode, didInput.method2, ":");
+    if (method2 != bytes10(0)) {
+      finalEncode = abi.encodePacked(finalEncode, method2, ":");
     }
     finalEncode = abi.encodePacked(finalEncode, _bytesToHexString(abi.encodePacked(didInput.id)));
     if (didInput.fragment != bytes32(0)) {

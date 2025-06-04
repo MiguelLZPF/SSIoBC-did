@@ -103,6 +103,10 @@ abstract contract ServiceStorage is HashBasedList {
     emit ServiceUpdated(didHash, id, idHash, positionHash);
   }
 
+  /**
+   * @dev Removes all services associated with a given DID.
+   * @param didHash The hash of the decentralized identifier (DID).
+   */
   function _removeAllServices(bytes32 didHash) internal {
     bytes32 serviceDidHash = _addServiceNameSpace(didHash);
     for (uint8 i = 1; i <= _getHblLength(serviceDidHash); i++) {

@@ -13,9 +13,7 @@ struct Controller {
 }
 
 struct CreateVmCommand {
-  bytes32 method0; // The first method of the VM.
-  bytes32 method1; // (optional) The second method of the VM.
-  bytes32 method2; // (optional) The third method of the VM.
+  bytes32 methods; // The methods used to create the VM, concatenated each one limited to 10 bytes.
   bytes32 senderId; // The ID of the sender.
   bytes32 senderVmId; // The ID of the sender's VM.
   bytes32 targetId; // The ID of the target.
@@ -28,9 +26,9 @@ struct CreateVmCommand {
   uint expiration; // The expiration time of the VM.
 }
 
-bytes32 constant METHOD0 = bytes32("lzpf");
-bytes32 constant METHOD1 = bytes32("main");
-bytes32 constant METHOD2 = bytes32(0); // not used by default
+bytes32 constant DEFAULT_METHOD0 = bytes10("lzpf");
+bytes32 constant DEFAULT_METHOD1 = bytes10("main");
+bytes32 constant DEFAULT_METHOD2 = bytes10(0); // not used by default
 uint constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
 uint8 constant CONTROLLERS_MAX_LENGTH = 5;
 
@@ -43,9 +41,8 @@ interface IDidManager {
    * @dev Emitted when a new DID is created.
    * @param id The unique identifier of the DID.
    * @param idHash The hash of Method0, Method1, Method2, and ID.
-   * @param creator The address of the account that created the DID.
    */
-  event DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
+  event DidCreated(bytes32 indexed id, bytes32 indexed idHash);
 
   /**
    * @dev Emitted when the controller of a DID is updated.
@@ -63,19 +60,11 @@ interface IDidManager {
 
   /**
    * @dev Creates a new DID.
-   * @param method0 The first method component of the DID.
-   * @param method1 (optional) The second method component of the DID.
-   * @param method2 (optional) The third method component of the DID.
+   * @param methods The methods used to create the DID.
    * @param random A random value used to generate the DID.
    * @param vmId The ID of the Verification Method.
    */
-  function createDid(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 random,
-    bytes32 vmId
-  ) external;
+  function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external;
 
   /**
    * @dev Updates the expiration date for a given ID hash.
@@ -88,18 +77,14 @@ interface IDidManager {
 
   /**
    * @dev Expires a Verification Method (VM).
-   * @param method0 The first method component of the DID.
-   * @param method1 (optional) The second method component of the DID.
-   * @param method2 (optional) The third method component of the DID.
+   * @param methods The methods used to expire the VM.
    * @param senderId The ID of the sender.
    * @param senderVmId The ID of the sender's Verification Method.
    * @param targetId The ID of the target.
    * @param vmId The ID of the Verification Method to expire.
    */
   function expireVm(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 senderId,
     bytes32 senderVmId,
     bytes32 targetId,
@@ -108,34 +93,26 @@ interface IDidManager {
 
   /**
    * @dev Returns the expiration timestamp for a given DID or VM ID.
-   * @param method0 The first method identifier.
-   * @param method1 The second method identifier.
-   * @param method2 The third method identifier.
+   * @param methods The methods used to expire the VM.
    * @param id The ID.
    * @param vmId (optional) The VM ID.
    * @return exp The expiration timestamp.
    */
   function getExpiration(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id,
     bytes32 vmId
   ) external view returns (uint256 exp);
 
   /**
    * @dev Authenticates a DID or VM.
-   * @param method0 The first method identifier.
-   * @param method1 The second method identifier.
-   * @param method2 The third method identifier.
+   * @param methods The methods used for authentication.
    * @param id The ID.
    * @param vmId (optional) The VM ID.
    * @return true if the authentication is successful, false otherwise.
    */
   function authenticate(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id,
     bytes32 vmId,
     address sender
@@ -143,18 +120,14 @@ interface IDidManager {
 
   /**
    * @dev Checks if there is a VM relationship.
-   * @param method0 The first method identifier.
-   * @param method1 The second method identifier.
-   * @param method2 The third method identifier.
+   * @param methods The methods used to check the VM relationship.
    * @param id The ID.
    * @param vmId The VM ID.
    * @param relationship The relationship identifier.
    * @return true if there is a VM relationship, false otherwise.
    */
   function isVmRelationship(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id,
     bytes32 vmId,
     bytes1 relationship,
@@ -163,9 +136,7 @@ interface IDidManager {
 
   /**
    * @dev Updates the controller of the DID manager.
-   * @param method0 The first method component of the DIDs.
-   * @param method1 (optional) The second method component of the DIDs.
-   * @param method2 (optional) The third method component of the DIDs.
+   * @param methods The methods used to update the controller.
    * @param senderId The unique identifier of the sender's DID.
    * @param senderVmId The unique identifier of the sender's VM.
    * @param targetId The unique identifier of the new target's DID to be modified.
@@ -174,9 +145,7 @@ interface IDidManager {
    * @param controllerPosition The position of the new controller's VM. If greater than CONTROLLER_MAX_LENGTH, it will overwrite the last controller.
    */
   function updateController(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 senderId,
     bytes32 senderVmId,
     bytes32 targetId,
@@ -187,16 +156,12 @@ interface IDidManager {
 
   /**
    * @dev Returns the list of controllers for a given DID.
-   * @param method0 The first method identifier.
-   * @param method1 The second method identifier.
-   * @param method2 The third method identifier.
+   * @param methods The methods used to retrieve the controller list.
    * @param id The ID.
    * @return controllerList The list of controllers.
    */
   function getControllerList(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id
   ) external view returns (Controller[CONTROLLERS_MAX_LENGTH] memory controllerList);
 
@@ -215,18 +180,14 @@ interface IDidManager {
 
   /**
    * @dev Returns the Verification Method (VM) for a given DID and VM ID.
-   * @param method0 The first method identifier.
-   * @param method1 The second method identifier.
-   * @param method2 The third method identifier.
+   * @param methods The methods used to retrieve the VM list.
    * @param id The ID.
    * @param vmId The VM ID.
    * @param position The position of the Verification Method in the array.
    * @return vm The Verification Method.
    */
   function getVm(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id,
     bytes32 vmId,
     uint8 position
@@ -234,24 +195,15 @@ interface IDidManager {
 
   /**
    * @dev Returns the length of the Verification Method (VM) list for a given DID.
-   * @param method0 The first method identifier.
-   * @param method1 The second method identifier.
-   * @param method2 The third method identifier.
+   * @param methods The methods used to retrieve the VM list.
    * @param id The ID.
    * @return length The length of the VM list.
    */
-  function getVmListLength(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 id
-  ) external view returns (uint8);
+  function getVmListLength(bytes32 methods, bytes32 id) external view returns (uint8);
 
   /**
    * @dev Updates, creates or removes a service for a given ID.
-   * @param method0 The first method of the service.
-   * @param method1 The second method of the service.
-   * @param method2 The third method of the service.
+   * @param methods The methods used for the service.
    * @param senderId The unique identifier of the sender's DID.
    * @param senderVmId The unique identifier of the sender's VM.
    * @param targetId The unique identifier of the new target's DID to be modified.
@@ -260,9 +212,7 @@ interface IDidManager {
    * @param serviceEndpoint An array of service endpoints.
    */
   function updateService(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 senderId,
     bytes32 senderVmId,
     bytes32 targetId,
@@ -273,18 +223,14 @@ interface IDidManager {
 
   /**
    * @dev Returns the service for a given ID and (sercice position or service ID).
-   * @param method0 The first method identifier.
-   * @param method1 The second method identifier.
-   * @param method2 The third method identifier.
+   * @param methods The methods used for the service.
    * @param id The ID.
    * @param serviceId The service ID.
    * @param position The position of the service.
    * @return service The service.
    */
   function getService(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id,
     bytes32 serviceId,
     uint8 position
@@ -292,16 +238,9 @@ interface IDidManager {
 
   /**
    * @dev Returns the length of the service list for a given ID.
-   * @param method0 The first method identifier.
-   * @param method1 The second method identifier.
-   * @param method2 The third method identifier.
+   * @param methods The methods used for the service.
    * @param id The ID.
    * @return length The length of the service list.
    */
-  function getServiceListLength(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 id
-  ) external view returns (uint8);
+  function getServiceListLength(bytes32 methods, bytes32 id) external view returns (uint8 length);
 }

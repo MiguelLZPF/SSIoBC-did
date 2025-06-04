@@ -32,9 +32,7 @@ struct W3CService {
 }
 
 struct W3CDidInput {
-  bytes32 method0;
-  bytes32 method1;
-  bytes32 method2;
+  bytes32 methods;
   bytes32 id;
   bytes32 fragment; // Optional
 }

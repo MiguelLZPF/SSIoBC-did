@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManager, Controller, CreateVmCommand as DidCreateVmCommand, METHOD0, METHOD1, METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "src/interfaces/IDidManager.sol";
+import { IDidManager, Controller, CreateVmCommand as DidCreateVmCommand, DEFAULT_METHOD0, DEFAULT_METHOD1, DEFAULT_METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "src/interfaces/IDidManager.sol";
 import { VMStorage, VerificationMethod, CreateVmCommand } from "src/VMStorage.sol";
 import { ServiceStorage, Service, SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "src/ServiceStorage.sol";
 
@@ -20,9 +20,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
    * The method identifiers can be optionally provided, and if any of them is not provided (i.e., set to 0),
    * the default method identifier will be used instead.
    *
-   * @param method0 The first method identifier.
-   * @param method1 The second method identifier.
-   * @param method2 The third method identifier.
+   * @param methods A bytes32 value containing three method identifiers concatenated together.
    * @param random A random value used to generate the DID. You can use uuidv4() to generate a random value, for example.
    *
    * Requirements:
@@ -31,32 +29,24 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
    *
    * Emits a `DidCreated` event with the generated DID and the address of the caller.
    */
-  function createDid(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 random,
-    bytes32 vmId
-  ) external {
+  function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external {
     //* Params validation
     // Required
     require(random != bytes32(0), "Random cannot be 0");
     // Optional
-    // reverse order to check method0 before is changed
-    if (method0 == bytes32(0) && method2 == bytes32(0)) {
-      method2 = METHOD2;
-    }
-    if (method0 == bytes32(0) && method1 == bytes32(0)) {
-      method1 = METHOD1;
-    }
-    if (method0 == bytes32(0)) {
-      method0 = METHOD0;
+    // Get the method identifiers from the provided bytes32 value
+    bytes10 method0 = bytes10(methods);
+    bytes10 method1 = bytes10(bytes32(uint256(methods) << 80)); // Shift to get the second 10 bytes
+    bytes10 method2 = bytes10(bytes32(uint256(methods) << 160)); // Shift to get the third 10 bytes
+    // Default values if not provided
+    if (method0 == bytes10(0)) {
+      method0 = DEFAULT_METHOD0;
+      method1 = DEFAULT_METHOD1;
+      method2 = DEFAULT_METHOD2;
     }
     //* Implementation
-    bytes32 id = keccak256(
-      abi.encodePacked(method0, method1, method2, random, msg.sender, block.timestamp)
-    );
-    bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
+    bytes32 id = keccak256(abi.encodePacked(methods, random, tx.origin, block.prevrandao));
+    bytes32 idHash = _calculateIdHash(methods, id);
     require(_isExpired(idHash), "DID in use");
     _removeAllVms(idHash);
     _removeAllServices(idHash);
@@ -67,27 +57,25 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
         type_: [bytes32(0), bytes32(0)],
         publicKeyMultibase: EMPTY_PUBLIC_KEY,
         blockchainAccountId: EMPTY_BLOCKCHAIN_ACCOUNT_ID,
-        ethereumAddress: msg.sender,
+        ethereumAddress: tx.origin,
         relationships: bytes1(0x01), // 0x01 (Authentication)
         expiration: 1 // Just to avoid one if statement
       })
     );
-    _validateVm(positionHash, 0, msg.sender);
+    _validateVm(positionHash, 0, tx.origin);
     updateExpiration({ idHash: idHash, forceExpire: false });
-    emit DidCreated(id, idHash, msg.sender);
+    emit DidCreated(id, idHash);
   }
 
   function createVm(DidCreateVmCommand memory command) external {
     //* Params validation
     // Required
-    require(command.method0 != bytes32(0), "Method0 cant be 0");
+    require(command.methods != bytes32(0), "Method0 cant be 0");
     require(command.senderId != bytes32(0) && command.targetId != bytes32(0), "DIDs cant be 0");
     require(command.relationships > bytes1(0), "Relationships cant be 0");
     //* Implementation
     (, bytes32 targetIdHash) = _validateSenderAndTarget({
-      method0: command.method0,
-      method1: command.method1,
-      method2: command.method2,
+      methods: command.methods,
       senderId: command.senderId,
       senderVmId: command.senderVmId,
       targetId: command.targetId
@@ -112,9 +100,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   }
 
   function expireVm(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 senderId,
     bytes32 senderVmId,
     bytes32 targetId,
@@ -122,25 +108,16 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   ) external {
     //* Params validation
     // Required
-    require(method0 != bytes32(0), "Method0 cant be 0");
+    require(methods != bytes32(0), "Method0 cant be 0");
     require(senderId != bytes32(0) && targetId != bytes32(0), "DIDs cant be 0");
     //* Implementation
-    (, bytes32 targetIdHash) = _validateSenderAndTarget(
-      method0,
-      method1,
-      method2,
-      senderId,
-      senderVmId,
-      targetId
-    );
+    (, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);
     _expireVm(targetIdHash, vmId);
     updateExpiration({ idHash: targetIdHash, forceExpire: false });
   }
 
   function updateController(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 senderId,
     bytes32 senderVmId,
     bytes32 targetId,
@@ -150,16 +127,14 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   ) external {
     //* Params validation
     // Required
-    require(method0 != bytes32(0), "Method0 cant be 0");
+    require(methods != bytes32(0), "Method0 cant be 0");
     require(
       senderId != bytes32(0) && targetId != bytes32(0) && controllerId != bytes32(0),
       "DIDs cant be 0"
     );
     //* Implementation
     (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(
-      method0,
-      method1,
-      method2,
+      methods,
       senderId,
       senderVmId,
       targetId
@@ -177,9 +152,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   }
 
   function updateService(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 senderId,
     bytes32 senderVmId,
     bytes32 targetId,
@@ -188,14 +161,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint
   ) external {
     //* Implementation
-    (, bytes32 targetIdHash) = _validateSenderAndTarget(
-      method0,
-      method1,
-      method2,
-      senderId,
-      senderVmId,
-      targetId
-    );
+    (, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);
     _updateService(targetIdHash, serviceId, type_, serviceEndpoint);
     updateExpiration({ idHash: targetIdHash, forceExpire: false });
   }
@@ -207,13 +173,11 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   //* View functions
 
   function getExpiration(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id,
     bytes32 vmId
   ) external view returns (uint exp) {
-    bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
+    bytes32 idHash = _calculateIdHash(methods, id);
     if (vmId != bytes32(0)) {
       return _getExpirationVm(idHash, vmId);
     } else {
@@ -222,94 +186,72 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   }
 
   function authenticate(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id,
     bytes32 vmId,
     address sender
   ) external view returns (bool) {
-    return isVmRelationship(method0, method1, method2, id, vmId, 0x01, sender);
+    return isVmRelationship(methods, id, vmId, 0x01, sender);
   }
 
   function isVmRelationship(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id,
     bytes32 vmId,
     bytes1 relationship,
     address sender
   ) public view returns (bool) {
-    require(method0 != bytes32(0), "Method0 cant be 0");
+    require(methods != bytes32(0), "Method0 cant be 0");
     require(id != bytes32(0), "ID cant be 0");
     require(sender != address(0), "Sender cant be 0");
-    bytes32 idHash = _calculateIdHash(method0, method1, method2, id);
+    bytes32 idHash = _calculateIdHash(methods, id);
     return _isVmRelationship(idHash, vmId, relationship, sender);
   }
 
   function getControllerList(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id
   ) external view returns (Controller[CONTROLLERS_MAX_LENGTH] memory controllers) {
-    return _controllers[_calculateIdHash(method0, method1, method2, id)];
+    return _controllers[_calculateIdHash(methods, id)];
   }
 
   function getVm(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id,
     bytes32 vmId,
     uint8 position
   ) external view returns (VerificationMethod memory vm) {
-    return _getVm(_calculateIdHash(method0, method1, method2, id), vmId, position);
+    return _getVm(_calculateIdHash(methods, id), vmId, position);
   }
 
-  function getVmListLength(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 id
-  ) external view returns (uint8) {
-    return _getVmListLength(_calculateIdHash(method0, method1, method2, id));
+  function getVmListLength(bytes32 methods, bytes32 id) external view returns (uint8) {
+    return _getVmListLength(_calculateIdHash(methods, id));
   }
 
   function getService(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 id,
     bytes32 serviceId,
     uint8 position
   ) external view returns (Service memory service) {
-    return _getService(_calculateIdHash(method0, method1, method2, id), serviceId, position);
+    return _getService(_calculateIdHash(methods, id), serviceId, position);
   }
 
-  function getServiceListLength(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 id
-  ) external view returns (uint8 length) {
-    return _getServiceListLength(_calculateIdHash(method0, method1, method2, id));
+  function getServiceListLength(bytes32 methods, bytes32 id) external view returns (uint8 length) {
+    return _getServiceListLength(_calculateIdHash(methods, id));
   }
 
   //* Internal functions
 
   function _validateSenderAndTarget(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 senderId,
     bytes32 senderVmId,
     bytes32 targetId
   ) internal view returns (bytes32 senderIdHash, bytes32 targetIdHash) {
     // Calculate the hash of the sender and target DIDs
-    senderIdHash = _calculateIdHash(method0, method1, method2, senderId);
-    targetIdHash = _calculateIdHash(method0, method1, method2, targetId);
+    senderIdHash = _calculateIdHash(methods, senderId);
+    targetIdHash = _calculateIdHash(methods, targetId);
     // Check if the DIDs are expired
     require(!_isExpired(senderIdHash), "Sender DID expired");
     require(!_isExpired(targetIdHash), "Target DID expired");
@@ -357,23 +299,6 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     // If the controllers array is not empty and the sender is not a controller, return false
     // (controllers used but sender not in controllers)
     return false;
-  }
-
-  /**
-   * @dev Calculates the hash of an ID using the specified methods.
-   * @param method0 The first method to include in the hash.
-   * @param method1 The second method to include in the hash.
-   * @param method2 The third method to include in the hash.
-   * @param id The ID to include in the hash.
-   * @return idHash The hash of the ID.
-   */
-  function _calculateIdHash(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 id
-  ) internal pure returns (bytes32 idHash) {
-    return keccak256(abi.encodePacked(method0, method1, method2, id));
   }
 
   /**
