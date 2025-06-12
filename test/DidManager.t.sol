@@ -9,9 +9,7 @@ import { SharedTest, DidInfo, CreateDidResultTest } from "@test/SharedTest.sol";
 import { IDidManager, VerificationMethod, Controller, CreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 
 struct UpdateControllerCommandTest {
-  bytes32 method0;
-  bytes32 method1;
-  bytes32 method2;
+  bytes32 methods;
   bytes32 senderId;
   bytes32 senderVmId;
   bytes32 targetId;
@@ -30,13 +28,8 @@ struct UpdateControllerResponseTest {
 contract DidManagerTest is SharedTest {
   //* Constants
   // Specific
-  bytes32 private constant RANDOM_CREATE_DEFAULT = bytes32("This is a random value");
-  bytes32 private constant RANDOM_CREATE_CUSTOM = bytes32("This is another random value");
   bytes32 private constant RANDOM_AUTHENTICATE = bytes32("Random value authenticate");
   bytes32 private constant RANDOM_RELATIONSHIP = bytes32("Random value relationship");
-  bytes32 private constant DID_METHOD_0_CUSTOM = bytes32("method0_custom");
-  bytes32 private constant DID_METHOD_1_CUSTOM = bytes32("method1_custom");
-  bytes32 private constant DID_METHOD_2_CUSTOM = bytes32("method2_custom");
   bytes32 private constant VM_ID_CUSTOM = bytes32("vm_custom");
   bytes32 private constant VM_ID_CUSTOM_2 = bytes32("vm_custom_2");
   // Variables
@@ -70,73 +63,43 @@ contract DidManagerTest is SharedTest {
     // Check initial state
     // ! Not possible | really difficult in real newtorks
     bytes32 id = keccak256(
-      abi.encodePacked(
-        DEFAULT_DID_METHOD0,
-        DEFAULT_DID_METHOD1,
-        DEFAULT_DID_METHOD2,
-        RANDOM_CREATE_DEFAULT,
-        user,
-        block.timestamp
-      )
+      abi.encodePacked(DEFAULT_DID_METHODS, DEFAULT_RANDOM_0, tx.origin, block.prevrandao)
     );
     uint256 exp = didManager.getExpiration(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
+      DEFAULT_DID_METHODS,
       id,
       EMPTY_VM_ID // <-- To get the expiration of the DID
     );
     assertEq(exp, EMPTY_EXPIRATION);
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, id);
     assertEq(length, 0);
     //* 🎬 Act ⬇
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     //* ☑️ Assert ⬇
     // Check final state
     exp = didManager.getExpiration(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
+      DEFAULT_DID_METHODS,
       id,
       EMPTY_VM_ID // <-- To get the expiration of the DID
     );
     assertEq(exp, block.timestamp + EXPIRATION);
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, id);
     assertEq(length, 1);
     // Check Events
     // VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed vmIdHash, bytes32 positionHash);
-    assertEq(
-      result.VmCreated_didIdHash,
-      _calculateDidHash(DEFAULT_DID_METHOD0, DEFAULT_DID_METHOD1, DEFAULT_DID_METHOD2, id)
-    );
+    assertEq(result.VmCreated_didIdHash, _calculateDidHash(DEFAULT_DID_METHODS, id));
     assertEq(result.VmCreated_id, DEFAULT_VM_ID);
     // VmValidated(bytes32 indexed id);
     assertEq(result.VmValidated_id, DEFAULT_VM_ID);
     assertEq(result.VmCreated_id, result.VmValidated_id);
-    // DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
+    // DidCreated(bytes32 indexed id, bytes32 indexed idHash);
     assertEq(result.DidCreated_id, id);
-    assertEq(
-      result.DidCreated_idHash,
-      _calculateDidHash(DEFAULT_DID_METHOD0, DEFAULT_DID_METHOD1, DEFAULT_DID_METHOD2, id)
-    );
-    assertEq(result.DidCreated_creator, user);
+    assertEq(result.DidCreated_idHash, _calculateDidHash(DEFAULT_DID_METHODS, id));
     assertEq(result.DidCreated_idHash, result.VmCreated_didIdHash);
     // end
     vm.stopPrank();
@@ -148,73 +111,43 @@ contract DidManagerTest is SharedTest {
     // Check initial state
     // ! Not possible | really difficult in real newtorks
     bytes32 id = keccak256(
-      abi.encodePacked(
-        DID_METHOD_0_CUSTOM,
-        DID_METHOD_1_CUSTOM,
-        DID_METHOD_2_CUSTOM,
-        RANDOM_CREATE_CUSTOM,
-        user,
-        block.timestamp
-      )
+      abi.encodePacked(DID_METHODS_CUSTOM, DEFAULT_RANDOM_0, tx.origin, block.prevrandao)
     );
     uint256 exp = didManager.getExpiration(
-      DID_METHOD_0_CUSTOM,
-      DID_METHOD_1_CUSTOM,
-      DID_METHOD_2_CUSTOM,
+      DID_METHODS_CUSTOM,
       id,
       EMPTY_VM_ID // <-- To get the expiration of the DID
     );
     assertEq(exp, EMPTY_EXPIRATION);
-    uint256 length = didManager.getVmListLength(
-      DID_METHOD_0_CUSTOM,
-      DID_METHOD_1_CUSTOM,
-      DID_METHOD_2_CUSTOM,
-      id
-    );
+    uint256 length = didManager.getVmListLength(DID_METHODS_CUSTOM, id);
     assertEq(length, 0);
     //* 🎬 Act ⬇
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      DID_METHOD_0_CUSTOM,
-      DID_METHOD_1_CUSTOM,
-      DID_METHOD_2_CUSTOM,
-      RANDOM_CREATE_CUSTOM,
+      DID_METHODS_CUSTOM,
+      DEFAULT_RANDOM_0,
       VM_ID_CUSTOM
     );
     //* ☑️ Assert ⬇
     // Check final state
     exp = didManager.getExpiration(
-      DID_METHOD_0_CUSTOM,
-      DID_METHOD_1_CUSTOM,
-      DID_METHOD_2_CUSTOM,
+      DID_METHODS_CUSTOM,
       id,
       EMPTY_VM_ID // <-- To get the expiration of the DID
     );
     assertEq(exp, block.timestamp + EXPIRATION);
-    length = didManager.getVmListLength(
-      DID_METHOD_0_CUSTOM,
-      DID_METHOD_1_CUSTOM,
-      DID_METHOD_2_CUSTOM,
-      id
-    );
+    length = didManager.getVmListLength(DID_METHODS_CUSTOM, id);
     assertEq(length, 1);
     // Check Events
     // VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed vmIdHash, bytes32 positionHash);
-    assertEq(
-      result.VmCreated_didIdHash,
-      _calculateDidHash(DID_METHOD_0_CUSTOM, DID_METHOD_1_CUSTOM, DID_METHOD_2_CUSTOM, id)
-    );
+    assertEq(result.VmCreated_didIdHash, _calculateDidHash(DID_METHODS_CUSTOM, id));
     assertEq(result.VmCreated_id, VM_ID_CUSTOM);
     // VmValidated(bytes32 indexed id);
     assertEq(result.VmValidated_id, VM_ID_CUSTOM);
     assertEq(result.VmCreated_id, result.VmValidated_id);
     // DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
     assertEq(result.DidCreated_id, id);
-    assertEq(
-      result.DidCreated_idHash,
-      _calculateDidHash(DID_METHOD_0_CUSTOM, DID_METHOD_1_CUSTOM, DID_METHOD_2_CUSTOM, id)
-    );
-    assertEq(result.DidCreated_creator, user);
+    assertEq(result.DidCreated_idHash, _calculateDidHash(DID_METHODS_CUSTOM, id));
     assertEq(result.DidCreated_idHash, result.VmCreated_didIdHash);
     // end
     vm.stopPrank();
@@ -227,9 +160,7 @@ contract DidManagerTest is SharedTest {
     // Create DID
     vm.expectRevert("Random cannot be 0");
     didManager.createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
+      EMPTY_DID_METHODS,
       EMPTY_RANDOM, //! <-- Random value is empty
       EMPTY_VM_ID
     );
@@ -244,46 +175,26 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     // Check initial state
     uint256 exp = didManager.getExpiration(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
+      result.didInfo.methods,
       result.didInfo.id,
       EMPTY_VM_ID // <-- To get the expiration of the DID
     );
     assertEq(exp, block.timestamp + EXPIRATION);
-    uint256 length = didManager.getVmListLength(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    uint256 length = didManager.getVmListLength(result.didInfo.methods, result.didInfo.id);
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create DID
     vm.expectRevert("DID in use");
-    didManager.createDid( // ! Same DID because params and block timestamp are the same
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
-      EMPTY_VM_ID
-    );
+    didManager.createDid(EMPTY_DID_METHODS, DEFAULT_RANDOM_0, EMPTY_VM_ID); // ! Same DID because params and block timestamp are the same
     //* ☑️ Assert ⬇
     // Check final state
-    length = didManager.getVmListLength(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    length = didManager.getVmListLength(result.didInfo.methods, result.didInfo.id);
     assertEq(length, 1);
     // end
     vm.stopPrank();
@@ -298,27 +209,18 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     // Check initial state
-    uint256 length = didManager.getVmListLength(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    uint256 length = didManager.getVmListLength(result.didInfo.methods, result.didInfo.id);
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
     vm.expectRevert("Method0 cant be 0");
     CreateVmCommand memory command = CreateVmCommand({
-      method0: EMPTY_DID_METHOD, // ! <-- Method0 is empty
-      method1: EMPTY_DID_METHOD,
-      method2: EMPTY_DID_METHOD,
+      methods: EMPTY_DID_METHODS, // ! <-- Method0 is empty
       senderId: result.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: result.didInfo.id,
@@ -333,12 +235,7 @@ contract DidManagerTest is SharedTest {
     didManager.createVm(command);
     //* ☑️ Assert ⬇
     // Check final state
-    length = didManager.getVmListLength(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    length = didManager.getVmListLength(result.didInfo.methods, result.didInfo.id);
     assertEq(length, 1);
     // end
     vm.stopPrank();
@@ -349,27 +246,18 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     // Check initial state
-    uint256 length = didManager.getVmListLength(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    uint256 length = didManager.getVmListLength(result.didInfo.methods, result.didInfo.id);
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
     vm.expectRevert("DIDs cant be 0");
     CreateVmCommand memory command = CreateVmCommand({
-      method0: result.didInfo.method0,
-      method1: result.didInfo.method1,
-      method2: result.didInfo.method2,
+      methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: EMPTY_DID_ID, // ! <-- Sender ID is empty
       senderVmId: DEFAULT_VM_ID,
       targetId: result.didInfo.id,
@@ -384,12 +272,7 @@ contract DidManagerTest is SharedTest {
     didManager.createVm(command);
     //* ☑️ Assert ⬇
     // Check final state
-    length = didManager.getVmListLength(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    length = didManager.getVmListLength(result.didInfo.methods, result.didInfo.id);
     assertEq(length, 1);
     // end
     vm.stopPrank();
@@ -400,27 +283,18 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     // Check initial state
-    uint256 length = didManager.getVmListLength(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    uint256 length = didManager.getVmListLength(result.didInfo.methods, result.didInfo.id);
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
     vm.expectRevert("DIDs cant be 0");
     CreateVmCommand memory command = CreateVmCommand({
-      method0: result.didInfo.method0,
-      method1: result.didInfo.method1,
-      method2: result.didInfo.method2,
+      methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: result.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: EMPTY_DID_ID, // ! <-- Target ID is empty
@@ -435,12 +309,7 @@ contract DidManagerTest is SharedTest {
     didManager.createVm(command);
     //* ☑️ Assert ⬇
     // Check final state
-    length = didManager.getVmListLength(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    length = didManager.getVmListLength(result.didInfo.methods, result.didInfo.id);
     assertEq(length, 1);
     // end
     vm.stopPrank();
@@ -451,27 +320,18 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     // Check initial state
-    uint256 length = didManager.getVmListLength(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    uint256 length = didManager.getVmListLength(result.didInfo.methods, result.didInfo.id);
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
     vm.expectRevert("Relationships cant be 0");
     CreateVmCommand memory command = CreateVmCommand({
-      method0: result.didInfo.method0,
-      method1: result.didInfo.method1,
-      method2: result.didInfo.method2,
+      methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: result.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: result.didInfo.id,
@@ -486,12 +346,7 @@ contract DidManagerTest is SharedTest {
     didManager.createVm(command);
     //* ☑️ Assert ⬇
     // Check final state
-    length = didManager.getVmListLength(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    length = didManager.getVmListLength(result.didInfo.methods, result.didInfo.id);
     assertEq(length, 1);
     // end
     vm.stopPrank();
@@ -504,17 +359,13 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     // Check initial state
     uint256 exp = didManager.getExpiration(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
+      result.didInfo.methods,
       result.didInfo.id,
       DEFAULT_VM_ID
     );
@@ -523,9 +374,7 @@ contract DidManagerTest is SharedTest {
     // Expire VM
     vm.expectRevert("Method0 cant be 0");
     didManager.expireVm(
-      EMPTY_DID_METHOD, // ! <-- Method0 is empty
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
+      EMPTY_DID_METHODS, // ! <-- Updated to use methods
       result.didInfo.id,
       VM_ID_CUSTOM,
       result.didInfo.id,
@@ -533,9 +382,7 @@ contract DidManagerTest is SharedTest {
     );
     vm.expectRevert("DIDs cant be 0");
     didManager.expireVm({
-      method0: result.didInfo.method0,
-      method1: result.didInfo.method1,
-      method2: result.didInfo.method2,
+      methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: EMPTY_DID_ID, // ! <-- Sender ID is empty
       senderVmId: VM_ID_CUSTOM,
       targetId: result.didInfo.id,
@@ -543,9 +390,7 @@ contract DidManagerTest is SharedTest {
     });
     vm.expectRevert("DIDs cant be 0");
     didManager.expireVm({
-      method0: result.didInfo.method0,
-      method1: result.didInfo.method1,
-      method2: result.didInfo.method2,
+      methods: result.didInfo.methods,
       senderId: result.didInfo.id,
       senderVmId: VM_ID_CUSTOM,
       targetId: EMPTY_DID_ID, // ! <-- Target ID is empty
@@ -553,13 +398,7 @@ contract DidManagerTest is SharedTest {
     });
     //* ☑️ Assert ⬇
     // Check final state
-    exp = didManager.getExpiration(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id,
-      DEFAULT_VM_ID
-    );
+    exp = didManager.getExpiration(result.didInfo.methods, result.didInfo.id, DEFAULT_VM_ID);
     assertEq(exp, block.timestamp + 365 days);
     // end
     vm.stopPrank();
@@ -570,17 +409,13 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     // Check initial state
     Controller[CONTROLLERS_MAX_LENGTH] memory controllers = didManager.getControllerList(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
+      result.didInfo.methods, // ! <-- Updated to use methods
       result.didInfo.id
     );
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
@@ -590,9 +425,7 @@ contract DidManagerTest is SharedTest {
     //* 🎬 Act ⬇
     // Update controller
     UpdateControllerCommandTest memory command = UpdateControllerCommandTest({
-      method0: result.didInfo.method0,
-      method1: result.didInfo.method1,
-      method2: result.didInfo.method2,
+      methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: result.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: result.didInfo.id,
@@ -603,12 +436,7 @@ contract DidManagerTest is SharedTest {
     UpdateControllerResponseTest memory res = _updateController(command);
     //* ☑️ Assert ⬇
     // Check final state
-    controllers = didManager.getControllerList(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    controllers = didManager.getControllerList(result.didInfo.methods, result.didInfo.id);
     assertEq(controllers[0].id, result.didInfo.id);
     assertEq(controllers[0].vmId, DEFAULT_VM_ID);
     for (uint8 i = 1; i < CONTROLLERS_MAX_LENGTH; i++) {
@@ -619,21 +447,11 @@ contract DidManagerTest is SharedTest {
     // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, uint8 controllerPosition, bytes32 method0, bytes32 method1, bytes32 method2, bytes32 id, bytes32 vmId)
     assertEq(
       res.ControllerUpdated_senderDidHash,
-      _calculateDidHash(
-        result.didInfo.method0,
-        result.didInfo.method1,
-        result.didInfo.method2,
-        result.didInfo.id
-      )
+      _calculateDidHash(result.didInfo.methods, result.didInfo.id)
     );
     assertEq(
       res.ControllerUpdated_targetDidHash,
-      _calculateDidHash(
-        result.didInfo.method0,
-        result.didInfo.method1,
-        result.didInfo.method2,
-        result.didInfo.id
-      )
+      _calculateDidHash(result.didInfo.methods, result.didInfo.id)
     );
     assertEq(res.ControllerUpdated_senderDidHash, result.didInfo.idHash);
     assertEq(res.ControllerUpdated_targetDidHash, result.didInfo.idHash);
@@ -645,26 +463,20 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory userResult = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory otherResult = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_1,
       EMPTY_VM_ID
     );
     startHoax(user, DEFAULT_USER_BALANCE);
     // Update controller with other user VM
     UpdateControllerCommandTest memory command = UpdateControllerCommandTest({
-      method0: userResult.didInfo.method0,
-      method1: userResult.didInfo.method1,
-      method2: userResult.didInfo.method2,
+      methods: userResult.didInfo.methods,
       senderId: userResult.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: userResult.didInfo.id,
@@ -675,9 +487,7 @@ contract DidManagerTest is SharedTest {
     _updateController(command);
     // Check initial state
     Controller[CONTROLLERS_MAX_LENGTH] memory controllers = didManager.getControllerList(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id
     );
     assertEq(controllers[0].id, otherResult.didInfo.id);
@@ -690,9 +500,7 @@ contract DidManagerTest is SharedTest {
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     // Update controller from other user VM
     command = UpdateControllerCommandTest({
-      method0: userResult.didInfo.method0,
-      method1: userResult.didInfo.method1,
-      method2: userResult.didInfo.method2,
+      methods: userResult.didInfo.methods,
       senderId: otherResult.didInfo.id, // <-- other user
       senderVmId: DEFAULT_VM_ID,
       targetId: userResult.didInfo.id, // <-- is changing the controller of the user
@@ -703,12 +511,7 @@ contract DidManagerTest is SharedTest {
     _updateController(command);
     //* ☑️ Assert ⬇
     // Check final state
-    controllers = didManager.getControllerList(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
-      userResult.didInfo.id
-    );
+    controllers = didManager.getControllerList(userResult.didInfo.methods, userResult.didInfo.id);
     assertEq(controllers[0].id, otherResult.didInfo.id);
     assertEq(controllers[0].vmId, DEFAULT_VM_ID);
     assertEq(controllers[1].id, userResult.didInfo.id);
@@ -723,17 +526,13 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     // Check initial state
     Controller[CONTROLLERS_MAX_LENGTH] memory controllers = didManager.getControllerList(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
+      result.didInfo.methods,
       result.didInfo.id
     );
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
@@ -743,9 +542,7 @@ contract DidManagerTest is SharedTest {
     //* 🎬 Act ⬇
     // Update controller
     UpdateControllerCommandTest memory command = UpdateControllerCommandTest({
-      method0: result.didInfo.method0,
-      method1: result.didInfo.method1,
-      method2: result.didInfo.method2,
+      methods: result.didInfo.methods,
       senderId: result.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: result.didInfo.id,
@@ -756,12 +553,7 @@ contract DidManagerTest is SharedTest {
     UpdateControllerResponseTest memory res = _updateController(command);
     //* ☑️ Assert ⬇
     // Check final state
-    controllers = didManager.getControllerList(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    controllers = didManager.getControllerList(result.didInfo.methods, result.didInfo.id);
     assertEq(controllers[CONTROLLERS_MAX_LENGTH - 1].id, result.didInfo.id);
     assertEq(controllers[CONTROLLERS_MAX_LENGTH - 1].vmId, DEFAULT_VM_ID);
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH - 1; i++) {
@@ -772,21 +564,11 @@ contract DidManagerTest is SharedTest {
     // ControllerUpdated(bytes32 indexed fromDidHash, bytes32 indexed toDidHash, uint8 controllerPosition, bytes32 method0, bytes32 method1, bytes32 method2, bytes32 id, bytes32 vmId)
     assertEq(
       res.ControllerUpdated_senderDidHash,
-      _calculateDidHash(
-        result.didInfo.method0,
-        result.didInfo.method1,
-        result.didInfo.method2,
-        result.didInfo.id
-      )
+      _calculateDidHash(result.didInfo.methods, result.didInfo.id)
     );
     assertEq(
       res.ControllerUpdated_targetDidHash,
-      _calculateDidHash(
-        result.didInfo.method0,
-        result.didInfo.method1,
-        result.didInfo.method2,
-        result.didInfo.id
-      )
+      _calculateDidHash(result.didInfo.methods, result.didInfo.id)
     );
     assertEq(res.ControllerUpdated_senderDidHash, result.didInfo.idHash);
     assertEq(res.ControllerUpdated_targetDidHash, result.didInfo.idHash);
@@ -798,17 +580,13 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     // Check initial state
     Controller[CONTROLLERS_MAX_LENGTH] memory controllers = didManager.getControllerList(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
+      result.didInfo.methods,
       result.didInfo.id
     );
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
@@ -819,9 +597,7 @@ contract DidManagerTest is SharedTest {
     // Update controller
     vm.expectRevert("Method0 cant be 0");
     didManager.updateController({
-      method0: EMPTY_DID_METHOD, // ! <-- Method0 is empty
-      method1: result.didInfo.method1,
-      method2: result.didInfo.method2,
+      methods: EMPTY_DID_METHODS, // ! <-- Method0 is empty
       senderId: result.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: result.didInfo.id,
@@ -831,9 +607,7 @@ contract DidManagerTest is SharedTest {
     });
     vm.expectRevert("DIDs cant be 0");
     didManager.updateController({
-      method0: result.didInfo.method0,
-      method1: result.didInfo.method1,
-      method2: result.didInfo.method2,
+      methods: result.didInfo.methods,
       senderId: EMPTY_DID_ID, // ! <-- Sender ID is empty
       senderVmId: DEFAULT_VM_ID,
       targetId: result.didInfo.id,
@@ -843,9 +617,7 @@ contract DidManagerTest is SharedTest {
     });
     vm.expectRevert("DIDs cant be 0");
     didManager.updateController({
-      method0: result.didInfo.method0,
-      method1: result.didInfo.method1,
-      method2: result.didInfo.method2,
+      methods: result.didInfo.methods,
       senderId: result.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: EMPTY_DID_ID, // ! <-- Target ID is empty
@@ -855,9 +627,7 @@ contract DidManagerTest is SharedTest {
     });
     vm.expectRevert("DIDs cant be 0");
     didManager.updateController({
-      method0: result.didInfo.method0,
-      method1: result.didInfo.method1,
-      method2: result.didInfo.method2,
+      methods: result.didInfo.methods,
       senderId: result.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: result.didInfo.id,
@@ -867,12 +637,7 @@ contract DidManagerTest is SharedTest {
     });
     //* ☑️ Assert ⬇
     // Check final state
-    controllers = didManager.getControllerList(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
-      result.didInfo.id
-    );
+    controllers = didManager.getControllerList(result.didInfo.methods, result.didInfo.id);
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
       assertEq(controllers[i].id, EMPTY_DID_ID);
       assertEq(controllers[i].vmId, EMPTY_VM_ID);
@@ -886,26 +651,20 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory userResult = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory otherResult = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_1,
       EMPTY_VM_ID
     );
     startHoax(user, DEFAULT_USER_BALANCE);
     // Update controller with other user VM
     UpdateControllerCommandTest memory command = UpdateControllerCommandTest({
-      method0: userResult.didInfo.method0,
-      method1: userResult.didInfo.method1,
-      method2: userResult.didInfo.method2,
+      methods: userResult.didInfo.methods,
       senderId: userResult.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: userResult.didInfo.id,
@@ -916,9 +675,7 @@ contract DidManagerTest is SharedTest {
     _updateController(command);
     // Check initial state
     Controller[CONTROLLERS_MAX_LENGTH] memory controllers = didManager.getControllerList(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id
     );
     assertEq(controllers[0].id, otherResult.didInfo.id);
@@ -933,9 +690,7 @@ contract DidManagerTest is SharedTest {
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     vm.expectRevert("Sender DID expired");
     didManager.updateController({
-      method0: userResult.didInfo.method0,
-      method1: userResult.didInfo.method1,
-      method2: userResult.didInfo.method2,
+      methods: userResult.didInfo.methods,
       senderId: otherResult.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: userResult.didInfo.id,
@@ -945,12 +700,7 @@ contract DidManagerTest is SharedTest {
     });
     //* ☑️ Assert ⬇
     // Check final state
-    controllers = didManager.getControllerList(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
-      userResult.didInfo.id
-    );
+    controllers = didManager.getControllerList(userResult.didInfo.methods, userResult.didInfo.id);
     assertEq(controllers[0].id, otherResult.didInfo.id);
     assertEq(controllers[0].vmId, DEFAULT_VM_ID);
     for (uint8 i = 1; i < CONTROLLERS_MAX_LENGTH; i++) {
@@ -963,26 +713,24 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory userResult = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
+    vm.stopPrank();
+
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory otherResult = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_1,
       EMPTY_VM_ID
     );
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.stopPrank();
+
+    vm.startPrank(user); // Set user as the sender & origin
     // Update controller with other user VM
     UpdateControllerCommandTest memory command = UpdateControllerCommandTest({
-      method0: userResult.didInfo.method0,
-      method1: userResult.didInfo.method1,
-      method2: userResult.didInfo.method2,
+      methods: userResult.didInfo.methods,
       senderId: userResult.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: userResult.didInfo.id,
@@ -993,9 +741,7 @@ contract DidManagerTest is SharedTest {
     _updateController(command);
     // Check initial state
     Controller[CONTROLLERS_MAX_LENGTH] memory controllers = didManager.getControllerList(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id
     );
     assertEq(controllers[0].id, otherResult.didInfo.id);
@@ -1005,13 +751,14 @@ contract DidManagerTest is SharedTest {
       assertEq(controllers[i].vmId, EMPTY_VM_ID);
     }
     //* 🎬 Act ⬇
-    startHoax(user, DEFAULT_USER_BALANCE); // ! Sender now is the user
+    vm.startPrank(user); // ! Sender now is the user
+    console.logBytes32(otherResult.didInfo.id);
+    console.log(msg.sender);
+    console.log(tx.origin);
     vm.expectRevert("Not authenticated as sender");
     didManager.updateController({
-      method0: userResult.didInfo.method0,
-      method1: userResult.didInfo.method1,
-      method2: userResult.didInfo.method2,
-      senderId: otherResult.didInfo.id,
+      methods: userResult.didInfo.methods,
+      senderId: otherResult.didInfo.id, //! <-- Other user is trying to update the controller
       senderVmId: DEFAULT_VM_ID,
       targetId: userResult.didInfo.id,
       controllerId: userResult.didInfo.id,
@@ -1020,12 +767,7 @@ contract DidManagerTest is SharedTest {
     });
     //* ☑️ Assert ⬇
     // Check final state
-    controllers = didManager.getControllerList(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
-      userResult.didInfo.id
-    );
+    controllers = didManager.getControllerList(userResult.didInfo.methods, userResult.didInfo.id);
     assertEq(controllers[0].id, otherResult.didInfo.id);
     assertEq(controllers[0].vmId, DEFAULT_VM_ID);
     for (uint8 i = 1; i < CONTROLLERS_MAX_LENGTH; i++) {
@@ -1038,34 +780,26 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory userResult = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_0,
       EMPTY_VM_ID
     );
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory otherResult = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_1,
       EMPTY_VM_ID
     );
     startHoax(user1, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory user1Result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      RANDOM_CREATE_DEFAULT,
+      EMPTY_DID_METHODS,
+      DEFAULT_RANDOM_2,
       VM_ID_CUSTOM
     );
     startHoax(user, DEFAULT_USER_BALANCE);
     // Update controller with other user VM
     UpdateControllerCommandTest memory command = UpdateControllerCommandTest({
-      method0: userResult.didInfo.method0,
-      method1: userResult.didInfo.method1,
-      method2: userResult.didInfo.method2,
+      methods: userResult.didInfo.methods,
       senderId: userResult.didInfo.id,
       senderVmId: DEFAULT_VM_ID,
       targetId: userResult.didInfo.id,
@@ -1076,9 +810,7 @@ contract DidManagerTest is SharedTest {
     _updateController(command);
     // Check initial state
     Controller[CONTROLLERS_MAX_LENGTH] memory controllers = didManager.getControllerList(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id
     );
     assertEq(controllers[0].id, otherResult.didInfo.id);
@@ -1091,9 +823,7 @@ contract DidManagerTest is SharedTest {
     startHoax(user1, DEFAULT_USER_BALANCE);
     vm.expectRevert("Not a controller for target");
     didManager.updateController({
-      method0: userResult.didInfo.method0,
-      method1: userResult.didInfo.method1,
-      method2: userResult.didInfo.method2,
+      methods: userResult.didInfo.methods,
       senderId: user1Result.didInfo.id,
       senderVmId: VM_ID_CUSTOM, // ! <-- Other user Custom VM is not registered in user's DID
       targetId: userResult.didInfo.id,
@@ -1103,12 +833,7 @@ contract DidManagerTest is SharedTest {
     });
     //* ☑️ Assert ⬇
     // Check final state
-    controllers = didManager.getControllerList(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
-      userResult.didInfo.id
-    );
+    controllers = didManager.getControllerList(userResult.didInfo.methods, userResult.didInfo.id);
     assertEq(controllers[0].id, otherResult.didInfo.id);
     assertEq(controllers[0].vmId, DEFAULT_VM_ID);
     for (uint8 i = 1; i < CONTROLLERS_MAX_LENGTH; i++) {
@@ -1122,18 +847,14 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
+      EMPTY_DID_METHODS,
       RANDOM_AUTHENTICATE,
       EMPTY_VM_ID
     );
     //* 🎬 Act ⬇
     // Authenticate VM
     bool authenticated = didManager.authenticate(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
+      result.didInfo.methods,
       result.didInfo.id,
       DEFAULT_VM_ID,
       user
@@ -1148,18 +869,14 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
+      EMPTY_DID_METHODS,
       RANDOM_RELATIONSHIP,
       EMPTY_VM_ID
     );
     //* 🎬 Act ⬇
     // Authenticate VM
     bool isRelationship = didManager.isVmRelationship(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
+      result.didInfo.methods,
       result.didInfo.id,
       DEFAULT_VM_ID,
       VM_RELATIONSHIPS_AUTHENTICATION,
@@ -1175,9 +892,7 @@ contract DidManagerTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
+      EMPTY_DID_METHODS,
       RANDOM_RELATIONSHIP,
       EMPTY_VM_ID
     );
@@ -1185,9 +900,7 @@ contract DidManagerTest is SharedTest {
     // Authenticate VM
     vm.expectRevert("Method0 cant be 0");
     bool isRelationship = didManager.isVmRelationship(
-      EMPTY_DID_METHOD, // ! <-- Method0 is empty
-      result.didInfo.method1,
-      result.didInfo.method2,
+      EMPTY_DID_METHODS, // ! <-- Method0 is empty
       result.didInfo.id,
       DEFAULT_VM_ID,
       VM_RELATIONSHIPS_AUTHENTICATION,
@@ -1195,9 +908,7 @@ contract DidManagerTest is SharedTest {
     );
     vm.expectRevert("ID cant be 0");
     isRelationship = didManager.isVmRelationship(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
+      result.didInfo.methods,
       EMPTY_DID_ID, // ! <-- ID is empty
       DEFAULT_VM_ID,
       VM_RELATIONSHIPS_AUTHENTICATION,
@@ -1205,9 +916,7 @@ contract DidManagerTest is SharedTest {
     );
     vm.expectRevert("Sender cant be 0");
     isRelationship = didManager.isVmRelationship(
-      result.didInfo.method0,
-      result.didInfo.method1,
-      result.didInfo.method2,
+      result.didInfo.methods,
       result.didInfo.id,
       DEFAULT_VM_ID,
       VM_RELATIONSHIPS_AUTHENTICATION,
@@ -1228,9 +937,7 @@ contract DidManagerTest is SharedTest {
     vm.recordLogs();
     //* Update controller call
     didManager.updateController(
-      command.method0,
-      command.method1,
-      command.method2,
+      command.methods,
       command.senderId,
       command.senderVmId,
       command.targetId,

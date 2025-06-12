@@ -40,9 +40,6 @@ contract W3CResolverTest is SharedTest, Helper {
   bytes32 private constant RANDOM_CREATE_CUSTOM = bytes32("This is another random value");
   bytes32 private constant RANDOM_AUTHENTICATE = bytes32("Random value authenticate");
   bytes32 private constant RANDOM_RELATIONSHIP = bytes32("Random value relationship");
-  bytes32 private constant DID_METHOD_0_CUSTOM = bytes32("method0_custom");
-  bytes32 private constant DID_METHOD_1_CUSTOM = bytes32("method1_custom");
-  bytes32 private constant DID_METHOD_2_CUSTOM = bytes32("method2_custom");
   bytes32 private constant VM_ID_CUSTOM = bytes32("vm_custom");
   bytes32 private constant VM_ID_CUSTOM_2 = bytes32("vm_custom_2");
   bytes32 private constant SERVICE_ID_SC = bytes32("issue-vc");
@@ -81,48 +78,26 @@ contract W3CResolverTest is SharedTest, Helper {
     // Check initial state
     // ! Not possible | really difficult in real newtorks
     bytes32 id = keccak256(
-      abi.encodePacked(
-        DEFAULT_DID_METHOD0,
-        DEFAULT_DID_METHOD1,
-        DEFAULT_DID_METHOD2,
-        RANDOM_CREATE_DEFAULT,
-        user,
-        block.timestamp
-      )
+      abi.encodePacked(DEFAULT_DID_METHODS, RANDOM_CREATE_DEFAULT, user, block.timestamp)
     );
     uint256 exp = didManager.getExpiration(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
+      DEFAULT_DID_METHODS,
       id,
       EMPTY_VM_ID // <-- To get the expiration of the DID
     );
     assertEq(exp, EMPTY_EXPIRATION);
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, id);
     assertEq(length, 0);
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
+      EMPTY_DID_METHODS,
       RANDOM_CREATE_DEFAULT,
       EMPTY_VM_ID
     );
     //* 🎬 Act ⬇
     // Check final state
     W3CVerificationMethod memory w3cVm = w3cResolver.resolveVm(
-      W3CDidInput({
-        method0: DEFAULT_DID_METHOD0,
-        method1: DEFAULT_DID_METHOD1,
-        method2: DEFAULT_DID_METHOD2,
-        id: result.didInfo.id,
-        fragment: EMPTY_VM_ID
-      }),
+      W3CDidInput({ methods: DEFAULT_DID_METHODS, id: result.didInfo.id, fragment: EMPTY_VM_ID }),
       DEFAULT_VM_ID
     );
     //* ☑️ Assert ⬇
@@ -143,17 +118,7 @@ contract W3CResolverTest is SharedTest, Helper {
       keccak256(
         abi.encodePacked(
           string(
-            (
-              _formatDidString(
-                W3CDidInput(
-                  result.didInfo.method0,
-                  result.didInfo.method1,
-                  result.didInfo.method2,
-                  result.didInfo.id,
-                  bytes32(0)
-                )
-              )
-            )
+            (_formatDidString(W3CDidInput(result.didInfo.methods, result.didInfo.id, bytes32(0))))
           )
         )
       )
@@ -184,44 +149,26 @@ contract W3CResolverTest is SharedTest, Helper {
     // Check initial state
     // ! Not possible | really difficult in real newtorks
     bytes32 id = keccak256(
-      abi.encodePacked(
-        DEFAULT_DID_METHOD0,
-        DEFAULT_DID_METHOD1,
-        DEFAULT_DID_METHOD2,
-        RANDOM_CREATE_DEFAULT,
-        user,
-        block.timestamp
-      )
+      abi.encodePacked(DEFAULT_DID_METHODS, RANDOM_CREATE_DEFAULT, tx.origin, block.prevrandao)
     );
     uint256 exp = didManager.getExpiration(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
+      DEFAULT_DID_METHODS,
       id,
       EMPTY_VM_ID // <-- To get the expiration of the DID
     );
     assertEq(exp, EMPTY_EXPIRATION);
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, id);
     assertEq(length, 0);
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
+      EMPTY_DID_METHODS,
       RANDOM_CREATE_DEFAULT,
       EMPTY_VM_ID
     );
     // Add a new Service
     ServiceUpdateResultTest memory updateServiceResult = _updateService(
       ServiceUpdateCommandTest({
-        method0: result.didInfo.method0,
-        method1: result.didInfo.method1,
-        method2: result.didInfo.method2,
+        methods: result.didInfo.methods,
         senderId: result.didInfo.id,
         senderVmId: DEFAULT_VM_ID,
         targetId: result.didInfo.id,
@@ -233,13 +180,7 @@ contract W3CResolverTest is SharedTest, Helper {
     //* 🎬 Act ⬇
     // Check final state
     W3CService memory w3cService = w3cResolver.resolveService(
-      W3CDidInput({
-        method0: DEFAULT_DID_METHOD0,
-        method1: DEFAULT_DID_METHOD1,
-        method2: DEFAULT_DID_METHOD2,
-        id: result.didInfo.id,
-        fragment: EMPTY_VM_ID
-      }),
+      W3CDidInput({ methods: DEFAULT_DID_METHODS, id: result.didInfo.id, fragment: EMPTY_VM_ID }),
       DEFAULT_SERVICE_ID
     );
     //* ☑️ Assert ⬇
@@ -285,25 +226,16 @@ contract W3CResolverTest is SharedTest, Helper {
       )
     );
     uint256 exp = didManager.getExpiration(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
+      DEFAULT_DID_METHODS,
       id,
       EMPTY_VM_ID // <-- To get the expiration of the DID
     );
     assertEq(exp, EMPTY_EXPIRATION);
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, id);
     assertEq(length, 0);
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
-      EMPTY_DID_METHOD,
+      EMPTY_DID_METHODS,
       RANDOM_CREATE_DEFAULT,
       EMPTY_VM_ID
     );
@@ -311,9 +243,7 @@ contract W3CResolverTest is SharedTest, Helper {
     // Add new Verification Method
     /* CreateVmResultTest memory createVmResult = */ _createVm(
       DidCreateVmCommand({
-        method0: result.didInfo.method0,
-        method1: result.didInfo.method1,
-        method2: result.didInfo.method2,
+        methods: result.didInfo.methods,
         senderId: result.didInfo.id,
         senderVmId: DEFAULT_VM_ID,
         targetId: result.didInfo.id,
@@ -329,9 +259,7 @@ contract W3CResolverTest is SharedTest, Helper {
     // Add a new Service
     /* ServiceUpdateResultTest memory createServiceResult0 = */ _updateService(
       ServiceUpdateCommandTest({
-        method0: result.didInfo.method0,
-        method1: result.didInfo.method1,
-        method2: result.didInfo.method2,
+        methods: result.didInfo.methods,
         senderId: result.didInfo.id,
         senderVmId: DEFAULT_VM_ID,
         targetId: result.didInfo.id,
@@ -342,9 +270,7 @@ contract W3CResolverTest is SharedTest, Helper {
     );
     /* ServiceUpdateResultTest memory createServiceResult1 = */ _updateService(
       ServiceUpdateCommandTest({
-        method0: result.didInfo.method0,
-        method1: result.didInfo.method1,
-        method2: result.didInfo.method2,
+        methods: result.didInfo.methods,
         senderId: result.didInfo.id,
         senderVmId: DEFAULT_VM_ID,
         targetId: result.didInfo.id,
@@ -357,9 +283,7 @@ contract W3CResolverTest is SharedTest, Helper {
     // Check final state
     W3CDidDocument memory didDocument = w3cResolver.resolve(
       W3CDidInput({
-        method0: result.didInfo.method0,
-        method1: result.didInfo.method1,
-        method2: result.didInfo.method2,
+        methods: result.didInfo.methods,
         id: result.didInfo.id,
         fragment: EMPTY_VM_ID
       }),
@@ -371,15 +295,7 @@ contract W3CResolverTest is SharedTest, Helper {
       keccak256(abi.encodePacked(didDocument.id)),
       keccak256(
         abi.encodePacked(
-          _formatDidString(
-            W3CDidInput(
-              result.didInfo.method0,
-              result.didInfo.method1,
-              result.didInfo.method2,
-              result.didInfo.id,
-              bytes32(0)
-            )
-          )
+          _formatDidString(W3CDidInput(result.didInfo.methods, result.didInfo.id, bytes32(0)))
         )
       )
     );
@@ -415,9 +331,7 @@ contract W3CResolverTest is SharedTest, Helper {
     vm.recordLogs();
     //* Update controller call
     didManager.updateService(
-      command.method0,
-      command.method1,
-      command.method2,
+      command.methods,
       command.senderId,
       command.senderVmId,
       command.targetId,
@@ -447,13 +361,17 @@ contract W3CResolverTest is SharedTest, Helper {
   }
 
   function _formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
+    // Get the method identifiers from the provided bytes32 value
+    bytes10 method0 = bytes10(didInput.methods);
+    bytes10 method1 = bytes10(bytes32(uint256(didInput.methods) << 80)); // Shift to get the second 10 bytes
+    bytes10 method2 = bytes10(bytes32(uint256(didInput.methods) << 160)); // Shift to get the third 10 bytes
     // The final bytes buffer to be converted to string
-    bytes memory finalEncode = abi.encodePacked("did:", didInput.method0, ":");
-    if (didInput.method1 != bytes32(0)) {
-      finalEncode = abi.encodePacked(finalEncode, didInput.method1, ":");
+    bytes memory finalEncode = abi.encodePacked("did:", method0, ":");
+    if (method1 != bytes10(0)) {
+      finalEncode = abi.encodePacked(finalEncode, method1, ":");
     }
-    if (didInput.method2 != bytes32(0)) {
-      finalEncode = abi.encodePacked(finalEncode, didInput.method2, ":");
+    if (method2 != bytes10(0)) {
+      finalEncode = abi.encodePacked(finalEncode, method2, ":");
     }
     finalEncode = abi.encodePacked(finalEncode, _bytesToHexString(abi.encodePacked(didInput.id)));
     if (didInput.fragment != bytes32(0)) {

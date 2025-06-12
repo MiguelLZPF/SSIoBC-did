@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManager, Controller, CreateVmCommand as DidCreateVmCommand, DEFAULT_METHOD0, DEFAULT_METHOD1, DEFAULT_METHOD2, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "src/interfaces/IDidManager.sol";
+import { IDidManager, Controller, CreateVmCommand as DidCreateVmCommand, DEFAULT_DID_METHODS, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "src/interfaces/IDidManager.sol";
 import { VMStorage, VerificationMethod, CreateVmCommand } from "src/VMStorage.sol";
 import { ServiceStorage, Service, SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "src/ServiceStorage.sol";
 
@@ -34,15 +34,9 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     // Required
     require(random != bytes32(0), "Random cannot be 0");
     // Optional
-    // Get the method identifiers from the provided bytes32 value
-    bytes10 method0 = bytes10(methods);
-    bytes10 method1 = bytes10(bytes32(uint256(methods) << 80)); // Shift to get the second 10 bytes
-    bytes10 method2 = bytes10(bytes32(uint256(methods) << 160)); // Shift to get the third 10 bytes
     // Default values if not provided
-    if (method0 == bytes10(0)) {
-      method0 = DEFAULT_METHOD0;
-      method1 = DEFAULT_METHOD1;
-      method2 = DEFAULT_METHOD2;
+    if (methods == bytes32(0)) {
+      methods = DEFAULT_DID_METHODS;
     }
     //* Implementation
     bytes32 id = keccak256(abi.encodePacked(methods, random, tx.origin, block.prevrandao));
@@ -256,7 +250,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     require(!_isExpired(senderIdHash), "Sender DID expired");
     require(!_isExpired(targetIdHash), "Target DID expired");
     // Check if the sender is authenticated as the sender DID
-    require(_isAuthenticated(senderIdHash, senderVmId, msg.sender), "Not authenticated as sender");
+    require(_isAuthenticated(senderIdHash, senderVmId, tx.origin), "Not authenticated as sender");
     // Check if the sender is a controller for the target DID
     require(
       _isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash),

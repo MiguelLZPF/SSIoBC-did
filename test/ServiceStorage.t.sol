@@ -17,9 +17,7 @@ enum PerformedAction {
 }
 
 struct ServiceUpdateCommandTest {
-  bytes32 method0;
-  bytes32 method1;
-  bytes32 method2;
+  bytes32 methods;
   bytes32 senderId;
   bytes32 senderVmId;
   bytes32 targetId;
@@ -75,11 +73,11 @@ contract ServiceStorageTest is SharedTest {
     vm.label(address(didManager), "initDidManager");
     // Create a DID for user
     startHoax(user, DEFAULT_USER_BALANCE);
-    userResult = _createDid(bytes32(0), bytes32(0), bytes32(0), bytes32("random"), bytes32(0));
+    userResult = _createDid(EMPTY_DID_METHODS, bytes32("random"), bytes32(0));
     vm.stopPrank();
     // Create a DID for other user
     startHoax(otherUser, DEFAULT_USER_BALANCE);
-    otherUserResult = _createDid(bytes32(0), bytes32(0), bytes32(0), bytes32("random"), bytes32(0));
+    otherUserResult = _createDid(EMPTY_DID_METHODS, bytes32("random"), bytes32(0));
     vm.stopPrank();
   }
 
@@ -89,17 +87,10 @@ contract ServiceStorageTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
-    uint256 length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      userResult.didInfo.id
-    );
+    uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     assertEq(length, 0);
     Service memory service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       bytes32(0),
       uint8(1)
@@ -111,9 +102,7 @@ contract ServiceStorageTest is SharedTest {
     // Add new service
     ServiceUpdateResultTest memory result = _updateService(
       ServiceUpdateCommandTest({
-        method0: userResult.didInfo.method0,
-        method1: userResult.didInfo.method1,
-        method2: userResult.didInfo.method2,
+        methods: userResult.didInfo.methods,
         senderId: userResult.didInfo.id,
         senderVmId: DEFAULT_VM_ID,
         targetId: userResult.didInfo.id,
@@ -124,12 +113,7 @@ contract ServiceStorageTest is SharedTest {
     );
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      userResult.didInfo.id
-    );
+    length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     bytes32 serviceDidHash = keccak256(
       abi.encodePacked(userResult.didInfo.idHash, SERVICE_NAMESPACE)
     );
@@ -139,9 +123,7 @@ contract ServiceStorageTest is SharedTest {
     assertEq(length, 1);
     // -- final "first service"
     service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       bytes32(0),
       uint8(1)
@@ -152,9 +134,7 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.serviceEndpoint[0][0], DEFAULT_SERVICE_ENDPOINT[0][0]);
     // -- final service by ID
     service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       DEFAULT_SERVICE_ID,
       uint8(0)
@@ -185,9 +165,7 @@ contract ServiceStorageTest is SharedTest {
     // Add new service
     ServiceUpdateResultTest memory result = _updateService(
       ServiceUpdateCommandTest({
-        method0: userResult.didInfo.method0,
-        method1: userResult.didInfo.method1,
-        method2: userResult.didInfo.method2,
+        methods: userResult.didInfo.methods,
         senderId: userResult.didInfo.id,
         senderVmId: DEFAULT_VM_ID,
         targetId: userResult.didInfo.id,
@@ -198,20 +176,13 @@ contract ServiceStorageTest is SharedTest {
     );
     // Check previous state
     assertTrue(result.performedAction == PerformedAction.CREATEorUPDATE);
-    uint256 length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      userResult.didInfo.id
-    );
+    uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Update service
     result = _updateService(
       ServiceUpdateCommandTest({
-        method0: userResult.didInfo.method0,
-        method1: userResult.didInfo.method1,
-        method2: userResult.didInfo.method2,
+        methods: userResult.didInfo.methods,
         senderId: userResult.didInfo.id,
         senderVmId: DEFAULT_VM_ID,
         targetId: userResult.didInfo.id,
@@ -222,12 +193,7 @@ contract ServiceStorageTest is SharedTest {
     );
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      userResult.didInfo.id
-    );
+    length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     bytes32 serviceDidHash = keccak256(
       abi.encodePacked(userResult.didInfo.idHash, SERVICE_NAMESPACE)
     );
@@ -237,9 +203,7 @@ contract ServiceStorageTest is SharedTest {
     assertEq(length, 1);
     // -- final "first service"
     Service memory service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       bytes32(0),
       uint8(1)
@@ -253,9 +217,7 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.serviceEndpoint[2][0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       DEFAULT_SERVICE_ID,
       uint8(0)
@@ -289,17 +251,10 @@ contract ServiceStorageTest is SharedTest {
     DidInfo memory didOtherData = otherUserResult.didInfo;
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     // Check previous state
-    uint256 length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didUserData.id
-    );
+    uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, didUserData.id);
     assertEq(length, 0);
     Service memory service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
+      didUserData.methods,
       didUserData.id,
       bytes32(0),
       uint8(1)
@@ -311,9 +266,7 @@ contract ServiceStorageTest is SharedTest {
     vm.expectRevert("Not a controller for target");
     // Add new service from other user
     didManager.updateService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
+      didUserData.methods,
       didOtherData.id,
       DEFAULT_VM_ID,
       didUserData.id,
@@ -323,31 +276,17 @@ contract ServiceStorageTest is SharedTest {
     );
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didUserData.id
-    );
+    length = didManager.getServiceListLength(DEFAULT_DID_METHODS, didUserData.id);
     // Check final state
     assertEq(length, 0);
     // -- final "first service"
-    service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
-      didUserData.id,
-      bytes32(0),
-      uint8(1)
-    );
+    service = didManager.getService(didUserData.methods, didUserData.id, bytes32(0), uint8(1));
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0][0], bytes32(0));
     assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
-      didUserData.method0,
-      didUserData.method1,
-      didUserData.method2,
+      didUserData.methods,
       didUserData.id,
       DEFAULT_SERVICE_ID,
       uint8(0)
@@ -365,17 +304,10 @@ contract ServiceStorageTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
-    uint256 length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      userResult.didInfo.id
-    );
+    uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     assertEq(length, 0);
     Service memory service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       bytes32(0),
       uint8(1)
@@ -387,9 +319,7 @@ contract ServiceStorageTest is SharedTest {
     vm.expectRevert("ID cannot be 0");
     // Add new service from other user
     didManager.updateService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       DEFAULT_VM_ID,
       userResult.didInfo.id,
@@ -399,19 +329,12 @@ contract ServiceStorageTest is SharedTest {
     );
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      userResult.didInfo.id
-    );
+    length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     // Check final state
     assertEq(length, 0);
     // -- final "first service"
     service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       bytes32(0),
       uint8(1)
@@ -421,9 +344,7 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       bytes32(0),
       uint8(0)
@@ -439,17 +360,10 @@ contract ServiceStorageTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
-    uint256 length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      userResult.didInfo.id
-    );
+    uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     assertEq(length, 0);
     Service memory service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       bytes32(0),
       uint8(1)
@@ -461,9 +375,7 @@ contract ServiceStorageTest is SharedTest {
     vm.expectRevert("Type cannot be 0");
     // Add new service from other user
     didManager.updateService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       DEFAULT_VM_ID,
       userResult.didInfo.id,
@@ -473,19 +385,12 @@ contract ServiceStorageTest is SharedTest {
     );
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      userResult.didInfo.id
-    );
+    length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     // Check final state
     assertEq(length, 0);
     // -- final "first service"
     service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       bytes32(0),
       uint8(1)
@@ -495,9 +400,7 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       DEFAULT_SERVICE_ID,
       uint8(0)
@@ -513,17 +416,10 @@ contract ServiceStorageTest is SharedTest {
     //* 🗂️ Arrange ⬇
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
-    uint256 length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      userResult.didInfo.id
-    );
+    uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     assertEq(length, 0);
     Service memory service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       bytes32(0),
       uint8(1)
@@ -535,9 +431,7 @@ contract ServiceStorageTest is SharedTest {
     vm.expectRevert("Endpoint cannot be 0");
     // Add new service from other user
     didManager.updateService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       DEFAULT_VM_ID,
       userResult.didInfo.id,
@@ -547,19 +441,12 @@ contract ServiceStorageTest is SharedTest {
     );
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      userResult.didInfo.id
-    );
+    length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     // Check final state
     assertEq(length, 0);
     // -- final "first service"
     service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       bytes32(0),
       uint8(1)
@@ -569,9 +456,7 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // -- final service by ID
     service = didManager.getService(
-      userResult.didInfo.method0,
-      userResult.didInfo.method1,
-      userResult.didInfo.method2,
+      userResult.didInfo.methods,
       userResult.didInfo.id,
       DEFAULT_SERVICE_ID,
       uint8(0)
@@ -591,9 +476,7 @@ contract ServiceStorageTest is SharedTest {
     // Add new service
     ServiceUpdateResultTest memory result = _updateService(
       ServiceUpdateCommandTest({
-        method0: didData.method0,
-        method1: didData.method1,
-        method2: didData.method2,
+        methods: didData.methods,
         senderId: didData.id,
         senderVmId: DEFAULT_VM_ID,
         targetId: didData.id,
@@ -604,20 +487,13 @@ contract ServiceStorageTest is SharedTest {
     );
     // Check previous state
     assertTrue(result.performedAction == PerformedAction.CREATEorUPDATE);
-    uint256 length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, didData.id);
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Delete service
     result = _updateService(
       ServiceUpdateCommandTest({
-        method0: didData.method0,
-        method1: didData.method1,
-        method2: didData.method2,
+        methods: didData.methods,
         senderId: didData.id,
         senderVmId: DEFAULT_VM_ID,
         targetId: didData.id,
@@ -628,12 +504,7 @@ contract ServiceStorageTest is SharedTest {
     );
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getServiceListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getServiceListLength(DEFAULT_DID_METHODS, didData.id);
     bytes32 serviceDidHash = keccak256(abi.encodePacked(didData.idHash, SERVICE_NAMESPACE));
     bytes32 expectedServiceIdHash = keccak256(abi.encodePacked(serviceDidHash, DEFAULT_SERVICE_ID));
     bytes32 expectedPositionHash = 0;
@@ -641,9 +512,7 @@ contract ServiceStorageTest is SharedTest {
     assertEq(length, 0);
     // -- final "first service"
     Service memory service = didManager.getService(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       bytes32(0),
       uint8(1)
@@ -652,14 +521,7 @@ contract ServiceStorageTest is SharedTest {
     assertEq(service.type_[0][0], bytes32(0));
     assertEq(service.serviceEndpoint[0][0], bytes32(0));
     // -- final service by ID
-    service = didManager.getService(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      DEFAULT_SERVICE_ID,
-      uint8(0)
-    );
+    service = didManager.getService(didData.methods, didData.id, DEFAULT_SERVICE_ID, uint8(0));
     assertEq(service.id, bytes32(0));
     assertEq(service.type_[0][0], bytes32(0));
     assertEq(service.serviceEndpoint[0][0], bytes32(0));
@@ -691,9 +553,7 @@ contract ServiceStorageTest is SharedTest {
     vm.recordLogs();
     //* Update controller call
     didManager.updateService(
-      command.method0,
-      command.method1,
-      command.method2,
+      command.methods,
       command.senderId,
       command.senderVmId,
       command.targetId,

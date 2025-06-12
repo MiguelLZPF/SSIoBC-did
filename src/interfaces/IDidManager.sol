@@ -26,9 +26,7 @@ struct CreateVmCommand {
   uint expiration; // The expiration time of the VM.
 }
 
-bytes32 constant DEFAULT_METHOD0 = bytes10("lzpf");
-bytes32 constant DEFAULT_METHOD1 = bytes10("main");
-bytes32 constant DEFAULT_METHOD2 = bytes10(0); // not used by default
+bytes32 constant DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;"); // ";" is the null or escape character
 uint constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
 uint8 constant CONTROLLERS_MAX_LENGTH = 5;
 

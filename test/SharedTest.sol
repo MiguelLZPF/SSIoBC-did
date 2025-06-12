@@ -9,12 +9,9 @@ import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfa
 import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 
 struct DidInfo {
-  bytes32 method0;
-  bytes32 method1;
-  bytes32 method2;
+  bytes32 methods;
   bytes32 id;
   bytes32 idHash;
-  address creator;
 }
 
 struct CreateDidResultTest {
@@ -24,7 +21,6 @@ struct CreateDidResultTest {
   bytes32 VmValidated_id;
   bytes32 DidCreated_id;
   bytes32 DidCreated_idHash;
-  address DidCreated_creator;
 }
 
 struct CreateVmResultTest {
@@ -37,22 +33,32 @@ struct CreateVmResultTest {
 abstract contract SharedTest is Test {
   // * Shared Constants
   // General
-  uint256 constant DEFAULT_USER_BALANCE = 100 ether;
-  uint256 EMPTY_EXPIRATION = 0;
+  uint256 internal constant DEFAULT_USER_BALANCE = 100 ether;
+  uint256 internal constant EMPTY_EXPIRATION = 0;
   // DID
-  bytes32 constant EMPTY_DID_METHOD = bytes32(0);
-  bytes32 constant DEFAULT_DID_METHOD0 = bytes32("lzpf");
-  bytes32 constant DEFAULT_DID_METHOD1 = bytes32("main");
-  bytes32 constant DEFAULT_DID_METHOD2 = EMPTY_DID_METHOD;
-  bytes32 constant EMPTY_DID_ID = bytes32(0);
-  bytes32 constant EMPTY_RANDOM = bytes32(0);
+  bytes10 internal constant EMPTY_DID_METHOD = bytes10(0);
+  bytes32 internal constant EMPTY_DID_METHODS = bytes32(0);
+  bytes10 internal constant DEFAULT_DID_METHOD0 = bytes10("lzpf");
+  bytes10 internal constant DEFAULT_DID_METHOD1 = bytes10("main");
+  bytes10 internal constant DEFAULT_DID_METHOD2 = EMPTY_DID_METHOD;
+  bytes32 internal constant DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;"); // ";" is the null or scape character
+  bytes10 internal constant DID_METHOD_0_CUSTOM = bytes10("custom0;;;");
+  bytes10 internal constant DID_METHOD_1_CUSTOM = bytes10("custom1;;;");
+  bytes10 internal constant DID_METHOD_2_CUSTOM = bytes10("custom2;;;");
+  bytes32 internal constant DID_METHODS_CUSTOM = bytes32("custom0;;;custom1;;;custom2;;;"); // ";" used as scape or null character
+  bytes32 internal constant EMPTY_DID_ID = bytes32(0);
+  bytes32 internal constant EMPTY_RANDOM = bytes32(0);
+  bytes32 internal constant DEFAULT_RANDOM_0 = bytes32("default-random");
+  bytes32 internal constant DEFAULT_RANDOM_1 = bytes32("default-random-1");
+  bytes32 internal constant DEFAULT_RANDOM_2 = bytes32("default-random-2");
+  bytes32 internal constant DEFAULT_RANDOM_3 = bytes32("default-random-3");
   // VM
-  bytes32 constant EMPTY_VM_ID = bytes32(0);
-  bytes32 constant DEFAULT_VM_ID = bytes32("vm-0");
-  bytes32[2] EMPTY_VM_TYPE = [bytes32(0)];
-  bytes32[2] DEFAULT_VM_TYPE = [bytes32("EcdsaSecp256k1VerificationKey20"), bytes32("19")];
-  bytes32[16] EMPTY_VM_PUBLIC_KEY = [bytes32(0)];
-  bytes32[16] DEFAULT_VM_PUBLIC_KEY = [
+  bytes32 internal constant EMPTY_VM_ID = bytes32(0);
+  bytes32 internal constant DEFAULT_VM_ID = bytes32("vm-0");
+  bytes32[2] internal EMPTY_VM_TYPE = [bytes32(0)];
+  bytes32[2] internal DEFAULT_VM_TYPE = [bytes32("EcdsaSecp256k1VerificationKey20"), bytes32("19")];
+  bytes32[16] internal EMPTY_VM_PUBLIC_KEY = [bytes32(0)];
+  bytes32[16] internal DEFAULT_VM_PUBLIC_KEY = [
     bytes32("FD756c746962617365206973206177"),
     bytes32("65736F6d6521205C6f2F"),
     bytes32("65736F6d6521205C6f2F")
@@ -83,16 +89,16 @@ abstract contract SharedTest is Test {
     [bytes32("0xe7f1725E7734CE288F8367e1Bb143E"), bytes32("90bb3F0512")]
   ];
   // -- relation
-  bytes1 constant VM_RELATIONSHIPS_NONE = bytes1(0x00);
-  bytes1 constant VM_RELATIONSHIPS_AUTHENTICATION = bytes1(0x01);
-  bytes1 constant VM_RELATIONSHIPS_ASSERTION_METHOD = bytes1(0x02);
-  bytes1 constant VM_RELATIONSHIPS_KEY_AGREEMENT = bytes1(0x04);
-  bytes1 constant VM_RELATIONSHIPS_CAPABILITY_INVOCATION = bytes1(0x08);
-  bytes1 constant VM_RELATIONSHIPS_CAPABILITY_DELEGATION = bytes1(0x10);
-  bytes1 constant VM_RELATIONSHIPS_ALL = bytes1(0x1F);
+  bytes1 internal constant VM_RELATIONSHIPS_NONE = bytes1(0x00);
+  bytes1 internal constant VM_RELATIONSHIPS_AUTHENTICATION = bytes1(0x01);
+  bytes1 internal constant VM_RELATIONSHIPS_ASSERTION_METHOD = bytes1(0x02);
+  bytes1 internal constant VM_RELATIONSHIPS_KEY_AGREEMENT = bytes1(0x04);
+  bytes1 internal constant VM_RELATIONSHIPS_CAPABILITY_INVOCATION = bytes1(0x08);
+  bytes1 internal constant VM_RELATIONSHIPS_CAPABILITY_DELEGATION = bytes1(0x10);
+  bytes1 internal constant VM_RELATIONSHIPS_ALL = bytes1(0x1F);
   bytes1 internal constant DEFAULT_VM_RELATIONSHIPS = VM_RELATIONSHIPS_AUTHENTICATION;
 
-  address constant EMPTY_SENDER = address(0);
+  address internal constant EMPTY_SENDER = address(0);
   // * Shared Variables
   // -- Contracts
   IDidManager didManager;
@@ -106,16 +112,14 @@ abstract contract SharedTest is Test {
   }
 
   function _createDid(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 random,
     bytes32 vmId
-  ) internal returns (CreateDidResultTest memory result) {
+  ) public returns (CreateDidResultTest memory result) {
     // Event recording
     vm.recordLogs();
     //* Create DID call
-    didManager.createDid(method0, method1, method2, random, vmId);
+    didManager.createDid(methods, random, vmId);
     // Get logs from previous transaction
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Get the event values
@@ -127,15 +131,11 @@ abstract contract SharedTest is Test {
     // DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
     result.DidCreated_id = entries[2].topics[1];
     result.DidCreated_idHash = entries[2].topics[2];
-    result.DidCreated_creator = address(uint160(uint256((entries[2].topics[3]))));
     // Return structured Data
     result.didInfo = DidInfo({
-      method0: DEFAULT_DID_METHOD0,
-      method1: DEFAULT_DID_METHOD1,
-      method2: DEFAULT_DID_METHOD2,
+      methods: methods != EMPTY_DID_METHODS ? methods : DEFAULT_DID_METHODS,
       id: result.DidCreated_id,
-      idHash: result.DidCreated_idHash,
-      creator: result.DidCreated_creator
+      idHash: result.DidCreated_idHash
     });
   }
 
@@ -164,12 +164,7 @@ abstract contract SharedTest is Test {
     result.VmCreated_positionHash = bytes32(entries[0].data);
   }
 
-  function _calculateDidHash(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
-    bytes32 random
-  ) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(method0, method1, method2, random));
+  function _calculateDidHash(bytes32 methods, bytes32 random) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(methods, random));
   }
 }

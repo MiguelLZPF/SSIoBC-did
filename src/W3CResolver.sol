@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { IW3CResolver, W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "./interfaces/IW3CResolver.sol";
-import { IDidManager, DEFAULT_METHOD0, DEFAULT_METHOD1, DEFAULT_METHOD2, Controller, CONTROLLERS_MAX_LENGTH } from "./interfaces/IDidManager.sol";
+import { IDidManager, Controller, CONTROLLERS_MAX_LENGTH, DEFAULT_DID_METHODS } from "./interfaces/IDidManager.sol";
 import { VerificationMethod } from "./VMStorage.sol";
 import { Service, SERVICE_MAX_LENGTH } from "./ServiceStorage.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -254,15 +254,9 @@ contract W3CResolver is IW3CResolver {
     // Required
     require(didInput.id != bytes32(0), "DID cant be 0");
     // Optional
-    // Get the method identifiers from the provided bytes32 value
-    bytes10 method0 = bytes10(didInput.methods);
-    bytes10 method1 = bytes10(bytes32(uint256(didInput.methods) << 80)); // Shift to get the second 10 bytes
-    bytes10 method2 = bytes10(bytes32(uint256(didInput.methods) << 160)); // Shift to get the third 10 bytes
     // Default values if not provided
-    if (method0 == bytes10(0)) {
-      method0 = DEFAULT_METHOD0;
-      method1 = DEFAULT_METHOD1;
-      method2 = DEFAULT_METHOD2;
+    if (didInput.methods == bytes32(0)) {
+      didInput.methods = DEFAULT_DID_METHODS;
     }
   }
 

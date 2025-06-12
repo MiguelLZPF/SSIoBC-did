@@ -41,17 +41,11 @@ contract VMStorageTest is SharedTest {
     vm.label(address(didManager), "initDidManager");
     // Create a DID for user
     startHoax(user, DEFAULT_USER_BALANCE);
-    userResult = _createDid(bytes32(0), bytes32(0), bytes32(0), bytes32("random0"), bytes32(0));
+    userResult = _createDid(EMPTY_DID_METHODS, bytes32("random0"), bytes32(0));
     vm.stopPrank();
     // Create a DID for other user
     startHoax(otherUser, DEFAULT_USER_BALANCE);
-    otherUserResult = _createDid(
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32("random1"),
-      bytes32(0)
-    );
+    otherUserResult = _createDid(EMPTY_DID_METHODS, bytes32("random1"), bytes32(0));
     vm.stopPrank();
   }
 
@@ -62,37 +56,21 @@ contract VMStorageTest is SharedTest {
     DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     assertEq(length, 1);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       VM_ID[0],
       uint8(0)
     );
     _assertEmptyVm(verificationMethod);
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertEmptyVm(verificationMethod);
     //* 🎬 Act ⬇
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -107,25 +85,13 @@ contract VMStorageTest is SharedTest {
     CreateVmResultTest memory result = _createVm(command);
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     bytes32 expectedVmIdHash = keccak256(abi.encodePacked(didData.idHash, VM_ID[0]));
     bytes32 expectedPositionHash = keccak256(abi.encodePacked(didData.idHash, uint8(2)));
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -139,14 +105,7 @@ contract VMStorageTest is SharedTest {
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      command.vmId,
-      uint8(0)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, command.vmId, uint8(0));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -179,37 +138,21 @@ contract VMStorageTest is SharedTest {
     DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     assertEq(length, 1);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       VM_ID[0],
       uint8(0)
     );
     _assertEmptyVm(verificationMethod);
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertEmptyVm(verificationMethod);
     //* 🎬 Act ⬇
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -224,25 +167,13 @@ contract VMStorageTest is SharedTest {
     CreateVmResultTest memory result = _createVm(command);
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     bytes32 expectedVmIdHash = keccak256(abi.encodePacked(didData.idHash, VM_ID[0]));
     bytes32 expectedPositionHash = keccak256(abi.encodePacked(didData.idHash, uint8(2)));
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -256,14 +187,7 @@ contract VMStorageTest is SharedTest {
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      command.vmId,
-      uint8(0)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, command.vmId, uint8(0));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -296,37 +220,21 @@ contract VMStorageTest is SharedTest {
     DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     assertEq(length, 1);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       VM_ID[0],
       uint8(0)
     );
     _assertEmptyVm(verificationMethod);
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertEmptyVm(verificationMethod);
     //* 🎬 Act ⬇
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -341,25 +249,13 @@ contract VMStorageTest is SharedTest {
     CreateVmResultTest memory result = _createVm(command);
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     bytes32 expectedVmIdHash = keccak256(abi.encodePacked(didData.idHash, VM_ID[0]));
     bytes32 expectedPositionHash = keccak256(abi.encodePacked(didData.idHash, uint8(2)));
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -373,14 +269,7 @@ contract VMStorageTest is SharedTest {
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      command.vmId,
-      uint8(0)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, command.vmId, uint8(0));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -413,37 +302,21 @@ contract VMStorageTest is SharedTest {
     DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     assertEq(length, 1);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       VM_ID[0],
       uint8(0)
     );
     _assertEmptyVm(verificationMethod);
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertEmptyVm(verificationMethod);
     //* 🎬 Act ⬇
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -458,25 +331,13 @@ contract VMStorageTest is SharedTest {
     CreateVmResultTest memory result = _createVm(command);
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     bytes32 expectedVmIdHash = keccak256(abi.encodePacked(didData.idHash, VM_ID[0]));
     bytes32 expectedPositionHash = keccak256(abi.encodePacked(didData.idHash, uint8(2)));
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -490,14 +351,7 @@ contract VMStorageTest is SharedTest {
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      command.vmId,
-      uint8(0)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, command.vmId, uint8(0));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -530,38 +384,22 @@ contract VMStorageTest is SharedTest {
     DidInfo memory didData = userResult.didInfo;
     startHoax(user, DEFAULT_USER_BALANCE);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     assertEq(length, 1);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       VM_ID[0],
       uint8(0)
     );
     _assertEmptyVm(verificationMethod);
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertEmptyVm(verificationMethod);
     //* 🎬 Act ⬇
     // Add new Verification Method
     vm.expectRevert("4th or 5th or 6th param required");
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -576,33 +414,14 @@ contract VMStorageTest is SharedTest {
     didManager.createVm(command);
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Check final state
     assertEq(length, 1);
     // -- final "first vm"
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertEmptyVm(verificationMethod);
     // -- final vm by ID
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      command.vmId,
-      uint8(0)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, command.vmId, uint8(0));
     _assertEmptyVm(verificationMethod);
     // end
     vm.stopPrank();
@@ -615,9 +434,7 @@ contract VMStorageTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -631,18 +448,11 @@ contract VMStorageTest is SharedTest {
     );
     CreateVmResultTest memory result = _createVm(command);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -659,14 +469,7 @@ contract VMStorageTest is SharedTest {
         command.expiration
       )
     );
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -684,23 +487,11 @@ contract VMStorageTest is SharedTest {
     bytes32 VmValidated_id = _validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -714,14 +505,7 @@ contract VMStorageTest is SharedTest {
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      VmValidated_id,
-      uint8(0)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, VmValidated_id, uint8(0));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -748,9 +532,7 @@ contract VMStorageTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -764,18 +546,11 @@ contract VMStorageTest is SharedTest {
     );
     CreateVmResultTest memory result = _createVm(command);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -792,14 +567,7 @@ contract VMStorageTest is SharedTest {
         command.expiration
       )
     );
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -817,23 +585,11 @@ contract VMStorageTest is SharedTest {
     bytes32 VmValidated_id = _validateVm(result.VmCreated_positionHash, EMPTY_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -847,14 +603,7 @@ contract VMStorageTest is SharedTest {
       )
     );
     // -- final vm by ID
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      VmValidated_id,
-      uint8(0)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, VmValidated_id, uint8(0));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -881,9 +630,7 @@ contract VMStorageTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -897,18 +644,11 @@ contract VMStorageTest is SharedTest {
     );
     CreateVmResultTest memory result = _createVm(command);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -925,14 +665,7 @@ contract VMStorageTest is SharedTest {
         command.expiration
       )
     );
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -951,23 +684,11 @@ contract VMStorageTest is SharedTest {
     didManager.validateVm(keccak256("Does Not Exist"), DEFAULT_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -982,9 +703,7 @@ contract VMStorageTest is SharedTest {
     );
     // -- final vm by ID
     verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -1011,9 +730,7 @@ contract VMStorageTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -1027,18 +744,11 @@ contract VMStorageTest is SharedTest {
     );
     CreateVmResultTest memory result = _createVm(command);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -1055,14 +765,7 @@ contract VMStorageTest is SharedTest {
         command.expiration
       )
     );
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -1081,23 +784,11 @@ contract VMStorageTest is SharedTest {
     didManager.validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -1112,9 +803,7 @@ contract VMStorageTest is SharedTest {
     );
     // -- final vm by ID
     verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -1141,9 +830,7 @@ contract VMStorageTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -1157,18 +844,11 @@ contract VMStorageTest is SharedTest {
     );
     CreateVmResultTest memory result = _createVm(command);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -1185,14 +865,7 @@ contract VMStorageTest is SharedTest {
         command.expiration
       )
     );
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -1212,23 +885,11 @@ contract VMStorageTest is SharedTest {
     didManager.validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -1243,9 +904,7 @@ contract VMStorageTest is SharedTest {
     );
     // -- final vm by ID
     verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -1273,9 +932,7 @@ contract VMStorageTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -1290,18 +947,11 @@ contract VMStorageTest is SharedTest {
     CreateVmResultTest memory result = _createVm(command);
     _validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -1318,14 +968,7 @@ contract VMStorageTest is SharedTest {
         DEFAULT_VM_EXPIRATION
       )
     );
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -1346,9 +989,7 @@ contract VMStorageTest is SharedTest {
       bool VmExpirationUpdated_expired,
       uint256 VmExpirationUpdated_expiration
     ) = _expireVm(
-        didData.method0,
-        didData.method1,
-        didData.method2,
+        didData.methods,
         didData.id, // sender ID
         DEFAULT_VM_ID, // sender VM ID
         command.targetId, // target ID
@@ -1356,23 +997,11 @@ contract VMStorageTest is SharedTest {
       );
     //* ☑️ Assert ⬇
     // Final length
-    length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Check final state
     assertEq(length, 2);
     // -- final "first vm"
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -1387,9 +1016,7 @@ contract VMStorageTest is SharedTest {
     );
     // -- final vm by ID
     verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -1427,9 +1054,7 @@ contract VMStorageTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       DEFAULT_VM_ID,
       didData.id,
@@ -1444,18 +1069,11 @@ contract VMStorageTest is SharedTest {
     CreateVmResultTest memory result = _createVm(command);
     _validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
     // Check previous state
-    uint256 length = didManager.getVmListLength(
-      DEFAULT_DID_METHOD0,
-      DEFAULT_DID_METHOD1,
-      DEFAULT_DID_METHOD2,
-      didData.id
-    );
+    uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Should be the one by default when creating DID + the one we just added
     assertEq(length, 2);
     VerificationMethod memory verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -1472,14 +1090,7 @@ contract VMStorageTest is SharedTest {
         DEFAULT_VM_EXPIRATION
       )
     );
-    verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
-      didData.id,
-      bytes32(0),
-      uint8(2)
-    );
+    verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
     _assertVm(
       verificationMethod,
       VerificationMethod(
@@ -1494,9 +1105,7 @@ contract VMStorageTest is SharedTest {
     );
     // Expire Verification Method
     _expireVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id, // sender ID
       DEFAULT_VM_ID, // sender VM ID
       command.targetId, // target ID
@@ -1507,9 +1116,7 @@ contract VMStorageTest is SharedTest {
     // Expire Verification Method
     vm.expectRevert("VM already expired");
     didManager.expireVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id, // sender ID
       DEFAULT_VM_ID, // sender VM ID
       command.targetId, // target ID
@@ -1518,9 +1125,7 @@ contract VMStorageTest is SharedTest {
     //* ☑️ Assert ⬇
     // -- final vm by ID
     verificationMethod = didManager.getVm(
-      didData.method0,
-      didData.method1,
-      didData.method2,
+      didData.methods,
       didData.id,
       result.VmCreated_id,
       uint8(0)
@@ -1559,9 +1164,7 @@ contract VMStorageTest is SharedTest {
   }
 
   function _expireVm(
-    bytes32 method0,
-    bytes32 method1,
-    bytes32 method2,
+    bytes32 methods,
     bytes32 senderId,
     bytes32 senderVmId,
     bytes32 targetId,
@@ -1578,7 +1181,7 @@ contract VMStorageTest is SharedTest {
     // Event recording
     vm.recordLogs();
     //* Update controller call
-    didManager.expireVm(method0, method1, method2, senderId, senderVmId, targetId, vmId);
+    didManager.expireVm(methods, senderId, senderVmId, targetId, vmId);
     // Get logs from previous transaction
     Vm.Log[] memory entries = vm.getRecordedLogs();
     // Get the event values
