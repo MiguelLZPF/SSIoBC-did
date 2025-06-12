@@ -29,7 +29,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
    *
    * Emits a `DidCreated` event with the generated DID and the address of the caller.
    */
-  function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external {
+  function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external virtual {
     //* Params validation
     // Required
     require(random != bytes32(0), "Random cannot be 0");

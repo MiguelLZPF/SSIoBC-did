@@ -711,7 +711,8 @@ contract DidManagerTest is SharedTest {
 
   function test_shouldNot_updateController_withAnotherSender() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user); // Set user as the sender & origin
     CreateDidResultTest memory userResult = _createDid(
       EMPTY_DID_METHODS,
       DEFAULT_RANDOM_0,
@@ -719,7 +720,8 @@ contract DidManagerTest is SharedTest {
     );
     vm.stopPrank();
 
-    startHoax(otherUser, DEFAULT_USER_BALANCE);
+    vm.deal(otherUser, DEFAULT_USER_BALANCE);
+    vm.startPrank(otherUser, otherUser); // Set other user as the sender & origin
     CreateDidResultTest memory otherResult = _createDid(
       EMPTY_DID_METHODS,
       DEFAULT_RANDOM_1,
@@ -727,7 +729,7 @@ contract DidManagerTest is SharedTest {
     );
     vm.stopPrank();
 
-    vm.startPrank(user); // Set user as the sender & origin
+    vm.startPrank(user, user); // Set user as the sender & origin
     // Update controller with other user VM
     UpdateControllerCommandTest memory command = UpdateControllerCommandTest({
       methods: userResult.didInfo.methods,
@@ -751,7 +753,7 @@ contract DidManagerTest is SharedTest {
       assertEq(controllers[i].vmId, EMPTY_VM_ID);
     }
     //* 🎬 Act ⬇
-    vm.startPrank(user); // ! Sender now is the user
+    vm.startPrank(user, user); // ! Sender & origin now is the user
     console.logBytes32(otherResult.didInfo.id);
     console.log(msg.sender);
     console.log(tx.origin);
@@ -845,7 +847,8 @@ contract DidManagerTest is SharedTest {
   // READ FUNCTIONS
   function test_should_authenticateVm() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user); // Set user as the sender & origin
     CreateDidResultTest memory result = _createDid(
       EMPTY_DID_METHODS,
       RANDOM_AUTHENTICATE,
@@ -867,7 +870,8 @@ contract DidManagerTest is SharedTest {
 
   function test_should_checkVmRelationship() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     CreateDidResultTest memory result = _createDid(
       EMPTY_DID_METHODS,
       RANDOM_RELATIONSHIP,

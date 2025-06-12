@@ -22,7 +22,7 @@ contract DidManagerScript is Script {
     bool store,
     string calldata tag,
     bool broadcast
-  ) external returns (DidManager w3cResolver, Deployment memory deployment) {
+  ) external returns (DidManager didManager, Deployment memory deployment) {
     bytes32 tag_ = bytes32(bytes(tag));
     return
       this.deploy(
@@ -34,22 +34,22 @@ contract DidManagerScript is Script {
   function deploy(
     DeployCommand memory command,
     bool broadcast
-  ) external returns (DidManager w3cResolver, Deployment memory deployment) {
+  ) external returns (DidManager didManager, Deployment memory deployment) {
     // Only thing that is executed in the blockchain
     if (broadcast) {
       console.logString("WARN: Broadcasting deployment, make sure to use --broadcast flag");
       vm.startBroadcast();
-      w3cResolver = new DidManager();
+      didManager = new DidManager();
       vm.stopBroadcast();
     } else {
       console.logString("WARN: Dry-run deployment. The transaction will NOT be executed.");
-      w3cResolver = new DidManager();
+      didManager = new DidManager();
     }
     // Generate deployment data
     deployment = Deployment({
       bytecodeHash: keccak256(vm.getCode(CONTRACT_FILE_NAME)),
       chainId: block.chainid,
-      logicAddr: address(w3cResolver),
+      logicAddr: address(didManager),
       name: bytes32(bytes(CONTRACT_NAME)),
       proxyAddr: address(0),
       tag: command.storeInfo.tag,
@@ -59,6 +59,6 @@ contract DidManagerScript is Script {
     if (command.storeInfo.store) {
       config.storeDeployment(deployment);
     }
-    return (w3cResolver, deployment);
+    return (didManager, deployment);
   }
 }
