@@ -56,6 +56,16 @@ interface IDidManager {
     bytes32 vmId
   );
 
+  error MissingRequiredParameter();
+
+  error DidAlreadyExists();
+
+  error DidExpired();
+
+  error NotAuthenticatedAsSenderId();
+
+  error NotAControllerforTargetId();
+
   /**
    * @dev Creates a new DID.
    * @param methods The methods used to create the DID.

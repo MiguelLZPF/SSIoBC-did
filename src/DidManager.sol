@@ -32,7 +32,9 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external virtual {
     //* Params validation
     // Required
-    require(random != bytes32(0), "Random cannot be 0");
+    if (random == bytes32(0)) {
+      revert MissingRequiredParameter();
+    }
     // Optional
     // Default values if not provided
     if (methods == bytes32(0)) {
@@ -41,7 +43,9 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     //* Implementation
     bytes32 id = keccak256(abi.encodePacked(methods, random, tx.origin, block.prevrandao));
     bytes32 idHash = _calculateIdHash(methods, id);
-    require(_isExpired(idHash), "DID in use");
+    if (!_isExpired(idHash)) {
+      revert DidAlreadyExists();
+    }
     _removeAllVms(idHash);
     _removeAllServices(idHash);
     (, bytes32 positionHash) = _createVm(
@@ -64,9 +68,14 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   function createVm(DidCreateVmCommand memory command) external {
     //* Params validation
     // Required
-    require(command.methods != bytes32(0), "Method0 cant be 0");
-    require(command.senderId != bytes32(0) && command.targetId != bytes32(0), "DIDs cant be 0");
-    require(command.relationships > bytes1(0), "Relationships cant be 0");
+    if (
+      command.methods == bytes32(0) ||
+      command.senderId == bytes32(0) ||
+      command.targetId == bytes32(0) ||
+      command.relationships == bytes1(0)
+    ) {
+      revert MissingRequiredParameter();
+    }
     //* Implementation
     (, bytes32 targetIdHash) = _validateSenderAndTarget({
       methods: command.methods,
@@ -102,8 +111,9 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   ) external {
     //* Params validation
     // Required
-    require(methods != bytes32(0), "Method0 cant be 0");
-    require(senderId != bytes32(0) && targetId != bytes32(0), "DIDs cant be 0");
+    if (methods == bytes32(0) || senderId == bytes32(0) || targetId == bytes32(0)) {
+      revert MissingRequiredParameter();
+    }
     //* Implementation
     (, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);
     _expireVm(targetIdHash, vmId);
@@ -121,11 +131,14 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   ) external {
     //* Params validation
     // Required
-    require(methods != bytes32(0), "Method0 cant be 0");
-    require(
-      senderId != bytes32(0) && targetId != bytes32(0) && controllerId != bytes32(0),
-      "DIDs cant be 0"
-    );
+    if (
+      methods == bytes32(0) ||
+      senderId == bytes32(0) ||
+      targetId == bytes32(0) ||
+      controllerId == bytes32(0)
+    ) {
+      revert MissingRequiredParameter();
+    }
     //* Implementation
     (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(
       methods,
@@ -195,9 +208,9 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes1 relationship,
     address sender
   ) public view returns (bool) {
-    require(methods != bytes32(0), "Method0 cant be 0");
-    require(id != bytes32(0), "ID cant be 0");
-    require(sender != address(0), "Sender cant be 0");
+    if (methods == bytes32(0) || id == bytes32(0) || sender == address(0)) {
+      revert MissingRequiredParameter();
+    }
     bytes32 idHash = _calculateIdHash(methods, id);
     return _isVmRelationship(idHash, vmId, relationship, sender);
   }
@@ -247,15 +260,17 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     senderIdHash = _calculateIdHash(methods, senderId);
     targetIdHash = _calculateIdHash(methods, targetId);
     // Check if the DIDs are expired
-    require(!_isExpired(senderIdHash), "Sender DID expired");
-    require(!_isExpired(targetIdHash), "Target DID expired");
+    if (_isExpired(senderIdHash) || _isExpired(targetIdHash)) {
+      revert DidExpired();
+    }
     // Check if the sender is authenticated as the sender DID
-    require(_isAuthenticated(senderIdHash, senderVmId, tx.origin), "Not authenticated as sender");
+    if (!_isAuthenticated(senderIdHash, senderVmId, tx.origin)) {
+      revert NotAuthenticatedAsSenderId();
+    }
     // Check if the sender is a controller for the target DID
-    require(
-      _isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash),
-      "Not a controller for target"
-    );
+    if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) {
+      revert NotAControllerforTargetId();
+    }
   }
 
   function _isControllerFor(

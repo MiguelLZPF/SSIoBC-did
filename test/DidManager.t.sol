@@ -158,7 +158,7 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     //* 🎬 Act ⬇
     // Create DID
-    vm.expectRevert("Random cannot be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     didManager.createDid(
       EMPTY_DID_METHODS,
       EMPTY_RANDOM, //! <-- Random value is empty
@@ -190,7 +190,7 @@ contract DidManagerTest is SharedTest {
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create DID
-    vm.expectRevert("DID in use");
+    vm.expectRevert(IDidManager.DidAlreadyExists.selector);
     didManager.createDid(EMPTY_DID_METHODS, DEFAULT_RANDOM_0, EMPTY_VM_ID); // ! Same DID because params and block timestamp are the same
     //* ☑️ Assert ⬇
     // Check final state
@@ -218,7 +218,7 @@ contract DidManagerTest is SharedTest {
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
-    vm.expectRevert("Method0 cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     CreateVmCommand memory command = CreateVmCommand({
       methods: EMPTY_DID_METHODS, // ! <-- Method0 is empty
       senderId: result.didInfo.id,
@@ -255,7 +255,7 @@ contract DidManagerTest is SharedTest {
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
-    vm.expectRevert("DIDs cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     CreateVmCommand memory command = CreateVmCommand({
       methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: EMPTY_DID_ID, // ! <-- Sender ID is empty
@@ -292,7 +292,7 @@ contract DidManagerTest is SharedTest {
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
-    vm.expectRevert("DIDs cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     CreateVmCommand memory command = CreateVmCommand({
       methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: result.didInfo.id,
@@ -329,7 +329,7 @@ contract DidManagerTest is SharedTest {
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
-    vm.expectRevert("Relationships cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     CreateVmCommand memory command = CreateVmCommand({
       methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: result.didInfo.id,
@@ -372,7 +372,7 @@ contract DidManagerTest is SharedTest {
     assertEq(exp, block.timestamp + 365 days);
     //* 🎬 Act ⬇
     // Expire VM
-    vm.expectRevert("Method0 cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     didManager.expireVm(
       EMPTY_DID_METHODS, // ! <-- Updated to use methods
       result.didInfo.id,
@@ -380,7 +380,7 @@ contract DidManagerTest is SharedTest {
       result.didInfo.id,
       DEFAULT_VM_ID
     );
-    vm.expectRevert("DIDs cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     didManager.expireVm({
       methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: EMPTY_DID_ID, // ! <-- Sender ID is empty
@@ -388,7 +388,7 @@ contract DidManagerTest is SharedTest {
       targetId: result.didInfo.id,
       vmId: DEFAULT_VM_ID
     });
-    vm.expectRevert("DIDs cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     didManager.expireVm({
       methods: result.didInfo.methods,
       senderId: result.didInfo.id,
@@ -595,7 +595,7 @@ contract DidManagerTest is SharedTest {
     }
     //* 🎬 Act ⬇
     // Update controller
-    vm.expectRevert("Method0 cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     didManager.updateController({
       methods: EMPTY_DID_METHODS, // ! <-- Method0 is empty
       senderId: result.didInfo.id,
@@ -605,7 +605,7 @@ contract DidManagerTest is SharedTest {
       controllerVmId: DEFAULT_VM_ID,
       controllerPosition: 0
     });
-    vm.expectRevert("DIDs cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     didManager.updateController({
       methods: result.didInfo.methods,
       senderId: EMPTY_DID_ID, // ! <-- Sender ID is empty
@@ -615,7 +615,7 @@ contract DidManagerTest is SharedTest {
       controllerVmId: DEFAULT_VM_ID,
       controllerPosition: 0
     });
-    vm.expectRevert("DIDs cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     didManager.updateController({
       methods: result.didInfo.methods,
       senderId: result.didInfo.id,
@@ -625,7 +625,7 @@ contract DidManagerTest is SharedTest {
       controllerVmId: DEFAULT_VM_ID,
       controllerPosition: 0
     });
-    vm.expectRevert("DIDs cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     didManager.updateController({
       methods: result.didInfo.methods,
       senderId: result.didInfo.id,
@@ -688,7 +688,7 @@ contract DidManagerTest is SharedTest {
     vm.warp(block.timestamp + EXPIRATION + 1); // ! advance time
     //* 🎬 Act ⬇
     startHoax(otherUser, DEFAULT_USER_BALANCE);
-    vm.expectRevert("Sender DID expired");
+    vm.expectRevert(IDidManager.DidExpired.selector);
     didManager.updateController({
       methods: userResult.didInfo.methods,
       senderId: otherResult.didInfo.id,
@@ -757,7 +757,7 @@ contract DidManagerTest is SharedTest {
     console.logBytes32(otherResult.didInfo.id);
     console.log(msg.sender);
     console.log(tx.origin);
-    vm.expectRevert("Not authenticated as sender");
+    vm.expectRevert(IDidManager.NotAuthenticatedAsSenderId.selector);
     didManager.updateController({
       methods: userResult.didInfo.methods,
       senderId: otherResult.didInfo.id, //! <-- Other user is trying to update the controller
@@ -823,7 +823,7 @@ contract DidManagerTest is SharedTest {
     }
     //* 🎬 Act ⬇
     startHoax(user1, DEFAULT_USER_BALANCE);
-    vm.expectRevert("Not a controller for target");
+    vm.expectRevert(IDidManager.NotAControllerforTargetId.selector);
     didManager.updateController({
       methods: userResult.didInfo.methods,
       senderId: user1Result.didInfo.id,
@@ -894,7 +894,8 @@ contract DidManagerTest is SharedTest {
 
   function test_shouldNot_checkVmRelationship_withBadParams() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     CreateDidResultTest memory result = _createDid(
       EMPTY_DID_METHODS,
       RANDOM_RELATIONSHIP,
@@ -902,7 +903,7 @@ contract DidManagerTest is SharedTest {
     );
     //* 🎬 Act ⬇
     // Authenticate VM
-    vm.expectRevert("Method0 cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     bool isRelationship = didManager.isVmRelationship(
       EMPTY_DID_METHODS, // ! <-- Method0 is empty
       result.didInfo.id,
@@ -910,7 +911,7 @@ contract DidManagerTest is SharedTest {
       VM_RELATIONSHIPS_AUTHENTICATION,
       user
     );
-    vm.expectRevert("ID cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     isRelationship = didManager.isVmRelationship(
       result.didInfo.methods,
       EMPTY_DID_ID, // ! <-- ID is empty
@@ -918,7 +919,7 @@ contract DidManagerTest is SharedTest {
       VM_RELATIONSHIPS_AUTHENTICATION,
       user
     );
-    vm.expectRevert("Sender cant be 0");
+    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
     isRelationship = didManager.isVmRelationship(
       result.didInfo.methods,
       result.didInfo.id,
