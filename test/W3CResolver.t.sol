@@ -74,7 +74,8 @@ contract W3CResolverTest is SharedTest, Helper {
   // Verification Method
   function test_should_resolveVm_withDefaultParams() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check initial state
     // ! Not possible | really difficult in real newtorks
     bytes32 id = keccak256(
@@ -145,7 +146,8 @@ contract W3CResolverTest is SharedTest, Helper {
   // Service
   function test_should_resolveService_withDefaultParams() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check initial state
     // ! Not possible | really difficult in real newtorks
     bytes32 id = keccak256(
@@ -212,7 +214,8 @@ contract W3CResolverTest is SharedTest, Helper {
   // It creates a DID with multiple VMs and Services and resolves it
   function test_should_resolveDid_withMultVmNServices() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check initial state
     // ! Not possible | really difficult in real newtorks
     bytes32 id = keccak256(

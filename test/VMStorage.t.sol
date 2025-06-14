@@ -40,11 +40,13 @@ contract VMStorageTest is SharedTest {
     didManager = _deployNewDidManager();
     vm.label(address(didManager), "initDidManager");
     // Create a DID for user
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     userResult = _createDid(EMPTY_DID_METHODS, bytes32("random0"), bytes32(0));
     vm.stopPrank();
     // Create a DID for other user
-    startHoax(otherUser, DEFAULT_USER_BALANCE);
+    vm.deal(otherUser, DEFAULT_USER_BALANCE);
+    vm.startPrank(otherUser, otherUser);
     otherUserResult = _createDid(EMPTY_DID_METHODS, bytes32("random1"), bytes32(0));
     vm.stopPrank();
   }
@@ -54,7 +56,8 @@ contract VMStorageTest is SharedTest {
   function test_should_createVm() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check previous state
     uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     assertEq(length, 1);
@@ -136,7 +139,8 @@ contract VMStorageTest is SharedTest {
   function test_should_createVm_WithPublicKey() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check previous state
     uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     assertEq(length, 1);
@@ -218,7 +222,8 @@ contract VMStorageTest is SharedTest {
   function test_should_createVm_WithBlockchainAccountId() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check previous state
     uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     assertEq(length, 1);
@@ -300,7 +305,8 @@ contract VMStorageTest is SharedTest {
   function test_should_createVm_andChangeExpirationTo0() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check previous state
     uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     assertEq(length, 1);
@@ -382,7 +388,8 @@ contract VMStorageTest is SharedTest {
   function test_shouldNot_createVm_withPubKeyBlockchainAccountIdAndThisBcAddressEmpty() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check previous state
     uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     assertEq(length, 1);
@@ -431,7 +438,8 @@ contract VMStorageTest is SharedTest {
   function test_should_validateVm() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
       didData.methods,
@@ -529,7 +537,8 @@ contract VMStorageTest is SharedTest {
   function test_should_validateVm_withExpEmpty() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
       didData.methods,
@@ -627,7 +636,8 @@ contract VMStorageTest is SharedTest {
   function test_shouldNot_validateVm_withOtherVmPositionHash() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
       didData.methods,
@@ -727,7 +737,8 @@ contract VMStorageTest is SharedTest {
   function test_shouldNot_validateVm_withNoThisBcAddress() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
       didData.methods,
@@ -827,7 +838,8 @@ contract VMStorageTest is SharedTest {
   function test_shouldNot_validateVm_withOtherSender() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
       didData.methods,
@@ -929,7 +941,8 @@ contract VMStorageTest is SharedTest {
   function test_should_expireVm() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
       didData.methods,
@@ -1051,7 +1064,8 @@ contract VMStorageTest is SharedTest {
   function test_shouldNot_expireVm_alreadyExpired() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Add new Verification Method
     DidCreateVmCommand memory command = DidCreateVmCommand(
       didData.methods,

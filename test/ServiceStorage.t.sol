@@ -72,11 +72,13 @@ contract ServiceStorageTest is SharedTest {
     didManager = _deployNewDidManager();
     vm.label(address(didManager), "initDidManager");
     // Create a DID for user
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     userResult = _createDid(EMPTY_DID_METHODS, bytes32("random"), bytes32(0));
     vm.stopPrank();
     // Create a DID for other user
-    startHoax(otherUser, DEFAULT_USER_BALANCE);
+    vm.deal(otherUser, DEFAULT_USER_BALANCE);
+    vm.startPrank(otherUser, otherUser);
     otherUserResult = _createDid(EMPTY_DID_METHODS, bytes32("random"), bytes32(0));
     vm.stopPrank();
   }
@@ -85,7 +87,8 @@ contract ServiceStorageTest is SharedTest {
   // ADD SERVICE
   function test_should_addNewService() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check previous state
     uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     assertEq(length, 0);
@@ -161,7 +164,8 @@ contract ServiceStorageTest is SharedTest {
   // UPDATE SERVICE
   function test_should_updateService() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Add new service
     ServiceUpdateResultTest memory result = _updateService(
       ServiceUpdateCommandTest({
@@ -249,7 +253,8 @@ contract ServiceStorageTest is SharedTest {
     //* 🗂️ Arrange ⬇
     DidInfo memory didUserData = userResult.didInfo;
     DidInfo memory didOtherData = otherUserResult.didInfo;
-    startHoax(otherUser, DEFAULT_USER_BALANCE);
+    vm.deal(otherUser, DEFAULT_USER_BALANCE);
+    vm.startPrank(otherUser, otherUser);
     // Check previous state
     uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, didUserData.id);
     assertEq(length, 0);
@@ -302,7 +307,8 @@ contract ServiceStorageTest is SharedTest {
 
   function test_shouldNot_updateService_emptyId() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check previous state
     uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     assertEq(length, 0);
@@ -358,7 +364,8 @@ contract ServiceStorageTest is SharedTest {
 
   function test_shouldNot_updateService_emptyType() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check previous state
     uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     assertEq(length, 0);
@@ -414,7 +421,8 @@ contract ServiceStorageTest is SharedTest {
 
   function test_shouldNot_updateService_emptyEndpoint() public {
     //* 🗂️ Arrange ⬇
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Check previous state
     uint256 length = didManager.getServiceListLength(DEFAULT_DID_METHODS, userResult.didInfo.id);
     assertEq(length, 0);
@@ -472,7 +480,8 @@ contract ServiceStorageTest is SharedTest {
   function test_should_removeService() public {
     //* 🗂️ Arrange ⬇
     DidInfo memory didData = userResult.didInfo;
-    startHoax(user, DEFAULT_USER_BALANCE);
+    vm.deal(user, DEFAULT_USER_BALANCE);
+    vm.startPrank(user, user);
     // Add new service
     ServiceUpdateResultTest memory result = _updateService(
       ServiceUpdateCommandTest({
