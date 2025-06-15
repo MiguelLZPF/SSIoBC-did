@@ -42,10 +42,10 @@ abstract contract SharedTest is Test {
   bytes10 internal constant DEFAULT_DID_METHOD1 = bytes10("main");
   bytes10 internal constant DEFAULT_DID_METHOD2 = EMPTY_DID_METHOD;
   bytes32 internal constant DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;"); // ";" is the null or scape character
-  bytes10 internal constant DID_METHOD_0_CUSTOM = bytes10("custom0;;;");
-  bytes10 internal constant DID_METHOD_1_CUSTOM = bytes10("custom1;;;");
-  bytes10 internal constant DID_METHOD_2_CUSTOM = bytes10("custom2;;;");
-  bytes32 internal constant DID_METHODS_CUSTOM = bytes32("custom0;;;custom1;;;custom2;;;"); // ";" used as scape or null character
+  bytes10 internal constant CUSTOM_DID_METHOD_0 = bytes10("custom0;;;");
+  bytes10 internal constant CUSTOM_DID_METHOD_1 = bytes10("custom1;;;");
+  bytes10 internal constant CUSTOM_DID_METHOD_2 = bytes10("custom2;;;");
+  bytes32 internal constant CUSTOM_DID_METHODS = bytes32("custom0;;;custom1;;;custom2;;;"); // ";" used as scape or null character
   bytes32 internal constant EMPTY_DID_ID = bytes32(0);
   bytes32 internal constant EMPTY_RANDOM = bytes32(0);
   bytes32 internal constant DEFAULT_RANDOM_0 = bytes32("default-random");
@@ -73,6 +73,7 @@ abstract contract SharedTest is Test {
   address constant DEFAULT_VM_ETHEREUM_ADDRESS =
     address(0xab16a96D359eC26a11e2C2b3d8f8B8942d5Bfcdb);
   uint256 constant EMPTY_VM_EXPIRATION = 0;
+  uint256 constant DEFAULT_VM_EXPIRATION = 365 days;
   // Service
   bytes32 constant DEFAULT_SERVICE_ID = bytes32("linked-domain");
   bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] DEFAULT_SERVICE_TYPE = [

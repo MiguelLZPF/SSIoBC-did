@@ -2,43 +2,11 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { HashBasedList } from "@lib/hash-based-list/src/HashBasedList.sol";
+import { DEFAULT_VM_ID, DEFAULT_VM_EXPIRATION, CreateVmCommand, VerificationMethod, IVMStorage } from "./interfaces/IVMStorage.sol";
 
-// Verification Method Relationships    binary  => hex  => dec
-// None                             => 00000000 => 0x00 => 0
-// Authentication                   => 00000001 => 0x01 => 1
-// AssertionMethod                  => 00000010 => 0x02 => 2
-// KeyAgreement                     => 00000100 => 0x04 => 4
-// CapabilityInvocation             => 00001000 => 0x08 => 8
-// CapabilityDelegation             => 00010000 => 0x10 => 16
-// All                              => 00011111 => 0x1F => 31
-
-bytes32 constant VM_ID = bytes32("vm-0");
-uint256 constant VM_DEFAULT_EXPIRATION = 365 days;
-
-struct VerificationMethod {
-  bytes32 id;
-  bytes32[2] type_;
-  // "controller" field is automatically set to this DID.id
-  bytes32[16] publicKeyMultibase; // The public key associated with the verification method (VM) in multibase format
-  bytes32[5] blockchainAccountId; // firstPart:secondPart:thirdPart = 32:32:32x3 // External blockchain account ID
-  address ethereumAddress; // An address (account ID) of the blockchain where the VM is stored
-  bytes1 relationships; // Relationships XX00000
-  uint256 expiration; // The expiration date of the VM
-}
-
-struct CreateVmCommand {
-  bytes32 didHash; // The hash of the decentralized identifier (DID)
-  bytes32 id; // The identifier of the verification method (VM)
-  bytes32[2] type_; // The type of the verification method (VM)
-  bytes32[16] publicKeyMultibase; // The public key associated with the verification method (VM) in multibase format
-  bytes32[5] blockchainAccountId; // The blockchain account ID associated with the verification method (VM)
-  address ethereumAddress; // The address of the blockchain associated with the verification method (VM)
-  bytes1 relationships; // The relationships associated with the verification method (VM)
-  uint expiration; // The expiration timestamp of the verification method (VM)
-}
-
-abstract contract VMStorage is HashBasedList {
-  //* Constants
+abstract contract VMStorage is HashBasedList, IVMStorage {
+  //* Constant Variables
+  // Empty values
   bytes32[16] internal EMPTY_PUBLIC_KEY = [bytes32(0)];
   bytes32[5] internal EMPTY_BLOCKCHAIN_ACCOUNT_ID = [
     bytes32(0),
@@ -47,47 +15,16 @@ abstract contract VMStorage is HashBasedList {
     bytes32(0),
     bytes32(0)
   ];
-  //* Events
-  /**
-   * @dev Emitted when a new Verification Method (VM) is created for a DID.
-   * @param didIdHash The unique identifier of the DID.
-   * @param id The unique identifier of the VM.
-   * @param idHash The unique identifier hash of the VM.
-   * @param positionHash The hash of the position of the VM.
-   */
-  event VmCreated(
-    bytes32 indexed didIdHash,
-    bytes32 indexed id,
-    bytes32 indexed idHash,
-    bytes32 positionHash
-  );
-
-  /**
-   * @dev Emitted when a VM is validated.
-   * @param id The unique identifier of the VM.
-   */
-  event VmValidated(bytes32 indexed id);
-
-  /**
-   * @dev Emitted when the expiration status of a VM is updated.
-   * @param didIdHash The unique identifier of the DID.
-   * @param id The unique identifier of the VM.
-   * @param expired The new expiration status of the VM.
-   * @param expiration The new expiration timestamp of the VM.
-   */
-  event VmExpirationUpdated(
-    bytes32 indexed didIdHash,
-    bytes32 indexed id,
-    bool indexed expired,
-    uint256 expiration
-  );
+  // Default values
+  bytes32[2] private DEFAULT_VM_TYPE = [bytes32("EcdsaSecp256k1VerificationKey20"), bytes32("19")];
   //* Storage
-  bytes32[2] private VM_TYPE = [bytes32("EcdsaSecp256k1VerificationKey20"), bytes32("19")];
   // hash(DIDHash, position) --> VerificationMethod Details
   mapping(bytes32 => VerificationMethod) private _vm;
 
   /**
    * @dev Creates a new verification method.
+   * @param command The command containing the parameters for creating the verification method.
+   * @dev command.publicKeyMultibase, command.blockchainAccountId OR command.ethereumAddress are required.
    */
   function _createVm(
     CreateVmCommand memory command
@@ -95,21 +32,22 @@ abstract contract VMStorage is HashBasedList {
     //* Params validation
     // Required
     // require(command.didHash != bytes32(0), "DID hash required"); //! Unreachable code
-    require(
-      command.publicKeyMultibase[0] != bytes32(0) ||
-        command.blockchainAccountId[0] != bytes32(0) ||
-        command.ethereumAddress != address(0),
-      "4th or 5th or 6th param required"
-    );
+    if (
+      command.publicKeyMultibase[0] == bytes32(0) &&
+      command.blockchainAccountId[0] == bytes32(0) &&
+      command.ethereumAddress == address(0)
+    ) {
+      revert PubKeyBlockchainAccountORAddressRequired();
+    }
     // Optional
     if (command.id == bytes32(0)) {
-      command.id = VM_ID; // "vm-0"
+      command.id = DEFAULT_VM_ID; // "vm-0"
     }
     if (command.type_[0] == bytes32(0)) {
-      command.type_ = [VM_TYPE[0], VM_TYPE[1]]; // "EcdsaSecp256k1VerificationKey20", "19"
+      command.type_ = [DEFAULT_VM_TYPE[0], DEFAULT_VM_TYPE[1]]; // "EcdsaSecp256k1VerificationKey20", "19"
     }
     if (command.expiration == 0) {
-      command.expiration = block.timestamp + VM_DEFAULT_EXPIRATION;
+      command.expiration = block.timestamp + DEFAULT_VM_EXPIRATION;
     }
     if (command.ethereumAddress != address(0)) {
       // Needed to validate thisBcAddress
@@ -118,7 +56,7 @@ abstract contract VMStorage is HashBasedList {
     //* Implementation
     uint8 position;
     (, , position) = _calculateHashes(command.didHash, command.id);
-    require(position == 0, "VM already exists");
+    if (position != 0) revert VmAlreadyExists();
     // Add VM to HBL
     (idHash, position) = _addHbl(command.didHash, command.id);
     positionHash = _calculatePositionHash(command.didHash, position);
@@ -151,13 +89,13 @@ abstract contract VMStorage is HashBasedList {
     //* Params validation
     // Optional
     if (expiration == 0) {
-      expiration = block.timestamp + VM_DEFAULT_EXPIRATION;
+      expiration = block.timestamp + DEFAULT_VM_EXPIRATION;
     }
     //* Implementation
     VerificationMethod storage vm = _vm[positionHash];
-    require(vm.id != bytes32(0), "VM not found");
-    require(vm.expiration == 0, "VM already validated or out"); // This means either the VM is validated or is a VM from another BC or type
-    require(vm.ethereumAddress == sender, "Cant validate VM. Invalid Sign"); //! This is the signature validation of the VM
+    if (vm.id == bytes32(0)) revert VmNotFound();
+    if (vm.expiration != 0) revert VmAlreadyValidated(); // This means that the VM is already validated
+    if (vm.ethereumAddress != sender) revert InvalidSignature(); // This means that the Tx Signer is not the VM's Ethereum Address or actual signature validation
     vm.expiration = expiration;
     //Event
     emit VmValidated(vm.id);
@@ -172,9 +110,9 @@ abstract contract VMStorage is HashBasedList {
   function _expireVm(bytes32 didHash, bytes32 id) internal {
     (, bytes32 positionHash, ) = _calculateHashes(didHash, id);
     VerificationMethod storage vm = _vm[positionHash];
-    require(vm.expiration > block.timestamp, "VM already expired");
+    if (vm.expiration <= block.timestamp) revert VmAlreadyExpired();
     vm.expiration = block.timestamp;
-    emit VmExpirationUpdated(didHash, id, vm.expiration <= block.timestamp, vm.expiration);
+    emit VmExpirationUpdated(didHash, id, true, vm.expiration);
   }
 
   function _removeAllVms(bytes32 didHash) internal {
@@ -257,18 +195,18 @@ abstract contract VMStorage is HashBasedList {
     bytes1 relationship,
     address sender
   ) internal view returns (bool) {
-    require(id != bytes32(0), "VM ID cannot be 0");
-    require(relationship != bytes1(0), "Relationship cannot be 0");
-    require(relationship <= bytes1(0x1F), "Relationship out of range");
-    require(sender != address(0), "Sender cannot be 0");
+    if (id == bytes32(0) || relationship == bytes1(0) || sender == address(0)) {
+      revert MissingRequiredParameter();
+    }
+    if (relationship > bytes1(0x1F)) revert VmRelationshipOutOfRange();
     (, bytes32 positionHash, ) = _calculateHashes(didHash, id);
     // Get VM
     VerificationMethod memory vm = _vm[positionHash];
     // Check if the VM exists and is not expired
-    require(vm.expiration > block.timestamp, "VM expired");
+    if (vm.expiration <= block.timestamp) revert VmAlreadyExpired();
     // Check if the sender is in the VM and if the VM relationship is the same as the one provided
     if (sender != address(0)) {
-      return (vm.ethereumAddress == sender && vm.relationships & relationship == relationship);
+      return (vm.ethereumAddress == sender && (vm.relationships & relationship) == relationship);
     }
     // else
     return (vm.relationships & relationship == relationship);

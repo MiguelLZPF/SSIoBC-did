@@ -6,6 +6,7 @@ import { Vm } from "forge-std/Vm.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
 import { SharedTest, DidInfo, CreateDidResultTest } from "@test/SharedTest.sol";
+import { IVMStorage } from "@src/interfaces/IVMStorage.sol";
 import { IDidManager, VerificationMethod, Controller, CreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 
 struct UpdateControllerCommandTest {
@@ -111,43 +112,43 @@ contract DidManagerTest is SharedTest {
     // Check initial state
     // ! Not possible | really difficult in real newtorks
     bytes32 id = keccak256(
-      abi.encodePacked(DID_METHODS_CUSTOM, DEFAULT_RANDOM_0, tx.origin, block.prevrandao)
+      abi.encodePacked(CUSTOM_DID_METHODS, DEFAULT_RANDOM_0, tx.origin, block.prevrandao)
     );
     uint256 exp = didManager.getExpiration(
-      DID_METHODS_CUSTOM,
+      CUSTOM_DID_METHODS,
       id,
       EMPTY_VM_ID // <-- To get the expiration of the DID
     );
     assertEq(exp, EMPTY_EXPIRATION);
-    uint256 length = didManager.getVmListLength(DID_METHODS_CUSTOM, id);
+    uint256 length = didManager.getVmListLength(CUSTOM_DID_METHODS, id);
     assertEq(length, 0);
     //* 🎬 Act ⬇
     // Create DID
     CreateDidResultTest memory result = _createDid(
-      DID_METHODS_CUSTOM,
+      CUSTOM_DID_METHODS,
       DEFAULT_RANDOM_0,
       VM_ID_CUSTOM
     );
     //* ☑️ Assert ⬇
     // Check final state
     exp = didManager.getExpiration(
-      DID_METHODS_CUSTOM,
+      CUSTOM_DID_METHODS,
       id,
       EMPTY_VM_ID // <-- To get the expiration of the DID
     );
     assertEq(exp, block.timestamp + EXPIRATION);
-    length = didManager.getVmListLength(DID_METHODS_CUSTOM, id);
+    length = didManager.getVmListLength(CUSTOM_DID_METHODS, id);
     assertEq(length, 1);
     // Check Events
     // VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed vmIdHash, bytes32 positionHash);
-    assertEq(result.VmCreated_didIdHash, _calculateDidHash(DID_METHODS_CUSTOM, id));
+    assertEq(result.VmCreated_didIdHash, _calculateDidHash(CUSTOM_DID_METHODS, id));
     assertEq(result.VmCreated_id, VM_ID_CUSTOM);
     // VmValidated(bytes32 indexed id);
     assertEq(result.VmValidated_id, VM_ID_CUSTOM);
     assertEq(result.VmCreated_id, result.VmValidated_id);
     // DidCreated(bytes32 indexed id, bytes32 indexed idHash, address indexed creator);
     assertEq(result.DidCreated_id, id);
-    assertEq(result.DidCreated_idHash, _calculateDidHash(DID_METHODS_CUSTOM, id));
+    assertEq(result.DidCreated_idHash, _calculateDidHash(CUSTOM_DID_METHODS, id));
     assertEq(result.DidCreated_idHash, result.VmCreated_didIdHash);
     // end
     vm.stopPrank();
@@ -158,7 +159,7 @@ contract DidManagerTest is SharedTest {
     startHoax(user, DEFAULT_USER_BALANCE);
     //* 🎬 Act ⬇
     // Create DID
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.createDid(
       EMPTY_DID_METHODS,
       EMPTY_RANDOM, //! <-- Random value is empty
@@ -218,7 +219,7 @@ contract DidManagerTest is SharedTest {
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     CreateVmCommand memory command = CreateVmCommand({
       methods: EMPTY_DID_METHODS, // ! <-- Method0 is empty
       senderId: result.didInfo.id,
@@ -255,7 +256,7 @@ contract DidManagerTest is SharedTest {
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     CreateVmCommand memory command = CreateVmCommand({
       methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: EMPTY_DID_ID, // ! <-- Sender ID is empty
@@ -292,7 +293,7 @@ contract DidManagerTest is SharedTest {
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     CreateVmCommand memory command = CreateVmCommand({
       methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: result.didInfo.id,
@@ -329,7 +330,7 @@ contract DidManagerTest is SharedTest {
     assertEq(length, 1);
     //* 🎬 Act ⬇
     // Create VM
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     CreateVmCommand memory command = CreateVmCommand({
       methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: result.didInfo.id,
@@ -372,7 +373,7 @@ contract DidManagerTest is SharedTest {
     assertEq(exp, block.timestamp + 365 days);
     //* 🎬 Act ⬇
     // Expire VM
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.expireVm(
       EMPTY_DID_METHODS, // ! <-- Updated to use methods
       result.didInfo.id,
@@ -380,7 +381,7 @@ contract DidManagerTest is SharedTest {
       result.didInfo.id,
       DEFAULT_VM_ID
     );
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.expireVm({
       methods: result.didInfo.methods, // ! <-- Updated to use methods
       senderId: EMPTY_DID_ID, // ! <-- Sender ID is empty
@@ -388,7 +389,7 @@ contract DidManagerTest is SharedTest {
       targetId: result.didInfo.id,
       vmId: DEFAULT_VM_ID
     });
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.expireVm({
       methods: result.didInfo.methods,
       senderId: result.didInfo.id,
@@ -595,7 +596,7 @@ contract DidManagerTest is SharedTest {
     }
     //* 🎬 Act ⬇
     // Update controller
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.updateController({
       methods: EMPTY_DID_METHODS, // ! <-- Method0 is empty
       senderId: result.didInfo.id,
@@ -605,7 +606,7 @@ contract DidManagerTest is SharedTest {
       controllerVmId: DEFAULT_VM_ID,
       controllerPosition: 0
     });
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.updateController({
       methods: result.didInfo.methods,
       senderId: EMPTY_DID_ID, // ! <-- Sender ID is empty
@@ -615,7 +616,7 @@ contract DidManagerTest is SharedTest {
       controllerVmId: DEFAULT_VM_ID,
       controllerPosition: 0
     });
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.updateController({
       methods: result.didInfo.methods,
       senderId: result.didInfo.id,
@@ -625,7 +626,7 @@ contract DidManagerTest is SharedTest {
       controllerVmId: DEFAULT_VM_ID,
       controllerPosition: 0
     });
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.updateController({
       methods: result.didInfo.methods,
       senderId: result.didInfo.id,
@@ -903,7 +904,7 @@ contract DidManagerTest is SharedTest {
     );
     //* 🎬 Act ⬇
     // Authenticate VM
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     bool isRelationship = didManager.isVmRelationship(
       EMPTY_DID_METHODS, // ! <-- Method0 is empty
       result.didInfo.id,
@@ -911,7 +912,7 @@ contract DidManagerTest is SharedTest {
       VM_RELATIONSHIPS_AUTHENTICATION,
       user
     );
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     isRelationship = didManager.isVmRelationship(
       result.didInfo.methods,
       EMPTY_DID_ID, // ! <-- ID is empty
@@ -919,7 +920,7 @@ contract DidManagerTest is SharedTest {
       VM_RELATIONSHIPS_AUTHENTICATION,
       user
     );
-    vm.expectRevert(IDidManager.MissingRequiredParameter.selector);
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     isRelationship = didManager.isVmRelationship(
       result.didInfo.methods,
       result.didInfo.id,

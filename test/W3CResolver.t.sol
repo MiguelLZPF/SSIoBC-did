@@ -8,7 +8,6 @@ import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { W3CResolverScript, DeployCommand } from "@script/W3CResolver.s.sol";
 import { SharedTest, DidInfo, CreateDidResultTest, CreateVmResultTest } from "@test/SharedTest.sol";
 import { PerformedAction, Service, ServiceUpdateCommandTest, ServiceUpdateResultTest } from "@test/ServiceStorage.t.sol";
-import { VM_DEFAULT_EXPIRATION } from "@src/VMStorage.sol";
 import { IDidManager, VerificationMethod, Controller, CreateVmCommand as DidCreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 import { IW3CResolver, W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -44,7 +43,7 @@ contract W3CResolverTest is SharedTest, Helper {
   bytes32 private constant VM_ID_CUSTOM_2 = bytes32("vm_custom_2");
   bytes32 private constant SERVICE_ID_SC = bytes32("issue-vc");
   // Variables
-  uint256 private DEFAULT_VM_EXPIRATION;
+  uint256 private EXPIRATION_ONE_MIN;
   // -- users
   address admin = DEFAULT_SENDER;
   address user = payable(address(10));
@@ -58,7 +57,7 @@ contract W3CResolverTest is SharedTest, Helper {
    * @dev Sets up the test environment by transferring some ether to users and deploying the DidManager contract.
    */
   function setUp() public {
-    DEFAULT_VM_EXPIRATION = block.timestamp + 60; // Now + 1 minute
+    EXPIRATION_ONE_MIN = block.timestamp + 60; // Now + 1 minute
     // Label users
     vm.label(admin, "admin");
     vm.label(user, "user");
@@ -138,7 +137,7 @@ contract W3CResolverTest is SharedTest, Helper {
       keccak256(abi.encodePacked(w3cVm.ethereumAddress)),
       keccak256(abi.encodePacked(Strings.toHexString(user)))
     );
-    assertEq(w3cVm.expiration, (block.timestamp + VM_DEFAULT_EXPIRATION) * 1000);
+    assertEq(w3cVm.expiration, (block.timestamp + EXPIRATION_ONE_MIN) * 1000);
     // end
     vm.stopPrank();
   }
@@ -256,7 +255,7 @@ contract W3CResolverTest is SharedTest, Helper {
         blockchainAccountId: DEFAULT_VM_BLOCKCHAIN_ACCOUNT_ID,
         ethereumAddress: DEFAULT_VM_ETHEREUM_ADDRESS,
         relationships: VM_RELATIONSHIPS_ALL,
-        expiration: DEFAULT_VM_EXPIRATION
+        expiration: EXPIRATION_ONE_MIN
       })
     );
     // Add a new Service

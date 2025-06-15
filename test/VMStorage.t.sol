@@ -16,7 +16,7 @@ contract VMStorageTest is SharedTest {
   bytes32[10] VM_ID = [bytes32("vm-create-test"), bytes32("vm-validate-test")];
   // * Variables
   address private DEFAULT_ETH_ADDRESS;
-  uint256 private DEFAULT_VM_EXPIRATION;
+  uint256 private EXPIRATION_ONE_MIN;
   // -- users
   address admin = DEFAULT_SENDER;
   address user = payable(address(10));
@@ -31,7 +31,7 @@ contract VMStorageTest is SharedTest {
    */
   function setUp() public {
     DEFAULT_ETH_ADDRESS = user;
-    DEFAULT_VM_EXPIRATION = block.timestamp + 60; // Now + 1 minute
+    EXPIRATION_ONE_MIN = block.timestamp + 60; // Now + 1 minute
     // Label users
     vm.label(admin, "admin");
     vm.label(user, "user");
@@ -166,7 +166,7 @@ contract VMStorageTest is SharedTest {
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID, // * <-- important
       EMPTY_VM_ETHEREUM_ADDRESS, // * <-- important
       DEFAULT_VM_RELATIONSHIPS,
-      DEFAULT_VM_EXPIRATION // * <-- important
+      EXPIRATION_ONE_MIN // * <-- important
     );
     CreateVmResultTest memory result = _createVm(command);
     //* ☑️ Assert ⬇
@@ -249,7 +249,7 @@ contract VMStorageTest is SharedTest {
       DEFAULT_VM_BLOCKCHAIN_ACCOUNT_ID, // ! <== Blockchain Account ID
       EMPTY_VM_ETHEREUM_ADDRESS, // * <-- important
       DEFAULT_VM_RELATIONSHIPS,
-      DEFAULT_VM_EXPIRATION // * <-- important
+      EXPIRATION_ONE_MIN // * <-- important
     );
     CreateVmResultTest memory result = _createVm(command);
     //* ☑️ Assert ⬇
@@ -332,7 +332,7 @@ contract VMStorageTest is SharedTest {
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
       DEFAULT_ETH_ADDRESS, // * <-- important
       DEFAULT_VM_RELATIONSHIPS,
-      DEFAULT_VM_EXPIRATION // * <-- important: should change to 0
+      EXPIRATION_ONE_MIN // * <-- important: should change to 0
     );
     CreateVmResultTest memory result = _createVm(command);
     //* ☑️ Assert ⬇
@@ -492,7 +492,7 @@ contract VMStorageTest is SharedTest {
     );
     //* 🎬 Act ⬇
     // Validate Verification Method
-    bytes32 VmValidated_id = _validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    bytes32 VmValidated_id = _validateVm(result.VmCreated_positionHash, EXPIRATION_ONE_MIN);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
@@ -509,7 +509,7 @@ contract VMStorageTest is SharedTest {
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
-        DEFAULT_VM_EXPIRATION
+        EXPIRATION_ONE_MIN
       )
     );
     // -- final vm by ID
@@ -523,7 +523,7 @@ contract VMStorageTest is SharedTest {
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
-        DEFAULT_VM_EXPIRATION
+        EXPIRATION_ONE_MIN
       )
     );
     // Check Events
@@ -691,7 +691,7 @@ contract VMStorageTest is SharedTest {
     //* 🎬 Act ⬇
     // Validate Verification Method
     vm.expectRevert("VM not found");
-    didManager.validateVm(keccak256("Does Not Exist"), DEFAULT_VM_EXPIRATION);
+    didManager.validateVm(keccak256("Does Not Exist"), EXPIRATION_ONE_MIN);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
@@ -751,7 +751,7 @@ contract VMStorageTest is SharedTest {
       EMPTY_VM_BLOCKCHAIN_ACCOUNT_ID,
       EMPTY_VM_ETHEREUM_ADDRESS,
       DEFAULT_VM_RELATIONSHIPS,
-      DEFAULT_VM_EXPIRATION
+      EXPIRATION_ONE_MIN
     );
     CreateVmResultTest memory result = _createVm(command);
     // Check previous state
@@ -792,7 +792,7 @@ contract VMStorageTest is SharedTest {
     //* 🎬 Act ⬇
     // Validate Verification Method
     vm.expectRevert("VM already validated or out");
-    didManager.validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    didManager.validateVm(result.VmCreated_positionHash, EXPIRATION_ONE_MIN);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
@@ -809,7 +809,7 @@ contract VMStorageTest is SharedTest {
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
-        DEFAULT_VM_EXPIRATION
+        EXPIRATION_ONE_MIN
       )
     );
     // -- final vm by ID
@@ -828,7 +828,7 @@ contract VMStorageTest is SharedTest {
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
-        DEFAULT_VM_EXPIRATION
+        EXPIRATION_ONE_MIN
       )
     );
     // end
@@ -894,7 +894,7 @@ contract VMStorageTest is SharedTest {
     // Validate Verification Method
     vm.expectRevert("Cant validate VM. Invalid Sign");
     startHoax(otherUser, DEFAULT_USER_BALANCE);
-    didManager.validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    didManager.validateVm(result.VmCreated_positionHash, EXPIRATION_ONE_MIN);
     //* ☑️ Assert ⬇
     // Final length
     length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
@@ -958,7 +958,7 @@ contract VMStorageTest is SharedTest {
       EMPTY_VM_EXPIRATION
     );
     CreateVmResultTest memory result = _createVm(command);
-    _validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    _validateVm(result.VmCreated_positionHash, EXPIRATION_ONE_MIN);
     // Check previous state
     uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Should be the one by default when creating DID + the one we just added
@@ -978,7 +978,7 @@ contract VMStorageTest is SharedTest {
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
-        DEFAULT_VM_EXPIRATION
+        EXPIRATION_ONE_MIN
       )
     );
     verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
@@ -991,7 +991,7 @@ contract VMStorageTest is SharedTest {
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
-        DEFAULT_VM_EXPIRATION
+        EXPIRATION_ONE_MIN
       )
     );
     //* 🎬 Act ⬇
@@ -1081,7 +1081,7 @@ contract VMStorageTest is SharedTest {
       EMPTY_VM_EXPIRATION
     );
     CreateVmResultTest memory result = _createVm(command);
-    _validateVm(result.VmCreated_positionHash, DEFAULT_VM_EXPIRATION);
+    _validateVm(result.VmCreated_positionHash, EXPIRATION_ONE_MIN);
     // Check previous state
     uint256 length = didManager.getVmListLength(DEFAULT_DID_METHODS, didData.id);
     // Should be the one by default when creating DID + the one we just added
@@ -1101,7 +1101,7 @@ contract VMStorageTest is SharedTest {
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
-        DEFAULT_VM_EXPIRATION
+        EXPIRATION_ONE_MIN
       )
     );
     verificationMethod = didManager.getVm(didData.methods, didData.id, bytes32(0), uint8(2));
@@ -1114,7 +1114,7 @@ contract VMStorageTest is SharedTest {
         command.blockchainAccountId,
         command.ethereumAddress,
         command.relationships,
-        DEFAULT_VM_EXPIRATION
+        EXPIRATION_ONE_MIN
       )
     );
     // Expire Verification Method

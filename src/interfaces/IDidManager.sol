@@ -56,7 +56,8 @@ interface IDidManager {
     bytes32 vmId
   );
 
-  error MissingRequiredParameter();
+  // Declared in IVMStorage.sol
+  // error MissingRequiredParameter();
 
   error DidAlreadyExists();
 
