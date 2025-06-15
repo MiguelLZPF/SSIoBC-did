@@ -3,10 +3,11 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { Test } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
+import { DEFAULT_DID_METHODS, IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfaces/IDidManager.sol";
+import { DEFAULT_VM_ID, DEFAULT_VM_EXPIRATION } from "@src/interfaces/IVMStorage.sol";
+import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfaces/IDidManager.sol";
-import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 
 struct DidInfo {
   bytes32 methods;
@@ -41,7 +42,6 @@ abstract contract SharedTest is Test {
   bytes10 internal constant DEFAULT_DID_METHOD0 = bytes10("lzpf");
   bytes10 internal constant DEFAULT_DID_METHOD1 = bytes10("main");
   bytes10 internal constant DEFAULT_DID_METHOD2 = EMPTY_DID_METHOD;
-  bytes32 internal constant DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;"); // ";" is the null or scape character
   bytes10 internal constant CUSTOM_DID_METHOD_0 = bytes10("custom0;;;");
   bytes10 internal constant CUSTOM_DID_METHOD_1 = bytes10("custom1;;;");
   bytes10 internal constant CUSTOM_DID_METHOD_2 = bytes10("custom2;;;");
@@ -54,7 +54,6 @@ abstract contract SharedTest is Test {
   bytes32 internal constant DEFAULT_RANDOM_3 = bytes32("default-random-3");
   // VM
   bytes32 internal constant EMPTY_VM_ID = bytes32(0);
-  bytes32 internal constant DEFAULT_VM_ID = bytes32("vm-0");
   bytes32[2] internal EMPTY_VM_TYPE = [bytes32(0)];
   bytes32[2] internal DEFAULT_VM_TYPE = [bytes32("EcdsaSecp256k1VerificationKey20"), bytes32("19")];
   bytes32[16] internal EMPTY_VM_PUBLIC_KEY = [bytes32(0)];
@@ -73,7 +72,6 @@ abstract contract SharedTest is Test {
   address constant DEFAULT_VM_ETHEREUM_ADDRESS =
     address(0xab16a96D359eC26a11e2C2b3d8f8B8942d5Bfcdb);
   uint256 constant EMPTY_VM_EXPIRATION = 0;
-  uint256 constant DEFAULT_VM_EXPIRATION = 365 days;
   // Service
   bytes32 constant DEFAULT_SERVICE_ID = bytes32("linked-domain");
   bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] DEFAULT_SERVICE_TYPE = [

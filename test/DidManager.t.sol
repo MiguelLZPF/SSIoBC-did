@@ -3,11 +3,11 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
-import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
-import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { SharedTest, DidInfo, CreateDidResultTest } from "@test/SharedTest.sol";
 import { IVMStorage } from "@src/interfaces/IVMStorage.sol";
 import { IDidManager, VerificationMethod, Controller, CreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
+import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
+import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
+import { DEFAULT_VM_ID, DEFAULT_DID_METHODS, SharedTest, DidInfo, CreateDidResultTest } from "@test/SharedTest.sol";
 
 struct UpdateControllerCommandTest {
   bytes32 methods;

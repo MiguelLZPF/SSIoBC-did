@@ -3,12 +3,13 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
+import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfaces/IDidManager.sol";
+import { IVMStorage } from "@src/interfaces/IVMStorage.sol";
+import { VMStorage, VerificationMethod, CreateVmCommand } from "@src/VMStorage.sol";
+import { DidManager } from "@src/DidManager.sol";
 import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
-import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfaces/IDidManager.sol";
-import { DidManager } from "@src/DidManager.sol";
-import { VMStorage, VerificationMethod, CreateVmCommand } from "@src/VMStorage.sol";
-import { SharedTest, DidInfo, CreateVmResultTest, CreateDidResultTest } from "@test/SharedTest.sol";
+import { DEFAULT_VM_ID, DEFAULT_DID_METHODS, SharedTest, DidInfo, CreateVmResultTest, CreateDidResultTest } from "@test/SharedTest.sol";
 
 contract VMStorageTest is SharedTest {
   // * Constants
@@ -404,7 +405,7 @@ contract VMStorageTest is SharedTest {
     _assertEmptyVm(verificationMethod);
     //* 🎬 Act ⬇
     // Add new Verification Method
-    vm.expectRevert("4th or 5th or 6th param required");
+    vm.expectRevert(IVMStorage.PubKeyBlockchainAccountORAddressRequired.selector);
     DidCreateVmCommand memory command = DidCreateVmCommand(
       didData.methods,
       didData.id,
@@ -690,7 +691,7 @@ contract VMStorageTest is SharedTest {
     );
     //* 🎬 Act ⬇
     // Validate Verification Method
-    vm.expectRevert("VM not found");
+    vm.expectRevert(IVMStorage.VmNotFound.selector);
     didManager.validateVm(keccak256("Does Not Exist"), EXPIRATION_ONE_MIN);
     //* ☑️ Assert ⬇
     // Final length
@@ -791,7 +792,7 @@ contract VMStorageTest is SharedTest {
     );
     //* 🎬 Act ⬇
     // Validate Verification Method
-    vm.expectRevert("VM already validated or out");
+    vm.expectRevert(IVMStorage.VmAlreadyValidated.selector);
     didManager.validateVm(result.VmCreated_positionHash, EXPIRATION_ONE_MIN);
     //* ☑️ Assert ⬇
     // Final length
@@ -892,7 +893,7 @@ contract VMStorageTest is SharedTest {
     );
     //* 🎬 Act ⬇
     // Validate Verification Method
-    vm.expectRevert("Cant validate VM. Invalid Sign");
+    vm.expectRevert(IVMStorage.InvalidSignature.selector);
     startHoax(otherUser, DEFAULT_USER_BALANCE);
     didManager.validateVm(result.VmCreated_positionHash, EXPIRATION_ONE_MIN);
     //* ☑️ Assert ⬇
@@ -1128,7 +1129,7 @@ contract VMStorageTest is SharedTest {
 
     //* 🎬 Act ⬇
     // Expire Verification Method
-    vm.expectRevert("VM already expired");
+    vm.expectRevert(IVMStorage.VmAlreadyExpired.selector);
     didManager.expireVm(
       didData.methods,
       didData.id, // sender ID

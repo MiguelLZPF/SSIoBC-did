@@ -3,14 +3,14 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { Test, console } from "forge-std/Test.sol";
 import { Vm } from "forge-std/Vm.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { Helper } from "@script/Helper.sol";
-import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
-import { W3CResolverScript, DeployCommand } from "@script/W3CResolver.s.sol";
-import { SharedTest, DidInfo, CreateDidResultTest, CreateVmResultTest } from "@test/SharedTest.sol";
-import { PerformedAction, Service, ServiceUpdateCommandTest, ServiceUpdateResultTest } from "@test/ServiceStorage.t.sol";
 import { IDidManager, VerificationMethod, Controller, CreateVmCommand as DidCreateVmCommand, EXPIRATION, CONTROLLERS_MAX_LENGTH, SERVICE_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 import { IW3CResolver, W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
+import { W3CResolverScript, DeployCommand } from "@script/W3CResolver.s.sol";
+import { DEFAULT_VM_ID, DEFAULT_VM_EXPIRATION, DEFAULT_DID_METHODS, SharedTest, DidInfo, CreateDidResultTest, CreateVmResultTest } from "@test/SharedTest.sol";
+import { PerformedAction, Service, ServiceUpdateCommandTest, ServiceUpdateResultTest } from "@test/ServiceStorage.t.sol";
 
 struct UpdateControllerCommandTest {
   bytes32 method0;
@@ -137,7 +137,7 @@ contract W3CResolverTest is SharedTest, Helper {
       keccak256(abi.encodePacked(w3cVm.ethereumAddress)),
       keccak256(abi.encodePacked(Strings.toHexString(user)))
     );
-    assertEq(w3cVm.expiration, (block.timestamp + EXPIRATION_ONE_MIN) * 1000);
+    assertEq(w3cVm.expiration, (block.timestamp + DEFAULT_VM_EXPIRATION) * 1000);
     // end
     vm.stopPrank();
   }
