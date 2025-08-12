@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { HashBasedList } from "@lib/hash-based-list/src/HashBasedList.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 // Example of a service:
 // {
@@ -24,7 +24,8 @@ struct Service {
   bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] serviceEndpoint;
 }
 
-abstract contract ServiceStorage is HashBasedList {
+abstract contract ServiceStorage {
+  using EnumerableSet for EnumerableSet.Bytes32Set;
   //* Events
   /**
    * @dev Emitted when a new service is created for a DID.
@@ -41,9 +42,12 @@ abstract contract ServiceStorage is HashBasedList {
   );
 
   //* Storage
-  // hash(DIDHash, position) --> Service Details
-  // positionHash --> Service Details
-  mapping(bytes32 => Service) private _service;
+  // Per service DID hash (namespaced), maintain the set of service IDs
+  mapping(bytes32 => EnumerableSet.Bytes32Set) private _serviceIds;
+  // service DID hash => service ID => Service
+  mapping(bytes32 => mapping(bytes32 => Service)) private _serviceByNsAndId;
+  // service DID hash => service ID => 1-based position (for event positionHash compatibility)
+  mapping(bytes32 => mapping(bytes32 => uint8)) private _servicePositionByNsAndId;
 
   /**
    * @dev Updates, creates or removes a service in the contract.
@@ -60,46 +64,49 @@ abstract contract ServiceStorage is HashBasedList {
   ) internal {
     bytes32 serviceDidHash = _addServiceNameSpace(didHash);
     // Check parameters
-    // require(didHash != bytes32(0), REVERT_EMPTY_DID_HASH); //! Unreachable code
     require(id != bytes32(0), "ID cannot be 0");
-    // Get service
-    (bytes32 idHash, bytes32 positionHash, uint8 position) = _calculateHashes(serviceDidHash, id);
-    //  Service exists and type_ and serviceEndpoint are empty ==> delete service
-    if (position > 0 && type_[0][0] == bytes32(0) && serviceEndpoint[0][0] == bytes32(0)) {
-      // Get latest service on array
-      // uint8 lastPosition = _getHblLength(serviceDidHash);
-      bytes32 lastPositionHash = _calculatePositionHash(
-        serviceDidHash,
-        _getHblLength(serviceDidHash)
-      );
-      bytes32 lastServiceId = _service[lastPositionHash].id;
-      bytes32 lastIdHash = _calculateIdHash(serviceDidHash, lastServiceId);
-      // Replace the service with the last service
-      _service[positionHash] = _service[lastPositionHash];
-      // Delete the service new last service
-      delete _service[lastPositionHash];
-      // Remove position of the deleted service
-      _removeHbl(serviceDidHash, id, lastServiceId);
-      // Emit two events
+    bytes32 idHash = _svcCalculateIdHash(serviceDidHash, id);
+    bool exists = _serviceIds[serviceDidHash].contains(id);
+    uint8 position = _servicePositionByNsAndId[serviceDidHash][id];
+    // Delete path
+    if (exists && type_[0][0] == bytes32(0) && serviceEndpoint[0][0] == bytes32(0)) {
+      uint256 len = _serviceIds[serviceDidHash].length();
+      bytes32 lastId = _serviceIds[serviceDidHash].at(len - 1);
+      // Remove id
+      _serviceIds[serviceDidHash].remove(id);
+      delete _serviceByNsAndId[serviceDidHash][id];
+      delete _servicePositionByNsAndId[serviceDidHash][id];
+      // Emit deletion event
       emit ServiceUpdated(didHash, id, idHash, 0);
-      emit ServiceUpdated(didHash, lastServiceId, lastIdHash, positionHash);
+      // Always emit second event to mirror previous behavior (swap-with-last notification)
+      // If lastId is different, update its stored position to the freed slot
+      if (lastId != id) {
+        _servicePositionByNsAndId[serviceDidHash][lastId] = position;
+      }
+      bytes32 lastIdHash = _svcCalculateIdHash(serviceDidHash, lastId);
+      bytes32 newPositionHash = _svcCalculatePositionHash(serviceDidHash, position);
+      emit ServiceUpdated(didHash, lastId, lastIdHash, newPositionHash);
       return;
     }
-    // Check both are defined before updating (or create)
+    // Create/update path
     require(type_[0][0] != bytes32(0), "Type cannot be 0");
     require(serviceEndpoint[0][0] != bytes32(0), "Endpoint cannot be 0");
-    if (position == 0) {
-      // Does not exist --> update service list length and position by ID
-      (idHash, position) = _addHbl(serviceDidHash, id);
-      positionHash = _calculatePositionHash(serviceDidHash, position);
+    bytes32 positionHash;
+    if (!exists) {
+      bool added = _serviceIds[serviceDidHash].add(id);
+      assert(added);
+      position = uint8(_serviceIds[serviceDidHash].length());
+      _servicePositionByNsAndId[serviceDidHash][id] = position;
+      positionHash = _svcCalculatePositionHash(serviceDidHash, position);
+    } else {
+      positionHash = _svcCalculatePositionHash(serviceDidHash, position);
     }
-    // Store the service
-    Service storage service = _service[positionHash];
+    // Store the service payload by ID
+    Service storage service = _serviceByNsAndId[serviceDidHash][id];
     service.id = id;
     service.type_ = type_;
     service.serviceEndpoint = serviceEndpoint;
-
-    // Emit an event
+    // Emit event
     emit ServiceUpdated(didHash, id, idHash, positionHash);
   }
 
@@ -109,15 +116,14 @@ abstract contract ServiceStorage is HashBasedList {
    */
   function _removeAllServices(bytes32 didHash) internal {
     bytes32 serviceDidHash = _addServiceNameSpace(didHash);
-    for (uint8 i = 1; i <= _getHblLength(serviceDidHash); i++) {
-      bytes32 positionHash = _calculatePositionHash(serviceDidHash, i);
-      // Set serviceId --> position to 0
-      _initHblPosition(serviceDidHash, _service[positionHash].id);
-      // Delete service
-      delete _service[positionHash];
+    uint256 len = _serviceIds[serviceDidHash].length();
+    while (len > 0) {
+      bytes32 lastId = _serviceIds[serviceDidHash].at(len - 1);
+      delete _serviceByNsAndId[serviceDidHash][lastId];
+      delete _servicePositionByNsAndId[serviceDidHash][lastId];
+      _serviceIds[serviceDidHash].remove(lastId);
+      len--;
     }
-    // Set length to 0
-    _initHblLength(serviceDidHash);
   }
 
   /**
@@ -132,12 +138,16 @@ abstract contract ServiceStorage is HashBasedList {
     bytes32 id,
     uint8 position
   ) internal view returns (Service memory service) {
-    didHash = _addServiceNameSpace(didHash);
+    bytes32 ns = _addServiceNameSpace(didHash);
     if (id == bytes32(0)) {
-      return _service[keccak256(abi.encodePacked(didHash, position))];
+      uint256 len = _serviceIds[ns].length();
+      if (position == 0 || uint256(position) > len) {
+        return service; // empty
+      }
+      bytes32 atId = _serviceIds[ns].at(uint256(position) - 1);
+      return _serviceByNsAndId[ns][atId];
     }
-    (, bytes32 positionHash, ) = _calculateHashes(didHash, id);
-    return _service[positionHash];
+    return _serviceByNsAndId[ns][id];
   }
 
   /**
@@ -146,10 +156,22 @@ abstract contract ServiceStorage is HashBasedList {
    * @return length The length of the service list.
    */
   function _getServiceListLength(bytes32 didHash) internal view returns (uint8 length) {
-    return _getHblLength(_addServiceNameSpace(didHash));
+    return uint8(_serviceIds[_addServiceNameSpace(didHash)].length());
   }
 
   function _addServiceNameSpace(bytes32 didHash) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(didHash, SERVICE_NAMESPACE));
+  }
+
+  // Helpers used locally (duplicated minimal hashing helpers)
+  function _svcCalculatePositionHash(
+    bytes32 namespace,
+    uint8 position
+  ) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(namespace, position));
+  }
+
+  function _svcCalculateIdHash(bytes32 namespace, bytes32 id) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(namespace, id));
   }
 }
