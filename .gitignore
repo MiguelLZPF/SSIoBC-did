@@ -1,20 +1,22 @@
-# Compiler files
+# 🔧 Build & Compilation
 cache/
 out/
 
-# Ignores development broadcast logs
+# 📺 Development & Broadcasting
 !/broadcast
 /broadcast/*/31337/
 /broadcast/**/dry-run/
+broadcast/
 
-# Docs
+# 📚 Documentation
 docs/
 
-# Dotenv file
+# 🌍 Environment
 .env
 
-# Node modules
+# 📦 Dependencies
 node_modules/
 
-# transaction logs
-broadcast/
+# 🤖🧠 AI & Tooling
+.claude/
+.temp/
