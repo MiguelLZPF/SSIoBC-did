@@ -9,13 +9,29 @@ out/
 broadcast/
 
 # 📚 Documentation
-docs/
+# docs/ - Academic documentation now tracked in version control
 
 # 🌍 Environment
 .env
 
 # 📦 Dependencies
 node_modules/
+
+# 🍎 macOS & OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.AppleDouble
+.LSOverride
+.DocumentRevisions-V100
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
 
 # 🤖🧠 AI & Tooling
 .claude/

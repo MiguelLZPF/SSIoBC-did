@@ -111,6 +111,13 @@ The system consists of four main contracts working together:
 - Permanent files: Source code, tests, documentation, configuration
 - Temporary files: Analysis results, comparison outputs, build artifacts, logs
 
+#### Documentation System (docs/ folder)
+- **Purpose**: Academic-quality metrics tracking and research validation
+- **Structure**: `docs/metrics/` (histories), `docs/analysis/` (research), `docs/assets/` (evidence)
+- **Maintenance**: Update documentation when significant performance changes occur
+- **Standards**: Each document must have Table of Contents and follow consolidation principle
+- **Integration**: Cross-reference between documents for comprehensive research support
+
 ### Code Conventions
 - Use Solidity 0.8.24 (configured in foundry.toml)
 - Follow existing naming patterns (snake_case for internal functions, camelCase for public)

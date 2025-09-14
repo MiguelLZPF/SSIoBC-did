@@ -1,0 +1,22 @@
+No files changed, compilation skipped
+| Contract       | Size (kB) | Margin (kB) |
+|----------------|-----------|-------------|
+| DidManager     | 12.132    | 12.444      |
+| EnumerableSet  | 0.085     | 24.491      |
+| Helper         | 1.227     | 23.349      |
+| Math           | 0.085     | 24.491      |
+| MockERC20      | 4.443     | 20.133      |
+| MockERC721     | 5.046     | 19.53       |
+| SignedMath     | 0.085     | 24.491      |
+| StdStyle       | 0.085     | 24.491      |
+| Strings        | 0.085     | 24.491      |
+| W3CResolver    | 12.816    | 11.76       |
+| console        | 0.085     | 24.491      |
+| console2       | 0.085     | 24.491      |
+| safeconsole    | 0.085     | 24.491      |
+| stdError       | 0.707     | 23.869      |
+| stdJson        | 0.085     | 24.491      |
+| stdMath        | 0.085     | 24.491      |
+| stdStorage     | 0.085     | 24.491      |
+| stdStorageSafe | 0.085     | 24.491      |
+
