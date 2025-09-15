@@ -226,7 +226,8 @@ abstract contract VMStorage is IVMStorage {
     // Get VM
     VerificationMethod memory vm = _vmByNsAndId[didHash][id];
     // Check if the VM exists and is not expired
-    if (vm.expiration <= block.timestamp) revert VmAlreadyExpired();
+    // Note: expiration == 0 means never validated (invalid VM)
+    if (vm.expiration == 0 || vm.expiration <= block.timestamp) revert VmAlreadyExpired();
     // Check if the sender is in the VM and if the VM relationship is the same as the one provided
     if (sender != address(0)) {
       return (vm.ethereumAddress == sender && (vm.relationships & relationship) == relationship);

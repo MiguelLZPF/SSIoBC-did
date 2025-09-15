@@ -112,7 +112,7 @@ contract W3CResolver is IW3CResolver {
         bytes32(0),
         i
       );
-      // Check if exired should be included or if the VM is not expired
+      // Check if expired should be included or if the VM is not expired
       if (includeExpired || (vm.expiration != 0 && vm.expiration > block.timestamp)) {
         // Add the VM to the temporary array in W3C format
         vmsTemp[realLength[0]] = _toW3cVerificationMethod(vm, didInput);
