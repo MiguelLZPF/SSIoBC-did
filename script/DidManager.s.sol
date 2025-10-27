@@ -25,16 +25,16 @@ contract DidManagerScript is Script {
   ) external returns (DidManager didManager, Deployment memory deployment) {
     bytes32 tag_ = bytes32(bytes(tag));
     return
-      this.deploy(
+      _deploy(
         DeployCommand({ storeInfo: DeploymentStoreInfo({ store: store, tag: tag_ }) }),
         broadcast
       );
   }
 
-  function deploy(
+  function _deploy(
     DeployCommand memory command,
     bool broadcast
-  ) external returns (DidManager didManager, Deployment memory deployment) {
+  ) internal returns (DidManager didManager, Deployment memory deployment) {
     // Only thing that is executed in the blockchain
     if (broadcast) {
       console.logString("WARN: Broadcasting deployment, make sure to use --broadcast flag");

@@ -6,9 +6,8 @@ import { console } from "forge-std/console.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { IDidManager } from "@src/interfaces/IDidManager.sol";
 import { IW3CResolver } from "@src/interfaces/IW3CResolver.sol";
-import { DidManagerScript, DeployCommand } from "@script/DidManager.s.sol";
+import { DidManagerScript } from "@script/DidManager.s.sol";
 import { W3CResolverScript } from "@script/W3CResolver.s.sol";
-import { Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 
 /**
  * @title TestBase
@@ -30,8 +29,9 @@ abstract contract TestBase is Test {
      */
     function _deployDidManager() internal returns (IDidManager) {
         (didManager, ) = new DidManagerScript().deploy(
-            DeployCommand({ storeInfo: DeploymentStoreInfo({ store: false, tag: bytes32(0) }) }),
-            false
+            false, // store
+            "", // tag
+            false // broadcast
         );
 
         // Deploy W3CResolver with didManager

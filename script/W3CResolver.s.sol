@@ -28,7 +28,7 @@ contract W3CResolverScript is Script {
   ) external returns (W3CResolver w3cResolver, Deployment memory deployment) {
     bytes32 tag_ = bytes32(bytes(tag));
     return
-      this.deploy(
+      _deploy(
         DeployCommand({
           didManager: didManager,
           storeInfo: DeploymentStoreInfo({ store: store, tag: tag_ })
@@ -37,10 +37,10 @@ contract W3CResolverScript is Script {
       );
   }
 
-  function deploy(
+  function _deploy(
     DeployCommand memory command,
     bool broadcast
-  ) external returns (W3CResolver w3cResolver, Deployment memory deployment) {
+  ) internal returns (W3CResolver w3cResolver, Deployment memory deployment) {
     // Only thing that is executed in the blockchain
     if (broadcast) {
       vm.startBroadcast();

@@ -345,11 +345,11 @@ contract DidManagerFuzzTest is TestBase {
         assertEq(newExpiration, originalExpiration);
 
         // Property: Check if DID should be considered expired based on current time
-        bool shouldBeExpired = block.timestamp > originalExpiration;
+        bool shouldBeExpired = block.timestamp >= originalExpiration;
 
         if (shouldBeExpired) {
             // If enough time has passed, the DID should be expired
-            assertLt(originalExpiration, block.timestamp);
+            assertLe(originalExpiration, block.timestamp);
         } else {
             // If not enough time has passed, the DID should still be valid
             assertGt(originalExpiration, block.timestamp);

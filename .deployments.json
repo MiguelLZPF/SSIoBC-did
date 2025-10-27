@@ -1,20 +1,20 @@
 [
   {
-    "bytecodeHash": "0x6690d8aaf1b87f7564269890214a658bd7917cbf25e48d3d5c3ae3a0f5075ef9",
+    "bytecodeHash": "0xb0dba82b9f51100feec24752f1966fcae12af42f05cf06ab75489c0802095939",
     "chainId": 6660,
-    "logicAddr": "0xc6d99D099A0FF6339689aa505C5E07a24C7DF360",
+    "logicAddr": "0xd7bB6437a4F7d225fCaF0B5b7Fb3D292a575120d",
     "name": "W3CResolver",
     "proxyAddr": "0x0000000000000000000000000000000000000000",
-    "tag": "DidManager_Test",
-    "timestamp": 1727453944
+    "tag": "W3CResolver_Test",
+    "timestamp": 1761499345
   },
   {
-    "bytecodeHash": "0xec8d17abd037d18b766a240ec572b5650aadf439f502c1d38d55f48f23f27bd0",
+    "bytecodeHash": "0x386804014abf8e99a3274383fb281917f1f9875a5101ea3c639be89e895958f8",
     "chainId": 6660,
-    "logicAddr": "0x771C01bC3883cA4bDB59C8a552d9E14E98b9C68F",
+    "logicAddr": "0x2B54EcBb7bA4BFB9219215A9605f787764441Fc6",
     "name": "DidManager",
     "proxyAddr": "0x0000000000000000000000000000000000000000",
     "tag": "DidManager_Test",
-    "timestamp": 1727284213
+    "timestamp": 1761498992
   }
 ]
