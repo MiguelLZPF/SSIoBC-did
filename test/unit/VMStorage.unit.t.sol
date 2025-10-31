@@ -4,7 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { IDidManager, CreateVmCommand } from "@src/interfaces/IDidManager.sol";
+import { CreateVmCommand, EXPIRATION } from "@src/interfaces/IDidManager.sol";
 import { IVMStorage, DEFAULT_VM_ID, DEFAULT_VM_EXPIRATION, VerificationMethod } from "@src/interfaces/IVMStorage.sol";
 import { Vm } from "forge-std/Vm.sol";
 
@@ -691,8 +691,8 @@ contract VMStorageUnitTest is TestBase {
         uint256 vmCount = didManager.getVmListLength(didResult.didInfo.methods, didResult.didInfo.id);
         assertEq(vmCount, 4, "Should have 4 VMs before cleanup");
 
-        // Force DID to expire to trigger _removeAllVms
-        didManager.updateExpiration(didResult.didInfo.idHash, true);
+        // Force DID to expire by warping time past expiration (4 years)
+        vm.warp(block.timestamp + EXPIRATION + 1);
 
         // Create a new DID that will trigger cleanup of the expired DID's VMs
         // This will execute the while loop body in _removeAllVms (lines 137-147)
@@ -1063,8 +1063,8 @@ contract VMStorageUnitTest is TestBase {
         uint256 vmCount = didManager.getVmListLength(didResult.didInfo.methods, didResult.didInfo.id);
         assertEq(vmCount, 5, "Should have 5 VMs before cleanup");
 
-        // Force expire the DID to trigger _removeAllVms
-        didManager.updateExpiration(didResult.didInfo.idHash, true);
+        // Force expire the DID by warping time past expiration (4 years)
+        vm.warp(block.timestamp + EXPIRATION + 1);
 
         // Create a new DID to trigger cleanup - this will execute lines 137-148 thoroughly
         DidTestHelpers.CreateDidResult memory newDid = DidTestHelpers.createDid(

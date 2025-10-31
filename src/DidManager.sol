@@ -120,6 +120,23 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     updateExpiration({ idHash: targetIdHash, forceExpire: false });
   }
 
+  function deactivateDid(
+    bytes32 methods,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId
+  ) external {
+    //* Params validation
+    // Required
+    if (methods == bytes32(0) || senderId == bytes32(0) || targetId == bytes32(0)) {
+      revert MissingRequiredParameter();
+    }
+    //* Implementation
+    (, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);
+    emit DidDeactivated(targetIdHash);
+    updateExpiration({ idHash: targetIdHash, forceExpire: true });
+  }
+
   function updateController(
     bytes32 methods,
     bytes32 senderId,
@@ -173,7 +190,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     updateExpiration({ idHash: targetIdHash, forceExpire: false });
   }
 
-  function updateExpiration(bytes32 idHash, bool forceExpire) public {
+  function updateExpiration(bytes32 idHash, bool forceExpire) internal {
     _expirationDate[idHash] = forceExpire ? 0 : block.timestamp + EXPIRATION;
   }
 
@@ -212,6 +229,10 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       revert MissingRequiredParameter();
     }
     bytes32 idHash = _calculateIdHash(methods, id);
+    // Check if DID is expired/deactivated before checking VM relationship
+    if (_isExpired(idHash)) {
+      revert DidExpired();
+    }
     return _isVmRelationship(idHash, vmId, relationship, sender);
   }
 

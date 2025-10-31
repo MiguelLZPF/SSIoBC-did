@@ -56,6 +56,12 @@ interface IDidManager {
     bytes32 vmId
   );
 
+  /**
+   * @dev Emitted when a DID is deactivated (permanently expired).
+   * @param targetDidHash The hash of the deactivated DID.
+   */
+  event DidDeactivated(bytes32 indexed targetDidHash);
+
   // * Errors
   // Declared in IVMStorage.sol
   // error MissingRequiredParameter();
@@ -77,15 +83,6 @@ interface IDidManager {
   function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external;
 
   /**
-   * @dev Updates the expiration date for a given ID hash.
-   * @param idHash The hash of the ID to update the expiration date for.
-   * @param forceExpire Boolean flag indicating whether to force expiration or not.
-   *                   If set to true, the expiration date will be set to 0, effectively expiring the ID.
-   *                   If set to false, the expiration date will be set to the current block timestamp plus the EXPIRATION value.
-   */
-  function updateExpiration(bytes32 idHash, bool forceExpire) external;
-
-  /**
    * @dev Expires a Verification Method (VM).
    * @param methods The methods used to expire the VM.
    * @param senderId The ID of the sender.
@@ -99,6 +96,22 @@ interface IDidManager {
     bytes32 senderVmId,
     bytes32 targetId,
     bytes32 vmId
+  ) external;
+
+  /**
+   * @dev Deactivates a DID permanently by setting its expiration to zero.
+   * Once deactivated, a DID cannot be reactivated and will fail all operations.
+   * This follows W3C DID Core specification for DID deactivation.
+   * @param methods The methods used to identify the DID.
+   * @param senderId The ID of the sender.
+   * @param senderVmId The ID of the sender's Verification Method.
+   * @param targetId The ID of the DID to deactivate.
+   */
+  function deactivateDid(
+    bytes32 methods,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId
   ) external;
 
   /**

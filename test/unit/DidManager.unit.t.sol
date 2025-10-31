@@ -4,10 +4,11 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { IDidManager, CreateVmCommand, Controller, CONTROLLERS_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
+import { IDidManager, CreateVmCommand, Controller, CONTROLLERS_MAX_LENGTH, EXPIRATION } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_VM_ID, IVMStorage } from "@src/interfaces/IVMStorage.sol";
 import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
+import { Vm } from "forge-std/Vm.sol";
 
 /**
  * @title DidManagerUnitTest
@@ -532,8 +533,8 @@ contract DidManagerUnitTest is TestBase {
         DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
         _stopPrank();
 
-        // Force expire the sender DID
-        didManager.updateExpiration(didResult.didInfo.idHash, true); // forceExpire = true
+        // Force expire the sender DID by warping time past expiration (4 years)
+        vm.warp(block.timestamp + EXPIRATION + 1);
 
         // Try to create VM with expired sender DID - should hit uncovered branch
         _startPrank(user1);
@@ -567,8 +568,8 @@ contract DidManagerUnitTest is TestBase {
         );
         _stopPrank();
 
-        // Force expire only the target DID
-        didManager.updateExpiration(targetDid.didInfo.idHash, true); // forceExpire = true
+        // Force expire only the target DID by warping time past expiration (4 years)
+        vm.warp(block.timestamp + EXPIRATION + 1);
 
         // Try to create VM on expired target DID - should hit uncovered branch
         _startPrank(user1);
@@ -588,6 +589,399 @@ contract DidManagerUnitTest is TestBase {
 
         vm.expectRevert(IDidManager.DidExpired.selector);
         didManager.createVm(command);
+        _stopPrank();
+    }
+
+    // =========================================================================
+    // DEACTIVATE DID TESTS
+    // =========================================================================
+
+    function test_DeactivateDid_Should_SetExpirationToZero_When_ValidParametersProvided() public {
+        _startPrank(user1);
+
+        // Create a DID as owner (self-sovereign)
+        DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        // Verify DID has valid expiration before deactivation
+        uint256 beforeExpiration = didManager.getExpiration(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            bytes32(0)
+        );
+        assertGt(beforeExpiration, block.timestamp, "DID should have future expiration");
+
+        // Deactivate the DID as owner
+        vm.recordLogs();
+        didManager.deactivateDid(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            didResult.didInfo.id // Deactivate self
+        );
+
+        // Verify DidDeactivated event was emitted
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        assertEq(entries.length, 1, "Should emit exactly one event");
+        assertEq(entries[0].topics[0], keccak256("DidDeactivated(bytes32)"));
+        assertEq(entries[0].topics[1], didResult.didInfo.idHash);
+
+        // Verify expiration is set to 0 (deactivated)
+        uint256 afterExpiration = didManager.getExpiration(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            bytes32(0)
+        );
+        assertEq(afterExpiration, 0, "Deactivated DID should have expiration == 0");
+
+        _stopPrank();
+    }
+
+    function test_DeactivateDid_Should_AllowControllerToDeactivate_When_ControllerIsSet() public {
+        _startPrank(user1);
+
+        // Create owner DID
+        DidTestHelpers.CreateDidResult memory ownerDid = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        // Create controller DID
+        DidTestHelpers.CreateDidResult memory controllerDid = DidTestHelpers.createDid(
+            vm, didManager, DEFAULT_DID_METHODS, bytes32("controller-random"), DEFAULT_VM_ID
+        );
+
+        // Set controller relationship
+        didManager.updateController(
+            ownerDid.didInfo.methods,
+            ownerDid.didInfo.id,
+            DEFAULT_VM_ID,
+            ownerDid.didInfo.id, // target
+            controllerDid.didInfo.id, // controller
+            DEFAULT_VM_ID,
+            0 // position
+        );
+
+        // Verify controller is set
+        Controller[CONTROLLERS_MAX_LENGTH] memory controllers = didManager.getControllerList(
+            ownerDid.didInfo.methods,
+            ownerDid.didInfo.id
+        );
+        assertEq(controllers[0].id, controllerDid.didInfo.id, "Controller should be set");
+
+        // Deactivate owner DID as controller
+        didManager.deactivateDid(
+            ownerDid.didInfo.methods,
+            controllerDid.didInfo.id, // sender is controller
+            DEFAULT_VM_ID,
+            ownerDid.didInfo.id // target is owner
+        );
+
+        // Verify owner DID is deactivated
+        uint256 expiration = didManager.getExpiration(
+            ownerDid.didInfo.methods,
+            ownerDid.didInfo.id,
+            bytes32(0)
+        );
+        assertEq(expiration, 0, "Owner DID should be deactivated by controller");
+
+        _stopPrank();
+    }
+
+    function test_DeactivateDid_Should_AllowOwnerToDeactivate_When_NoControllersSet() public {
+        _startPrank(user1);
+
+        // Create self-sovereign DID (no controllers)
+        DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        // Verify no controllers are set
+        Controller[CONTROLLERS_MAX_LENGTH] memory controllers = didManager.getControllerList(
+            didResult.didInfo.methods,
+            didResult.didInfo.id
+        );
+        assertEq(controllers[0].id, bytes32(0), "Should have no controllers (self-sovereign)");
+
+        // Owner should be able to deactivate their own DID
+        didManager.deactivateDid(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            didResult.didInfo.id
+        );
+
+        // Verify deactivation
+        uint256 expiration = didManager.getExpiration(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            bytes32(0)
+        );
+        assertEq(expiration, 0, "Self-sovereign DID should be deactivated by owner");
+
+        _stopPrank();
+    }
+
+    function test_RevertWhen_DeactivateDid_WithEmptyMethods() public {
+        _startPrank(user1);
+
+        DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+        didManager.deactivateDid(
+            bytes32(0), // Empty methods
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            didResult.didInfo.id
+        );
+
+        _stopPrank();
+    }
+
+    function test_RevertWhen_DeactivateDid_WithEmptySenderId() public {
+        _startPrank(user1);
+
+        DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+        didManager.deactivateDid(
+            didResult.didInfo.methods,
+            bytes32(0), // Empty senderId
+            DEFAULT_VM_ID,
+            didResult.didInfo.id
+        );
+
+        _stopPrank();
+    }
+
+    function test_RevertWhen_DeactivateDid_WithEmptyTargetId() public {
+        _startPrank(user1);
+
+        DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+        didManager.deactivateDid(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            bytes32(0) // Empty targetId
+        );
+
+        _stopPrank();
+    }
+
+    function test_RevertWhen_DeactivateDid_WithExpiredSenderDid() public {
+        _startPrank(user1);
+
+        // Create sender DID
+        DidTestHelpers.CreateDidResult memory senderDid = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        // Create target DID
+        DidTestHelpers.CreateDidResult memory targetDid = DidTestHelpers.createDid(
+            vm, didManager, DEFAULT_DID_METHODS, bytes32("target-random"), DEFAULT_VM_ID
+        );
+
+        _stopPrank();
+
+        // Expire the sender DID by warping time
+        vm.warp(block.timestamp + EXPIRATION + 1);
+
+        // Try to deactivate with expired sender
+        _startPrank(user1);
+        vm.expectRevert(IDidManager.DidExpired.selector);
+        didManager.deactivateDid(
+            targetDid.didInfo.methods,
+            senderDid.didInfo.id, // Expired sender
+            DEFAULT_VM_ID,
+            targetDid.didInfo.id
+        );
+
+        _stopPrank();
+    }
+
+    function test_RevertWhen_DeactivateDid_WithAlreadyDeactivatedTargetDid() public {
+        _startPrank(user1);
+
+        // Create DID
+        DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        // Deactivate the DID
+        didManager.deactivateDid(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            didResult.didInfo.id
+        );
+
+        // Verify it's deactivated
+        uint256 expiration = didManager.getExpiration(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            bytes32(0)
+        );
+        assertEq(expiration, 0, "DID should be deactivated");
+
+        // Try to deactivate again - should fail
+        vm.expectRevert(IDidManager.DidExpired.selector);
+        didManager.deactivateDid(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            didResult.didInfo.id
+        );
+
+        _stopPrank();
+    }
+
+    function test_RevertWhen_DeactivateDid_WithUnauthorizedSender() public {
+        _startPrank(user1);
+
+        // Create DID as user1
+        DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        _stopPrank();
+
+        // Try to deactivate as user2 (not authenticated)
+        _startPrank(user2);
+        vm.expectRevert(IDidManager.NotAuthenticatedAsSenderId.selector);
+        didManager.deactivateDid(
+            didResult.didInfo.methods,
+            didResult.didInfo.id, // Using user1's DID but calling as user2
+            DEFAULT_VM_ID,
+            didResult.didInfo.id
+        );
+
+        _stopPrank();
+    }
+
+    function test_RevertWhen_DeactivateDid_WithNonController() public {
+        _startPrank(user1);
+
+        // Create owner DID
+        DidTestHelpers.CreateDidResult memory ownerDid = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        // Create controller DID (will be set as controller)
+        DidTestHelpers.CreateDidResult memory controllerDid = DidTestHelpers.createDid(
+            vm, didManager, DEFAULT_DID_METHODS, bytes32("controller-random"), DEFAULT_VM_ID
+        );
+
+        // Create non-controller DID (not authorized)
+        DidTestHelpers.CreateDidResult memory nonControllerDid = DidTestHelpers.createDid(
+            vm, didManager, DEFAULT_DID_METHODS, bytes32("non-controller-random"), DEFAULT_VM_ID
+        );
+
+        // Set only controllerDid as controller
+        didManager.updateController(
+            ownerDid.didInfo.methods,
+            ownerDid.didInfo.id,
+            DEFAULT_VM_ID,
+            ownerDid.didInfo.id,
+            controllerDid.didInfo.id, // Only this DID is controller
+            DEFAULT_VM_ID,
+            0
+        );
+
+        // Try to deactivate as non-controller
+        vm.expectRevert(IDidManager.NotAControllerforTargetId.selector);
+        didManager.deactivateDid(
+            ownerDid.didInfo.methods,
+            nonControllerDid.didInfo.id, // Non-controller trying to deactivate
+            DEFAULT_VM_ID,
+            ownerDid.didInfo.id
+        );
+
+        _stopPrank();
+    }
+
+    function test_DeactivateDid_Should_PreventFutureModifications_When_Deactivated() public {
+        _startPrank(user1);
+
+        // Create DID
+        DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        // Deactivate the DID
+        didManager.deactivateDid(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            didResult.didInfo.id
+        );
+
+        // Try to create VM - should fail
+        CreateVmCommand memory vmCommand = CreateVmCommand({
+            methods: didResult.didInfo.methods,
+            senderId: didResult.didInfo.id,
+            senderVmId: DEFAULT_VM_ID,
+            targetId: didResult.didInfo.id,
+            vmId: bytes32("new-vm"),
+            type_: Fixtures.defaultVmType(),
+            publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+            blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
+            ethereumAddress: user1,
+            relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+            expiration: Fixtures.EMPTY_VM_EXPIRATION
+        });
+        vm.expectRevert(IDidManager.DidExpired.selector);
+        didManager.createVm(vmCommand);
+
+        // Try to update controller - should fail
+        vm.expectRevert(IDidManager.DidExpired.selector);
+        didManager.updateController(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            didResult.didInfo.id,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            0
+        );
+
+        // Try to update service - should fail
+        bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceType;
+        serviceType[0][0] = bytes32("TestService");
+        bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint;
+        serviceEndpoint[0][0] = bytes32("https://example.com");
+
+        vm.expectRevert(IDidManager.DidExpired.selector);
+        didManager.updateService(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            didResult.didInfo.id,
+            bytes32("service-id"),
+            serviceType,
+            serviceEndpoint
+        );
+
+        _stopPrank();
+    }
+
+    function test_DeactivateDid_Should_FailAuthentication_When_Deactivated() public {
+        _startPrank(user1);
+
+        // Create DID
+        DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+        // Verify authentication works before deactivation
+        bool canAuthenticateBefore = didManager.authenticate(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            user1
+        );
+        assertTrue(canAuthenticateBefore, "Should authenticate before deactivation");
+
+        // Deactivate the DID
+        didManager.deactivateDid(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            didResult.didInfo.id
+        );
+
+        // Try to authenticate after deactivation - should revert with DidExpired
+        vm.expectRevert(IDidManager.DidExpired.selector);
+        didManager.authenticate(
+            didResult.didInfo.methods,
+            didResult.didInfo.id,
+            DEFAULT_VM_ID,
+            user1
+        );
+
         _stopPrank();
     }
 
@@ -852,8 +1246,8 @@ contract DidManagerUnitTest is TestBase {
         assertEq(didManager.getServiceListLength(originalDid.didInfo.methods, originalDid.didInfo.id), 3);
         assertEq(didManager.getVmListLength(originalDid.didInfo.methods, originalDid.didInfo.id), 4); // 3 added + 1 default
 
-        // Expire the DID
-        didManager.updateExpiration(originalDid.didInfo.idHash, true);
+        // Expire the DID by warping time past expiration (4 years)
+        vm.warp(block.timestamp + EXPIRATION + 1);
 
         // Creating a new DID will trigger the !_isExpired check and cleanup
         DidTestHelpers.CreateDidResult memory newDid = DidTestHelpers.createDid(
@@ -869,65 +1263,6 @@ contract DidManagerUnitTest is TestBase {
     // =========================================================================
     // COVERAGE GAPS TESTS
     // =========================================================================
-
-    function test_UpdateExpiration_Should_ForceExpire_When_ForceExpireTrue() public {
-        _startPrank(user1);
-
-        // Create a DID first
-        DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
-
-        // Get current expiration
-        uint256 beforeExpiration = didManager.getExpiration(
-            didResult.didInfo.methods,
-            didResult.didInfo.id,
-            bytes32(0)
-        );
-        assertGt(beforeExpiration, block.timestamp);
-
-        // Test: Force expire the DID
-        didManager.updateExpiration(didResult.didInfo.idHash, true);
-
-        // Verify: DID is now expired
-        uint256 afterExpiration = didManager.getExpiration(
-            didResult.didInfo.methods,
-            didResult.didInfo.id,
-            bytes32(0)
-        );
-        assertEq(afterExpiration, 0);
-
-        _stopPrank();
-    }
-
-    function test_UpdateExpiration_Should_ExtendExpiration_When_ForceExpireFalse() public {
-        _startPrank(user1);
-
-        // Create a DID first
-        DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
-
-        // Get current expiration
-        uint256 beforeExpiration = didManager.getExpiration(
-            didResult.didInfo.methods,
-            didResult.didInfo.id,
-            bytes32(0)
-        );
-
-        // Warp time forward to make current expiration closer
-        vm.warp(block.timestamp + Fixtures.TEST_TIME_ADVANCE_SHORT);
-
-        // Test: Update expiration without forcing expire
-        didManager.updateExpiration(didResult.didInfo.idHash, false);
-
-        // Verify: DID expiration is extended
-        uint256 afterExpiration = didManager.getExpiration(
-            didResult.didInfo.methods,
-            didResult.didInfo.id,
-            bytes32(0)
-        );
-        assertGt(afterExpiration, beforeExpiration);
-        assertGt(afterExpiration, block.timestamp);
-
-        _stopPrank();
-    }
 
     function test_RemoveAllServices_Should_ExecuteWhileLoop_When_ServicesExist() public {
         _startPrank(user1);

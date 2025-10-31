@@ -4,7 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { IDidManager, CreateVmCommand } from "@src/interfaces/IDidManager.sol";
+import { CreateVmCommand, EXPIRATION } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
 import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 import { console } from "forge-std/console.sol";
@@ -318,8 +318,8 @@ contract GasOptimizationPerformanceTest is TestBase {
         console.log("Pre-cleanup VM count:", vmCount);
         console.log("Pre-cleanup Service count:", serviceCount);
 
-        // Force expiration
-        didManager.updateExpiration(didResult.didInfo.idHash, true);
+        // Force expiration by warping time past expiration (4 years)
+        vm.warp(block.timestamp + EXPIRATION + 1);
 
         // Benchmark cleanup via new DID creation
         uint256 gasStart = gasleft();

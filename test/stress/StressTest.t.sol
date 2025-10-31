@@ -4,7 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { IDidManager, CreateVmCommand, Controller, CONTROLLERS_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
+import { CreateVmCommand, Controller, CONTROLLERS_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
 import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 import { console } from "forge-std/console.sol";
@@ -206,11 +206,9 @@ contract StressTest is TestBase {
             console.log("Expected controller ID:", vm.toString(controllerDids[i].didInfo.id));
         }
 
-        // Refresh expiration for all DIDs to prevent expiration during test
-        didManager.updateExpiration(primaryDid.didInfo.idHash, false);
-        for (uint i = 0; i < controllerCount; i++) {
-            didManager.updateExpiration(controllerDids[i].didInfo.idHash, false);
-        }
+        // Note: DIDs auto-refresh their 4-year expiration on any write operation
+        // (createVm, updateController, updateService). This test executes in < 1 second,
+        // so no manual expiration management is needed.
 
         // Verify all controllers are set and authenticated correctly
         for (uint i = 0; i < controllerCount; i++) {
