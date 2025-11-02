@@ -1,15 +1,47 @@
-# CLAUDE.md
+# CLAUDE.md - SSIoBC-did Subproject
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Context Isolation Notice
+
+**Scope:** This file contains context ONLY for the SSIoBC-did smart contract implementation subproject.
+
+**Context Isolation Rule:** If parent directory context (`/Users/miguel_lzpf/Projects/SSIoBC/CLAUDE.md`) is automatically loaded by Claude Code, you MUST IGNORE all parent-specific details including:
+- ❌ Parent project file structure (Articles/, Diagrams/, Results/, main paper files)
+- ❌ Main research paper references and version tracking
+- ❌ Parent repository organization and workflows
+- ❌ Cross-project file references outside this directory
+
+**What to Keep from Global/Parent:**
+- ✅ General PhD research context (academic quality standards)
+- ✅ Multi-AI routing rules (global orchestration system)
+- ✅ General blockchain/DID domain knowledge
+
+**Working Directory:** `/Users/miguel_lzpf/Projects/SSIoBC/SSIoBC-did/`
+**MCP Access:** Restricted to current directory only (verified via .mcp.json)
+
+---
+
 ## Table of Contents
 
+- [Context Isolation Notice](#context-isolation-notice)
+- [Quick Facts](#quick-facts)
 - [Essential Commands](#essential-commands)
-- [Project Overview](#project-overview)
-- [Smart Contract Architecture](#smart-contract-architecture)
+- [AI Orchestration & Routing](#ai-orchestration--routing)
+- [Project Knowledge Reference](#project-knowledge-reference)
 - [Development Guidelines](#development-guidelines)
-- [Testing Strategy](#testing-strategy)
-- [PGP Commit Signing](#pgp-commit-signing)
+- [File References](#file-references)
+
+## Quick Facts
+
+- **Project**: W3C-compliant fully on-chain DID management system
+- **Innovation**: First complete on-chain DID document storage (vs event-based)
+- **Language**: Solidity 0.8.24 (Foundry framework)
+- **Coverage**: >90% required (enforced in CI/CD)
+- **Architecture**: 4 contracts (DidManager, VMStorage, ServiceStorage, W3CResolver)
+- **Storage**: Hash-based lists with EnumerableSet (gas-optimized)
+- **Standards**: W3C DID Core v1.0 compliant
+- **Working Dir**: `/Users/miguel_lzpf/Projects/SSIoBC-did/`
 
 ## Essential Commands
 
@@ -30,6 +62,15 @@ forge test --match-path test/DidManager.t.sol
 # Run specific test function
 forge test --match-test testCreateDid
 
+# Gas report
+forge test --gas-report
+
+# Format code
+forge fmt
+```
+
+### Deployment
+```bash
 # Deploy to local network (dry run)
 forge script script/DidManager.s.sol:DidManagerScript --sig "deploy(bool,string,bool)" false "Local_Test" false
 
@@ -37,63 +78,164 @@ forge script script/DidManager.s.sol:DidManagerScript --sig "deploy(bool,string,
 forge script script/DidManager.s.sol:DidManagerScript --sig "deploy(bool,string,bool)" true "DidManager_Test" true --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
 ```
 
-### Development Workflow
-```bash
-# Check gas usage
-forge test --gas-report
+## AI Orchestration & Routing
 
-# Format code
-forge fmt
+**Note**: Global routing rules are defined in `/Users/miguel_lzpf/.claude/CLAUDE.md`. This section contains SSIoBC-specific routing and Claude's role as orchestrator.
 
-# Lint/analyze
-forge build --extra-output storageLayout
+### Claude's Role (Orchestrator)
+
+You (Claude Code) are the **orchestrator** responsible for:
+
+1. **Analyzing user requests** and determining task complexity
+2. **Routing tasks** to specialized AIs when appropriate:
+   - **Gemini** → Research, documentation lookup, standards investigation
+   - **GitHub Copilot** → Well-defined, time-bounded, actionable tasks
+3. **Handling complex reasoning** directly (architecture, debugging, design decisions)
+4. **Synthesizing results** from delegated tasks
+5. **Ensuring quality** across all outputs
+
+### Routing Decision Tree
+
+**MANDATORY PRE-PROCESSING CHECK** - Before processing ANY user request:
+
+```
+User Request Received
+    │
+    ├─ Contains "research|search|find|look up|documentation|docs|spec|latest"?
+    │  └─ YES → STOP → Route to Gemini (@agent-truth-seeker-gemini)
+    │          Use GEMINI.md context
+    │
+    ├─ Contains "format|lint|fix style|clean code|prettier"?
+    │  └─ YES → STOP → Route to Copilot (@agent-code-worker)
+    │          Use AGENTS.md context
+    │
+    ├─ Contains "commit|push|PR|pull request|branch|merge|rebase"?
+    │  └─ YES → STOP → Route to Git Agent (@agent-git-maestro)
+    │          Ensure PGP signing
+    │
+    ├─ Contains "review contract|audit|security|gas optim|vulnerabil"?
+    │  └─ YES → STOP → Route to Blockchain Specialist (@agent-blockchain-code-assassin)
+    │          Security-critical, domain expertise required
+    │
+    ├─ Well-defined task, clear start/end, minimal context needed?
+    │  └─ YES → Consider routing to Copilot (use judgment)
+    │
+    └─ Complex reasoning, architecture, debugging, novel problems?
+       └─ Handle directly with Claude (you)
 ```
 
-## Project Overview
+### Keyword-to-Agent Mapping
 
-SSIoBC-did is a research implementation of a fully on-chain Decentralized Identifier (DID) management system that maintains W3C compliance while enabling smart contract interoperability. This is PhD research on creating the first complete on-chain DID document management system.
+| Trigger Keywords | Route To | Agent | Context File | Token Savings |
+|-----------------|----------|-------|--------------|---------------|
+| research, search, find, documentation, docs, spec, latest, standards | Gemini | @agent-truth-seeker-gemini | GEMINI.md | 100% |
+| format, lint, fix style, clean code, prettier, organize imports | Copilot | @agent-code-worker | AGENTS.md | 90-100% |
+| commit, push, PR, pull request, branch, merge, rebase, git | Git Agent | @agent-git-maestro | N/A | Standard |
+| review contract, audit, security, gas optim, vulnerabil, reentrancy | Blockchain | @agent-blockchain-code-assassin | N/A | Domain-critical |
 
-### Key Features
-- **Full on-chain storage** (unlike ERC-1056 event-based approach)
-- **Gas-optimized** hash-based list architecture using EnumerableSet
-- **Multi-method support** (3-level deep DID methods: `did:method0:method1:method2:id`)
-- **4-year expiration** with reuse capability
-- **W3C DID specification compliance**
+### Project-Specific Routing Enhancements
 
-## Smart Contract Architecture
+#### Enhanced Security Focus (Blockchain Project)
+
+**ALL smart contract reviews** → Always route to `@agent-blockchain-code-assassin`:
+- Security audits are CRITICAL for smart contracts
+- Gas optimization requires domain expertise
+- Reentrancy, overflow, and access control vulnerabilities
+- W3C compliance verification for DID implementations
+
+**Examples**:
+```
+✓ "Review DidManager.sol"
+  → Routes to blockchain-code-assassin (security-critical)
+
+✓ "Check for gas optimizations in VMStorage"
+  → Routes to blockchain-code-assassin (domain expertise)
+
+✓ "Analyze the controller system for vulnerabilities"
+  → Routes to blockchain-code-assassin (security focus)
+```
+
+#### Research Routing for Standards
+
+**W3C DID and blockchain standards research** → Always route to Gemini:
+- W3C DID Core specification updates
+- EIP/ERC standard documentation
+- Solidity best practices and patterns
+- Blockchain identity standards
+
+**Examples**:
+```
+✓ "Research W3C DID resolution specification"
+  → Routes to Gemini (standard documentation)
+
+✓ "Find latest ERC-1056 implementation patterns"
+  → Routes to Gemini (research task)
+
+✓ "Look up Foundry fuzzing best practices"
+  → Routes to Gemini (documentation lookup)
+```
+
+### Routing Verification Self-Check
+
+Before responding to any user request, verify:
+
+1. ✓ Did I scan the user's request for routing keywords?
+2. ✓ If routing keywords found, did I invoke the appropriate agent?
+3. ✓ Did I wait for agent results before responding?
+4. ✓ Am I processing directly only when NO routing keywords present?
+
+**If you answered NO to any question above → YOU ARE VIOLATING ROUTING RULES**
+
+### When to Handle Directly (Claude)
+
+Handle these tasks directly without routing:
+
+- **Architecture Design**: System design, pattern selection, trade-off analysis
+- **Complex Debugging**: Root cause analysis, multi-layer issues
+- **Strategic Decisions**: Technology choices, design patterns
+- **Novel Problems**: No established patterns, requires reasoning
+- **Cross-System Integration**: Multiple contracts, complex interactions
+- **Business Logic**: DID lifecycle, controller delegation, complex state management
+
+## Project Knowledge Reference
+
+**Detailed project information is in PROJECT.md** - reference it for:
+
+- Complete smart contract architecture (4-contract system)
+- DID structure and concepts (methods, ID, hash generation)
+- Verification methods (VMs) and controller system
+- Design patterns (hash-based storage, EnumerableSet, etc.)
+- Innovation claims and comparison with existing solutions
+- File organization and artifact management
+
+**Quick Summary**:
 
 ### Four-Contract System
 
-The system consists of four main contracts working together:
+1. **DidManager.sol** - Core DID lifecycle (inherits VMStorage + ServiceStorage)
+2. **VMStorage.sol** - Verification methods storage (abstract contract)
+3. **ServiceStorage.sol** - Service endpoints storage (abstract contract)
+4. **W3CResolver.sol** - W3C-compliant document resolution
 
-1. **DidManager.sol** - Core DID lifecycle management (inherits from VMStorage and ServiceStorage)
-2. **VMStorage.sol** - Verification Methods storage with hash-based lists
-3. **ServiceStorage.sol** - Service endpoints storage with hash-based approach  
-4. **W3CResolver.sol** - W3C-compliant document translation (optional on-chain resolution)
+### DID Structure
+
+```
+did:method0:method1:method2:id
+```
+
+- **Methods**: bytes32 with three 10-byte segments (default: "lzpf::main::")
+- **ID**: Generated from `keccak256(methods, random, tx.origin, block.prevrandao)`
+- **Hash**: `keccak256(methods, id)` for storage indexing
 
 ### Key Design Patterns
 
-- **Abstract Storage Contracts**: VMStorage and ServiceStorage are abstract contracts inherited by DidManager
-- **EnumerableSet Usage**: Efficient O(1) operations for add/remove/contains on VM and Service IDs
-- **Hash-Based Indexing**: Uses `keccak256(abi.encodePacked(namespace, id))` for unique identification
-- **Position-Hash Mapping**: Special mapping for VM validation using position hashes
-- **Multi-level Method Support**: DIDs structured as `did:method0:method1:method2:id` with 10-byte method segments
+- **Hash-Based Storage**: O(1) operations vs O(n) arrays
+- **EnumerableSet**: Efficient set operations for VMs and Services
+- **Immutable Architecture**: No proxies, no upgrades
+- **Custom Errors**: Gas optimization (vs require strings)
+- **Abstract Storage**: Modular VMStorage and ServiceStorage
 
-### DID Structure
-- **Methods**: bytes32 containing three 10-byte method identifiers (default: "lzpf::main::")
-- **ID**: bytes32 generated from `keccak256(methods, random, tx.origin, block.prevrandao)`
-- **Hash**: Internal hash calculated as `keccak256(methods, id)` for storage indexing
-
-### Verification Methods (VMs)
-- Support multiple relationship types (authentication, assertion, key agreement, etc.)
-- Stored with EnumerableSet for efficient enumeration
-- Include expiration timestamps and ethereum address validation
-- Support publicKeyMultibase, blockchainAccountId, or ethereumAddress
-
-### Controller System
-- Fixed-length array of 5 controllers maximum (CONTROLLERS_MAX_LENGTH = 5)
-- Self-sovereign by default (empty controllers = owner controls)
-- Can delegate control to other DIDs with optional VM specification
+**See PROJECT.md for complete details**
 
 ## Development Guidelines
 
@@ -101,74 +243,110 @@ The system consists of four main contracts working together:
 
 #### Temporary Files (.temp/ folder)
 - **Always** generate non-code related files in `.temp/` folder
-- **Examples**: size comparisons, gas reports, analysis outputs, deployment logs, coverage reports
-- **Benefits**: Keeps repository clean while preserving local development artifacts
-- **Pattern**: `.temp/analysis/`, `.temp/reports/`, `.temp/logs/` for organized sub-structure
+- **Examples**: Size comparisons, gas reports, analysis outputs, deployment logs
+- **Pattern**: `.temp/analysis/`, `.temp/reports/`, `.temp/logs/`
 - **Git**: Excluded from version control but preserved locally
-
-#### Project Structure Guidelines
-- Follow consolidation over proliferation principle
-- Permanent files: Source code, tests, documentation, configuration
-- Temporary files: Analysis results, comparison outputs, build artifacts, logs
 
 #### Documentation System (docs/ folder)
 - **Purpose**: Academic-quality metrics tracking and research validation
 - **Structure**: `docs/metrics/` (histories), `docs/analysis/` (research), `docs/assets/` (evidence)
-- **Maintenance**: Update documentation when significant performance changes occur
-- **Standards**: Each document must have Table of Contents and follow consolidation principle
-- **Integration**: Cross-reference between documents for comprehensive research support
+- **Standards**: Table of Contents required, consolidation over proliferation
+- **Maintenance**: Update when significant performance changes occur
 
 ### Code Conventions
-- Use Solidity 0.8.24 (configured in foundry.toml)
-- Follow existing naming patterns (snake_case for internal functions, camelCase for public)
-- Use custom errors instead of require statements for gas optimization
-- Maintain >90% test coverage
-- Include natspec documentation for public functions
+
+- **Solidity**: 0.8.24 (fixed version)
+- **Naming**: camelCase for public, _camelCase for internal, UPPER_CASE for constants
+- **Errors**: Custom errors instead of require strings (gas optimization)
+- **Coverage**: >90% required
+- **Natspec**: Required for all public/external functions
 
 ### Testing Patterns
-- Use `SharedTest.sol` as base class for common test utilities
-- Test files follow `ContractName.t.sol` naming convention
-- Create DID helper function: `_createDid(methods, random, vmId)`
-- Event testing using `vm.recordLogs()` and log analysis
-- Use constants for test values (DEFAULT_RANDOM_0, DEFAULT_VM_TYPE, etc.)
+
+- **Base Class**: Inherit from `SharedTest.sol` for common utilities
+- **Naming**: `ContractName.t.sol` for test files
+- **Helpers**: `_createDid()`, `_createVm()` from SharedTest
+- **Constants**: Use `DEFAULT_RANDOM_*`, `DEFAULT_VM_*`, etc.
+- **Events**: Test using `vm.recordLogs()` and log analysis
 
 ### Gas Optimization Focus
+
 - Hash-based storage instead of arrays where possible
 - EnumerableSet for efficient set operations
-- Minimal storage reads/writes in loops
-- Immutable architecture (no upgradeable proxies)
+- Storage caching (single SLOAD vs multiple)
+- Unchecked arithmetic when safe
+- Custom errors over require strings
 
-## Testing Strategy
+### Code Formatting
 
-### Test Structure
-- **SharedTest.sol**: Base class with common utilities and constants
-- **DidManager.t.sol**: Core DID management functionality
-- **VMStorage.t.sol**: Verification method storage operations
-- **ServiceStorage.t.sol**: Service endpoint storage operations
-- **W3CResolver.t.sol**: W3C compliance and resolution testing
+**Formatter**: Foundry's `forge fmt` (configured in `foundry.toml`)
 
-### Coverage Requirements
-- Maintain >90% test coverage (tracked across versions v0.1.2→v0.8.0)
-- Test both success and failure cases
-- Include edge cases for gas optimization validation
-- Test expiration scenarios and cleanup functions
+**Key Settings**:
+- 2-space indentation (project preference)
+- Double quotes for strings
+- 120 character line length
+- Explicit types (uint256, int256)
+- Preserved import ordering
 
-### Test Utilities
-Use helper functions from SharedTest:
-- `_createDid()`: Creates DID and returns event data
-- `_createVm()`: Creates verification method and returns results
-- Constants for test data (DEFAULT_RANDOM_*, DEFAULT_VM_*, etc.)
+**Run**: `forge fmt` (or check with `forge fmt --check`)
 
-## PGP Commit Signing
+**Pre-commit**: Automatic formatting via `.pre-commit-config.yaml`
 
-Always use PGP signatures when committing:
+### PGP Commit Signing
+
+**REQUIRED** - All commits must be PGP-signed:
+
 ```bash
 git commit -S -m "commit message"
 ```
 
-Ensure your GPG key is properly configured:
+**Ensure git config**:
 ```bash
 git config --global user.signingkey YOUR_GPG_KEY_ID
 git config --global commit.gpgsign true
 ```
-- Do not store security risky information in CLAUDE.md and .memories.json (MCP memories)
+
+**Always route git operations to @agent-git-maestro** for proper signing.
+
+### Quality Thresholds
+
+- **Coverage**: >90% minimum (enforced in CI/CD)
+- **Gas Tracking**: Update `docs/metrics/gas-costs-*.md` for significant changes
+- **Security**: ALL contract changes reviewed by blockchain-code-assassin
+- **W3C Compliance**: Verify DID document format compliance
+
+### Pre-commit Integration
+
+Pre-commit hooks (`.pre-commit-config.yaml`):
+- Automatic formatting via `forge fmt`
+- Build validation
+- (Optional) Test execution
+
+Install: `pre-commit install`
+
+### CI/CD Integration
+
+GitHub Actions (`.github/workflows/ai-quality-check.yml`):
+- Automatic coverage reporting
+- Gas cost analysis
+- Security scan summary
+- PR comments with quality metrics
+
+## File References
+
+**For detailed information, check these files**:
+
+| File | Purpose | What's Inside |
+|------|---------|---------------|
+| **PROJECT.md** | Project knowledge base | Architecture, DID concepts, design patterns, file organization |
+| **AGENTS.md** | Copilot instructions | Code standards, testing patterns, gas optimization, security |
+| **GEMINI.md** | Research context | Research mandate, citation requirements, focus areas |
+| **foundry.toml** | Foundry configuration | Solidity version, optimizer, formatter settings |
+| **docs/metrics/** | Performance tracking | Gas costs, coverage trends (academic quality) |
+
+---
+
+**Last Updated**: 2025-01-02
+**Purpose**: Claude Code orchestration and routing instructions
+**Role**: Orchestrator (delegates to Gemini/Copilot, handles complex reasoning)
+**Context**: Moderate detail with references to detailed files
