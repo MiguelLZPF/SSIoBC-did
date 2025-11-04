@@ -8,16 +8,6 @@
         "./"
       ]
     },
-    "memory": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-memory"
-      ],
-      "env": {
-        "MEMORY_FILE_PATH": "/Users/miguel_lzpf/Projects/SSIoBC/SSIoBC-did/.memory.json"
-      }
-    },
     "foundry": {
       "command": "npx",
       "args": [

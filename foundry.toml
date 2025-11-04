@@ -42,3 +42,36 @@ remappings = [
 fs_permissions = [
   { access = "read-write", path = "./" },
 ] # default: all file cheat codes are disabled
+
+# Linter configuration - disable only unsafe-typecast warnings
+# String to bytes32 conversions in tests are safe and intentional
+[lint]
+exclude_lints = ["unsafe-typecast"]
+
+# Formatter configuration
+[fmt]
+# Indentation: 2 spaces instead of default 4
+tab_width = 2
+
+# Quote style: enforce double quotes
+quote_style = "double"
+
+# Line length: maximum 120 characters
+line_length = 120
+
+# Import handling: preserve manual ordering (external → internal)
+sort_imports = false
+
+# Spacing: bracket_spacing enabled for imports and function calls
+# Note: This may format array access as `array[ index]` (known cosmetic issue)
+bracket_spacing = true
+
+# Additional formatting settings
+wrap_comments = true             # Wrap long comments at line_length
+number_underscore = "preserve"   # Keep number literal underscores as written
+int_types = "long"               # Use explicit uint256/int256
+
+# Exclude library dependencies from formatting
+ignore = [
+  "lib/**/*.sol"
+]

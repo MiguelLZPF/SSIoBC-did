@@ -2,20 +2,20 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import { DEFAULT_VM_ID, DEFAULT_VM_EXPIRATION, CreateVmCommand, VerificationMethod, IVMStorage } from "./interfaces/IVMStorage.sol";
+import {
+  DEFAULT_VM_ID,
+  DEFAULT_VM_EXPIRATION,
+  CreateVmCommand,
+  VerificationMethod,
+  IVMStorage
+} from "./interfaces/IVMStorage.sol";
 
 abstract contract VMStorage is IVMStorage {
   using EnumerableSet for EnumerableSet.Bytes32Set;
   //* Constant Variables
   // Empty values
   bytes32[16] internal EMPTY_PUBLIC_KEY = [bytes32(0)];
-  bytes32[5] internal EMPTY_BLOCKCHAIN_ACCOUNT_ID = [
-    bytes32(0),
-    bytes32(0),
-    bytes32(0),
-    bytes32(0),
-    bytes32(0)
-  ];
+  bytes32[5] internal EMPTY_BLOCKCHAIN_ACCOUNT_ID = [bytes32(0), bytes32(0), bytes32(0), bytes32(0), bytes32(0)];
   // Default values
   bytes32[2] private DEFAULT_VM_TYPE = [bytes32("EcdsaSecp256k1VerificationKey20"), bytes32("19")];
   //* Storage
@@ -35,16 +35,13 @@ abstract contract VMStorage is IVMStorage {
    * @param command The command containing the parameters for creating the verification method.
    * @dev command.publicKeyMultibase, command.blockchainAccountId OR command.ethereumAddress are required.
    */
-  function _createVm(
-    CreateVmCommand memory command
-  ) internal returns (bytes32 idHash, bytes32 positionHash) {
+  function _createVm(CreateVmCommand memory command) internal returns (bytes32 idHash, bytes32 positionHash) {
     //* Params validation
     // Required
     // require(command.didHash != bytes32(0), "DID hash required"); //! Unreachable code
     if (
-      command.publicKeyMultibase[0] == bytes32(0) &&
-      command.blockchainAccountId[0] == bytes32(0) &&
-      command.ethereumAddress == address(0)
+      command.publicKeyMultibase[0] == bytes32(0) && command.blockchainAccountId[0] == bytes32(0)
+        && command.ethereumAddress == address(0)
     ) {
       revert PubKeyBlockchainAccountORAddressRequired();
     }
@@ -96,11 +93,7 @@ abstract contract VMStorage is IVMStorage {
    * @param sender The address of the sender.
    * @return id The identifier of the validated verification method (VM).
    */
-  function _validateVm(
-    bytes32 positionHash,
-    uint expiration,
-    address sender
-  ) internal returns (bytes32 id) {
+  function _validateVm(bytes32 positionHash, uint256 expiration, address sender) internal returns (bytes32 id) {
     //* Params validation
     // Optional
     if (expiration == 0) {
@@ -112,7 +105,8 @@ abstract contract VMStorage is IVMStorage {
     VerificationMethod storage vm = _vmByNsAndId[didHash][vmId];
     if (vm.id == bytes32(0)) revert VmNotFound();
     if (vm.expiration != 0) revert VmAlreadyValidated(); // This means that the VM is already validated
-    if (vm.ethereumAddress != sender) revert InvalidSignature(); // This means that the Tx Signer is not the VM's Ethereum Address or actual signature validation
+    if (vm.ethereumAddress != sender) revert InvalidSignature(); // This means that the Tx Signer is not the VM's
+      // Ethereum Address or actual signature validation
     vm.expiration = expiration;
     //Event
     emit VmValidated(vm.id);
@@ -120,7 +114,8 @@ abstract contract VMStorage is IVMStorage {
   }
 
   /**
-   * @dev Expires a specific verification method (VM) by setting its expiration timestamp to the current block timestamp.
+   * @dev Expires a specific verification method (VM) by setting its expiration timestamp to the current block
+   * timestamp.
    * @param didHash The hash of the decentralized identifier (DID).
    * @param id The identifier of the verification method (VM) to expire.
    */
@@ -155,11 +150,7 @@ abstract contract VMStorage is IVMStorage {
    * @param position The position of the verification method in the array.
    * @return vm The VerificationMethod struct representing the VM.
    */
-  function _getVm(
-    bytes32 didHash,
-    bytes32 id,
-    uint8 position
-  ) internal view returns (VerificationMethod memory vm) {
+  function _getVm(bytes32 didHash, bytes32 id, uint8 position) internal view returns (VerificationMethod memory vm) {
     if (id == bytes32(0)) {
       uint256 len = _vmIds[didHash].length();
       if (position == 0 || uint256(position) > len) {
@@ -181,7 +172,8 @@ abstract contract VMStorage is IVMStorage {
   }
 
   /**
-   * @dev Returns the expiration timestamp of a specific verification method (VM) associated with a given DID hash and VM ID.
+   * @dev Returns the expiration timestamp of a specific verification method (VM) associated with a given DID hash and
+   * VM ID.
    * @param didHash The hash of the decentralized identifier (DID).
    * @param id The identifier of the verification method (VM).
    * @return exp The expiration timestamp of the VM.
@@ -195,13 +187,10 @@ abstract contract VMStorage is IVMStorage {
    * @param didHash The hash of the Decentralized Identifier (DID).
    * @param vmId The ID of the Verification Method (VM).
    * @param sender The address of the sender.
-   * @return A boolean indicating whether the sender is authenticated or not. That means that the sender's address is in the authentication relationship of the VM.
+   * @return A boolean indicating whether the sender is authenticated or not. That means that the sender's address is in
+   * the authentication relationship of the VM.
    */
-  function _isAuthenticated(
-    bytes32 didHash,
-    bytes32 vmId,
-    address sender
-  ) internal view returns (bool) {
+  function _isAuthenticated(bytes32 didHash, bytes32 vmId, address sender) internal view returns (bool) {
     return _isVmRelationship(didHash, vmId, 0x01, sender);
   }
 
@@ -213,12 +202,11 @@ abstract contract VMStorage is IVMStorage {
    * @param sender The address of the sender.
    * @return A boolean indicating whether the sender is in the specified relationship or not.
    */
-  function _isVmRelationship(
-    bytes32 didHash,
-    bytes32 id,
-    bytes1 relationship,
-    address sender
-  ) internal view returns (bool) {
+  function _isVmRelationship(bytes32 didHash, bytes32 id, bytes1 relationship, address sender)
+    internal
+    view
+    returns (bool)
+  {
     if (id == bytes32(0) || relationship == bytes1(0) || sender == address(0)) {
       revert MissingRequiredParameter();
     }
@@ -237,10 +225,7 @@ abstract contract VMStorage is IVMStorage {
   }
 
   // Helpers
-  function _calculatePositionHash(
-    bytes32 namespace,
-    uint8 position
-  ) internal pure returns (bytes32) {
+  function _calculatePositionHash(bytes32 namespace, uint8 position) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(namespace, position));
   }
 

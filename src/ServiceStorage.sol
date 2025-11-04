@@ -35,10 +35,7 @@ abstract contract ServiceStorage {
    * @param positionHash The hash of the position of the service.
    */
   event ServiceUpdated(
-    bytes32 indexed didIdHash,
-    bytes32 indexed id,
-    bytes32 indexed serviceIdHash,
-    bytes32 positionHash
+    bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed serviceIdHash, bytes32 positionHash
   );
 
   //* Storage
@@ -133,11 +130,7 @@ abstract contract ServiceStorage {
    * @param position The position of the service.
    * @return service The service.
    */
-  function _getService(
-    bytes32 didHash,
-    bytes32 id,
-    uint8 position
-  ) internal view returns (Service memory service) {
+  function _getService(bytes32 didHash, bytes32 id, uint8 position) internal view returns (Service memory service) {
     bytes32 ns = _addServiceNameSpace(didHash);
     if (id == bytes32(0)) {
       uint256 len = _serviceIds[ns].length();
@@ -164,10 +157,7 @@ abstract contract ServiceStorage {
   }
 
   // Helpers used locally (duplicated minimal hashing helpers)
-  function _svcCalculatePositionHash(
-    bytes32 namespace,
-    uint8 position
-  ) internal pure returns (bytes32) {
+  function _svcCalculatePositionHash(bytes32 namespace, uint8 position) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(namespace, position));
   }
 

@@ -80,121 +80,44 @@ forge script script/DidManager.s.sol:DidManagerScript --sig "deploy(bool,string,
 
 ## AI Orchestration & Routing
 
-**Note**: Global routing rules are defined in `/Users/miguel_lzpf/.claude/CLAUDE.md`. This section contains SSIoBC-specific routing and Claude's role as orchestrator.
+**Global routing rules apply** (defined in `~/.claude/CLAUDE.md`).
 
-### Claude's Role (Orchestrator)
+See also:
+- `~/.claude/agents/ROUTING-RULES.md` - Complete routing keywords
+- `~/.claude/agents/AGENT-SELECTION-GUIDE.md` - When to use each agent
 
-You (Claude Code) are the **orchestrator** responsible for:
+### Project-Specific Routing Overrides
 
-1. **Analyzing user requests** and determining task complexity
-2. **Routing tasks** to specialized AIs when appropriate:
-   - **Gemini** → Research, documentation lookup, standards investigation
-   - **GitHub Copilot** → Well-defined, time-bounded, actionable tasks
-3. **Handling complex reasoning** directly (architecture, debugging, design decisions)
-4. **Synthesizing results** from delegated tasks
-5. **Ensuring quality** across all outputs
+For this blockchain project, the following guidelines apply:
 
-### Routing Decision Tree
+#### Security Reviews (MANUAL ONLY)
+- **@blockchain-code-assassin** is **MANUAL ONLY** (never auto-routed)
+- When user requests "audit", "review contract", or "security analysis":
+  - **Suggest** using @blockchain-code-assassin for comprehensive audit
+  - **Wait** for user approval before invoking
+  - **Do NOT** auto-route to blockchain-code-assassin
 
-**MANDATORY PRE-PROCESSING CHECK** - Before processing ANY user request:
+#### Solidity Code Quality
+- **Formatting/linting**: Use @agent-code-worker-solidity (automatic)
+- **Simple fixes**: Use @agent-code-worker-solidity (automatic)
+- **Security audits**: Suggest @blockchain-code-assassin (manual, wait for approval)
 
-```
-User Request Received
-    │
-    ├─ Contains "research|search|find|look up|documentation|docs|spec|latest"?
-    │  └─ YES → STOP → Route to Gemini (@agent-truth-seeker-gemini)
-    │          Use GEMINI.md context
-    │
-    ├─ Contains "format|lint|fix style|clean code|prettier"?
-    │  └─ YES → STOP → Route to Copilot (@agent-code-worker)
-    │          Use AGENTS.md context
-    │
-    ├─ Contains "commit|push|PR|pull request|branch|merge|rebase"?
-    │  └─ YES → STOP → Route to Git Agent (@agent-git-maestro)
-    │          Ensure PGP signing
-    │
-    ├─ Contains "review contract|audit|security|gas optim|vulnerabil"?
-    │  └─ YES → STOP → Route to Blockchain Specialist (@agent-blockchain-code-assassin)
-    │          Security-critical, domain expertise required
-    │
-    ├─ Well-defined task, clear start/end, minimal context needed?
-    │  └─ YES → Consider routing to Copilot (use judgment)
-    │
-    └─ Complex reasoning, architecture, debugging, novel problems?
-       └─ Handle directly with Claude (you)
-```
+#### Research Tasks
+- **W3C DID specifications**: Use @agent-truth-seeker-gemini (automatic)
+- **Solidity best practices**: Use @agent-truth-seeker-gemini (automatic)
+- **EIP/ERC standards**: Use @agent-truth-seeker-gemini (automatic)
 
-### Keyword-to-Agent Mapping
+#### Git Operations
+- **All git operations**: Use @agent-git-maestro (automatic)
+- **PGP signing**: Required for all commits
 
-| Trigger Keywords | Route To | Agent | Context File | Token Savings |
-|-----------------|----------|-------|--------------|---------------|
-| research, search, find, documentation, docs, spec, latest, standards | Gemini | @agent-truth-seeker-gemini | GEMINI.md | 100% |
-| format, lint, fix style, clean code, prettier, organize imports | Copilot | @agent-code-worker | AGENTS.md | 90-100% |
-| commit, push, PR, pull request, branch, merge, rebase, git | Git Agent | @agent-git-maestro | N/A | Standard |
-| review contract, audit, security, gas optim, vulnerabil, reentrancy | Blockchain | @agent-blockchain-code-assassin | N/A | Domain-critical |
+### When Claude Handles Directly
 
-### Project-Specific Routing Enhancements
-
-#### Enhanced Security Focus (Blockchain Project)
-
-**ALL smart contract reviews** → Always route to `@agent-blockchain-code-assassin`:
-- Security audits are CRITICAL for smart contracts
-- Gas optimization requires domain expertise
-- Reentrancy, overflow, and access control vulnerabilities
-- W3C compliance verification for DID implementations
-
-**Examples**:
-```
-✓ "Review DidManager.sol"
-  → Routes to blockchain-code-assassin (security-critical)
-
-✓ "Check for gas optimizations in VMStorage"
-  → Routes to blockchain-code-assassin (domain expertise)
-
-✓ "Analyze the controller system for vulnerabilities"
-  → Routes to blockchain-code-assassin (security focus)
-```
-
-#### Research Routing for Standards
-
-**W3C DID and blockchain standards research** → Always route to Gemini:
-- W3C DID Core specification updates
-- EIP/ERC standard documentation
-- Solidity best practices and patterns
-- Blockchain identity standards
-
-**Examples**:
-```
-✓ "Research W3C DID resolution specification"
-  → Routes to Gemini (standard documentation)
-
-✓ "Find latest ERC-1056 implementation patterns"
-  → Routes to Gemini (research task)
-
-✓ "Look up Foundry fuzzing best practices"
-  → Routes to Gemini (documentation lookup)
-```
-
-### Routing Verification Self-Check
-
-Before responding to any user request, verify:
-
-1. ✓ Did I scan the user's request for routing keywords?
-2. ✓ If routing keywords found, did I invoke the appropriate agent?
-3. ✓ Did I wait for agent results before responding?
-4. ✓ Am I processing directly only when NO routing keywords present?
-
-**If you answered NO to any question above → YOU ARE VIOLATING ROUTING RULES**
-
-### When to Handle Directly (Claude)
-
-Handle these tasks directly without routing:
-
-- **Architecture Design**: System design, pattern selection, trade-off analysis
+Complex reasoning tasks that require Claude's capabilities:
+- **Architecture Design**: Smart contract system design, pattern selection
 - **Complex Debugging**: Root cause analysis, multi-layer issues
 - **Strategic Decisions**: Technology choices, design patterns
 - **Novel Problems**: No established patterns, requires reasoning
-- **Cross-System Integration**: Multiple contracts, complex interactions
 - **Business Logic**: DID lifecycle, controller delegation, complex state management
 
 ## Project Knowledge Reference
@@ -339,14 +262,14 @@ GitHub Actions (`.github/workflows/ai-quality-check.yml`):
 | File | Purpose | What's Inside |
 |------|---------|---------------|
 | **PROJECT.md** | Project knowledge base | Architecture, DID concepts, design patterns, file organization |
-| **AGENTS.md** | Copilot instructions | Code standards, testing patterns, gas optimization, security |
-| **GEMINI.md** | Research context | Research mandate, citation requirements, focus areas |
 | **foundry.toml** | Foundry configuration | Solidity version, optimizer, formatter settings |
 | **docs/metrics/** | Performance tracking | Gas costs, coverage trends (academic quality) |
+| **~/.claude/CLAUDE.md** | Global routing rules | Multi-AI orchestration, routing keywords, agent selection |
+| **~/.claude/agents/** | Agent definitions | Individual agent capabilities and instructions |
 
 ---
 
-**Last Updated**: 2025-01-02
-**Purpose**: Claude Code orchestration and routing instructions
-**Role**: Orchestrator (delegates to Gemini/Copilot, handles complex reasoning)
-**Context**: Moderate detail with references to detailed files
+**Last Updated**: 2025-11-03
+**Purpose**: Claude Code project-specific context and routing overrides
+**Architecture**: Simplified 2-file system (CLAUDE.md + PROJECT.md)
+**Routing**: Inherits global rules from ~/.claude/CLAUDE.md with project-specific overrides

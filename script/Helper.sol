@@ -17,7 +17,7 @@ contract Helper {
     bytes memory trimmedBytes = new bytes(jsonBytes.length - 2);
 
     // Copy the characters, skipping the first and last ones
-    for (uint i = 1; i < jsonBytes.length - 1; i++) {
+    for (uint256 i = 1; i < jsonBytes.length - 1; i++) {
       trimmedBytes[i - 1] = jsonBytes[i];
     }
 
@@ -34,15 +34,15 @@ contract Helper {
       return new bytes(0);
     }
     bytes memory withoutZeros = new bytes(input.length);
-    uint length = 0;
-    for (uint i = 0; i < input.length; i++) {
+    uint256 length = 0;
+    for (uint256 i = 0; i < input.length; i++) {
       if (input[i] != 0x00) {
         withoutZeros[length] = input[i];
         length++;
       }
     }
     output = new bytes(length);
-    for (uint i = 0; i < length; i++) {
+    for (uint256 i = 0; i < length; i++) {
       output[i] = withoutZeros[i];
     }
     return output;

@@ -23,11 +23,12 @@ struct CreateVmCommand {
   bytes32[5] blockchainAccountId; // The blockchain account ID of the VM.
   address ethereumAddress; // The address of the blockchain where the VM is created.
   bytes1 relationships; // The relationships of the VM.
-  uint expiration; // The expiration time of the VM.
+  uint256 expiration; // The expiration time of the VM.
 }
 
-bytes32 constant DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;"); // ";" is the null or escape character
-uint constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
+bytes32 constant DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;"); // ";" is the null or escape
+  // character
+uint256 constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
 uint8 constant CONTROLLERS_MAX_LENGTH = 5;
 
 /**
@@ -50,10 +51,7 @@ interface IDidManager {
    * @param vmId The ID of the VM.
    */
   event ControllerUpdated(
-    bytes32 indexed senderDidHash,
-    bytes32 indexed targetDidHash,
-    uint8 controllerPosition,
-    bytes32 vmId
+    bytes32 indexed senderDidHash, bytes32 indexed targetDidHash, uint8 controllerPosition, bytes32 vmId
   );
 
   /**
@@ -90,13 +88,7 @@ interface IDidManager {
    * @param targetId The ID of the target.
    * @param vmId The ID of the Verification Method to expire.
    */
-  function expireVm(
-    bytes32 methods,
-    bytes32 senderId,
-    bytes32 senderVmId,
-    bytes32 targetId,
-    bytes32 vmId
-  ) external;
+  function expireVm(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId, bytes32 vmId) external;
 
   /**
    * @dev Deactivates a DID permanently by setting its expiration to zero.
@@ -107,12 +99,7 @@ interface IDidManager {
    * @param senderVmId The ID of the sender's Verification Method.
    * @param targetId The ID of the DID to deactivate.
    */
-  function deactivateDid(
-    bytes32 methods,
-    bytes32 senderId,
-    bytes32 senderVmId,
-    bytes32 targetId
-  ) external;
+  function deactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external;
 
   /**
    * @dev Returns the expiration timestamp for a given DID or VM ID.
@@ -121,11 +108,7 @@ interface IDidManager {
    * @param vmId (optional) The VM ID.
    * @return exp The expiration timestamp.
    */
-  function getExpiration(
-    bytes32 methods,
-    bytes32 id,
-    bytes32 vmId
-  ) external view returns (uint256 exp);
+  function getExpiration(bytes32 methods, bytes32 id, bytes32 vmId) external view returns (uint256 exp);
 
   /**
    * @dev Authenticates a DID or VM.
@@ -134,12 +117,7 @@ interface IDidManager {
    * @param vmId (optional) The VM ID.
    * @return true if the authentication is successful, false otherwise.
    */
-  function authenticate(
-    bytes32 methods,
-    bytes32 id,
-    bytes32 vmId,
-    address sender
-  ) external view returns (bool);
+  function authenticate(bytes32 methods, bytes32 id, bytes32 vmId, address sender) external view returns (bool);
 
   /**
    * @dev Checks if there is a VM relationship.
@@ -149,13 +127,10 @@ interface IDidManager {
    * @param relationship The relationship identifier.
    * @return true if there is a VM relationship, false otherwise.
    */
-  function isVmRelationship(
-    bytes32 methods,
-    bytes32 id,
-    bytes32 vmId,
-    bytes1 relationship,
-    address sender
-  ) external view returns (bool);
+  function isVmRelationship(bytes32 methods, bytes32 id, bytes32 vmId, bytes1 relationship, address sender)
+    external
+    view
+    returns (bool);
 
   /**
    * @dev Updates the controller of the DID manager.
@@ -165,7 +140,8 @@ interface IDidManager {
    * @param targetId The unique identifier of the new target's DID to be modified.
    * @param controllerId The unique identifier of the new controller's DID.
    * @param controllerVmId (optional) The unique identifier of the new controller's VM.
-   * @param controllerPosition The position of the new controller's VM. If greater than CONTROLLER_MAX_LENGTH, it will overwrite the last controller.
+   * @param controllerPosition The position of the new controller's VM. If greater than CONTROLLER_MAX_LENGTH, it will
+   * overwrite the last controller.
    */
   function updateController(
     bytes32 methods,
@@ -183,10 +159,10 @@ interface IDidManager {
    * @param id The ID.
    * @return controllerList The list of controllers.
    */
-  function getControllerList(
-    bytes32 methods,
-    bytes32 id
-  ) external view returns (Controller[CONTROLLERS_MAX_LENGTH] memory controllerList);
+  function getControllerList(bytes32 methods, bytes32 id)
+    external
+    view
+    returns (Controller[CONTROLLERS_MAX_LENGTH] memory controllerList);
 
   /**
    * @dev Creates a new Verification Method (VM) based on the provided command.
@@ -199,7 +175,7 @@ interface IDidManager {
    * @param positionHash The position hash of the VM.
    * @param expiration The expiration timestamp of the VM.
    */
-  function validateVm(bytes32 positionHash, uint expiration) external;
+  function validateVm(bytes32 positionHash, uint256 expiration) external;
 
   /**
    * @dev Returns the Verification Method (VM) for a given DID and VM ID.
@@ -209,12 +185,10 @@ interface IDidManager {
    * @param position The position of the Verification Method in the array.
    * @return vm The Verification Method.
    */
-  function getVm(
-    bytes32 methods,
-    bytes32 id,
-    bytes32 vmId,
-    uint8 position
-  ) external view returns (VerificationMethod memory vm);
+  function getVm(bytes32 methods, bytes32 id, bytes32 vmId, uint8 position)
+    external
+    view
+    returns (VerificationMethod memory vm);
 
   /**
    * @dev Returns the length of the Verification Method (VM) list for a given DID.
@@ -252,12 +226,10 @@ interface IDidManager {
    * @param position The position of the service.
    * @return service The service.
    */
-  function getService(
-    bytes32 methods,
-    bytes32 id,
-    bytes32 serviceId,
-    uint8 position
-  ) external view returns (Service memory service);
+  function getService(bytes32 methods, bytes32 id, bytes32 serviceId, uint8 position)
+    external
+    view
+    returns (Service memory service);
 
   /**
    * @dev Returns the length of the service list for a given ID.

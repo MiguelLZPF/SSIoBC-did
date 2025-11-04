@@ -1,0 +1,59 @@
+# Pre-commit Configuration for SSIoBC-did
+# Install with: pre-commit install
+# Run manually with: pre-commit run --all-files
+
+repos:
+  # Solidity Formatting
+  - repo: local
+    hooks:
+      - id: forge-fmt
+        name: Format Solidity files
+        entry: forge fmt
+        language: system
+        files: \.sol$
+        pass_filenames: false
+
+  # Solidity Build Check (catches compilation errors)
+  - repo: local
+    hooks:
+      - id: forge-build
+        name: Build contracts
+        entry: forge build --force
+        language: system
+        files: \.sol$
+        pass_filenames: false
+
+  # Solidity Tests (optional, can be slow)
+  # Uncomment to run tests on every commit
+  # - repo: local
+  #   hooks:
+  #     - id: forge-test
+  #       name: Run Forge tests
+  #       entry: forge test
+  #       language: system
+  #       files: \.sol$
+  #       pass_filenames: false
+
+  # General file cleanup
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: end-of-file-fixer
+        name: Fix end of files
+      - id: check-yaml
+        name: Check YAML syntax
+      - id: check-added-large-files
+        name: Check for large files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: mixed-line-ending
+        name: Fix mixed line endings
+
+# Configuration
+default_language_version:
+  python: python3
+
+fail_fast: false  # Continue running hooks even if one fails

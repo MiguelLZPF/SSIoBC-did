@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IW3CResolver, W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "./interfaces/IW3CResolver.sol";
+import {
+  IW3CResolver,
+  W3CDidDocument,
+  W3CVerificationMethod,
+  W3CService,
+  W3CDidInput
+} from "./interfaces/IW3CResolver.sol";
 import { IDidManager, Controller, CONTROLLERS_MAX_LENGTH, DEFAULT_DID_METHODS } from "./interfaces/IDidManager.sol";
 import { VerificationMethod } from "./VMStorage.sol";
 import { Service, SERVICE_MAX_LENGTH } from "./ServiceStorage.sol";
@@ -17,19 +23,16 @@ contract W3CResolver is IW3CResolver {
     _didManager = didManager;
   }
 
-  function resolve(
-    W3CDidInput memory didInput,
-    bool includeExpired
-  ) external view returns (W3CDidDocument memory didDocument) {
+  function resolve(W3CDidInput memory didInput, bool includeExpired)
+    external
+    view
+    returns (W3CDidDocument memory didDocument)
+  {
     // * Get Verification Methods
-    (W3CVerificationMethod[] memory vms, string[][] memory methods) = _getAllVerificationMethods(
-      didInput,
-      includeExpired
-    );
+    (W3CVerificationMethod[] memory vms, string[][] memory methods) =
+      _getAllVerificationMethods(didInput, includeExpired);
     // * Get Services
-    W3CService[] memory services = new W3CService[](
-      _didManager.getServiceListLength(didInput.methods, didInput.id)
-    );
+    W3CService[] memory services = new W3CService[](_didManager.getServiceListLength(didInput.methods, didInput.id));
     for (uint8 i = 0; i < services.length; i++) {
       services[i] = _toW3cService(
         _didManager.getService(
@@ -42,41 +45,34 @@ contract W3CResolver is IW3CResolver {
     }
 
     // * Structure DID Document
-    return
-      W3CDidDocument({
-        context: DEFAULT_CONTEXT,
-        id: _formatDidString(didInput),
-        controller: _toW3cController(
-          _didManager.getControllerList(didInput.methods, didInput.id),
-          didInput.methods
-        ),
-        verificationMethod: vms,
-        authentication: methods[0],
-        assertionMethod: methods[1],
-        keyAgreement: methods[2],
-        capabilityDelegation: methods[3],
-        capabilityInvocation: methods[4],
-        service: services,
-        expiration: _didManager.getExpiration(didInput.methods, didInput.id, bytes32(0)) * 1000
-      });
+    return W3CDidDocument({
+      context: DEFAULT_CONTEXT,
+      id: _formatDidString(didInput),
+      controller: _toW3cController(_didManager.getControllerList(didInput.methods, didInput.id), didInput.methods),
+      verificationMethod: vms,
+      authentication: methods[0],
+      assertionMethod: methods[1],
+      keyAgreement: methods[2],
+      capabilityDelegation: methods[3],
+      capabilityInvocation: methods[4],
+      service: services,
+      expiration: _didManager.getExpiration(didInput.methods, didInput.id, bytes32(0)) * 1000
+    });
   }
 
-  function resolveVm(
-    W3CDidInput memory didInput,
-    bytes32 vmId
-  ) public view returns (W3CVerificationMethod memory vm) {
+  function resolveVm(W3CDidInput memory didInput, bytes32 vmId) public view returns (W3CVerificationMethod memory vm) {
     // * Check parameters
     // Required
     _checkDidInput(didInput);
     // * Implementation
-    return
-      _toW3cVerificationMethod(_didManager.getVm(didInput.methods, didInput.id, vmId, 0), didInput);
+    return _toW3cVerificationMethod(_didManager.getVm(didInput.methods, didInput.id, vmId, 0), didInput);
   }
 
-  function resolveService(
-    W3CDidInput memory didInput,
-    bytes32 serviceId
-  ) public view returns (W3CService memory service) {
+  function resolveService(W3CDidInput memory didInput, bytes32 serviceId)
+    public
+    view
+    returns (W3CService memory service)
+  {
     // * Check parameters
     // Required
     _checkDidInput(didInput);
@@ -86,10 +82,11 @@ contract W3CResolver is IW3CResolver {
 
   // * Internal functions
 
-  function _getAllVerificationMethods(
-    W3CDidInput memory didInput,
-    bool includeExpired
-  ) internal view returns (W3CVerificationMethod[] memory vms, string[][] memory methods) {
+  function _getAllVerificationMethods(W3CDidInput memory didInput, bool includeExpired)
+    internal
+    view
+    returns (W3CVerificationMethod[] memory vms, string[][] memory methods)
+  {
     // * (0) Temporal variables creation
     // Create temporal arrays for each method (5 methods)
     string[][] memory methodsTemp = new string[][](5);
@@ -106,21 +103,15 @@ contract W3CResolver is IW3CResolver {
     // * (1) Iterate over the VM list
     // Iterate over the VM list (remember that the first position is 1, not 0)
     for (uint8 i = 1; i <= maxLength; i++) {
-      VerificationMethod memory vm = _didManager.getVm(
-        didInput.methods,
-        didInput.id,
-        bytes32(0),
-        i
-      );
+      VerificationMethod memory vm = _didManager.getVm(didInput.methods, didInput.id, bytes32(0), i);
       // Check if expired should be included or if the VM is not expired
       if (includeExpired || (vm.expiration != 0 && vm.expiration > block.timestamp)) {
         // Add the VM to the temporary array in W3C format
         vmsTemp[realLength[0]] = _toW3cVerificationMethod(vm, didInput);
         realLength[0]++;
         // Add the VM to the corresponding method array
-        string memory methodString = _formatDidString(
-          W3CDidInput({ methods: didInput.methods, id: didInput.id, fragment: vm.id })
-        );
+        string memory methodString =
+          _formatDidString(W3CDidInput({ methods: didInput.methods, id: didInput.id, fragment: vm.id }));
         if (vm.relationships & 0x01 == 0x01) {
           methodsTemp[0][realLength[1]] = methodString;
           realLength[1]++;
@@ -175,30 +166,28 @@ contract W3CResolver is IW3CResolver {
     return (vms, methods);
   }
 
-  function _toW3cVerificationMethod(
-    VerificationMethod memory vm,
-    W3CDidInput memory didInput
-  ) internal pure returns (W3CVerificationMethod memory w3cVm) {
+  function _toW3cVerificationMethod(VerificationMethod memory vm, W3CDidInput memory didInput)
+    internal
+    pure
+    returns (W3CVerificationMethod memory w3cVm)
+  {
     // * no real arrays here
-    return
-      W3CVerificationMethod({
-        id: string(_trimBytes(abi.encodePacked(vm.id))),
-        type_: string(_trimBytes(abi.encodePacked(vm.type_))),
-        controller: _formatDidString(didInput),
-        publicKeyMultibase: string(_trimBytes(abi.encodePacked(vm.publicKeyMultibase))),
-        blockchainAccountId: string(_trimBytes(abi.encodePacked(vm.blockchainAccountId))),
-        ethereumAddress: Strings.toHexString(vm.ethereumAddress),
-        expiration: vm.expiration * 1000 // expiration in ms
-      });
+    return W3CVerificationMethod({
+      id: string(_trimBytes(abi.encodePacked(vm.id))),
+      type_: string(_trimBytes(abi.encodePacked(vm.type_))),
+      controller: _formatDidString(didInput),
+      publicKeyMultibase: string(_trimBytes(abi.encodePacked(vm.publicKeyMultibase))),
+      blockchainAccountId: string(_trimBytes(abi.encodePacked(vm.blockchainAccountId))),
+      ethereumAddress: Strings.toHexString(vm.ethereumAddress),
+      expiration: vm.expiration * 1000 // expiration in ms
+    });
   }
 
-  function _toW3cService(
-    Service memory service
-  ) internal pure returns (W3CService memory w3cService) {
+  function _toW3cService(Service memory service) internal pure returns (W3CService memory w3cService) {
     // First count the length of the arrays
-    uint typesLength = 0;
-    uint serviceEndpointLength = 0;
-    for (uint i = 0; i < SERVICE_MAX_LENGTH; i++) {
+    uint256 typesLength = 0;
+    uint256 serviceEndpointLength = 0;
+    for (uint256 i = 0; i < SERVICE_MAX_LENGTH; i++) {
       // Break if both are empty
       if (service.type_[i][0] == bytes32(0) && service.serviceEndpoint[i][0] == bytes32(0)) {
         break;
@@ -213,32 +202,29 @@ contract W3CResolver is IW3CResolver {
     // Then create the final arrays
     string[] memory types = new string[](typesLength);
     string[] memory serviceEndpoints = new string[](serviceEndpointLength);
-    for (uint i = 0; i < typesLength; i++) {
+    for (uint256 i = 0; i < typesLength; i++) {
       types[i] = string(_trimBytes(abi.encodePacked(service.type_[i])));
     }
-    for (uint i = 0; i < serviceEndpointLength; i++) {
+    for (uint256 i = 0; i < serviceEndpointLength; i++) {
       serviceEndpoints[i] = string(_trimBytes(abi.encodePacked(service.serviceEndpoint[i])));
     }
     // Finally return the W3CService
-    return
-      W3CService({
-        id: string(_trimBytes(abi.encodePacked(service.id))),
-        type_: types,
-        serviceEndpoint: serviceEndpoints
-      });
+    return W3CService({
+      id: string(_trimBytes(abi.encodePacked(service.id))), type_: types, serviceEndpoint: serviceEndpoints
+    });
   }
 
-  function _toW3cController(
-    Controller[CONTROLLERS_MAX_LENGTH] memory controllers,
-    bytes32 methods
-  ) internal pure returns (string[] memory w3cControllers) {
+  function _toW3cController(Controller[CONTROLLERS_MAX_LENGTH] memory controllers, bytes32 methods)
+    internal
+    pure
+    returns (string[] memory w3cControllers)
+  {
     uint8 realLenght = 0;
     string[] memory temporalControllers = new string[](controllers.length);
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
       if (controllers[i].id != bytes32(0)) {
-        temporalControllers[realLenght] = _formatDidString(
-          W3CDidInput({ methods: methods, id: controllers[i].id, fragment: controllers[i].vmId })
-        );
+        temporalControllers[realLenght] =
+          _formatDidString(W3CDidInput({ methods: methods, id: controllers[i].id, fragment: controllers[i].vmId }));
         realLenght++;
       }
     }
@@ -265,7 +251,7 @@ contract W3CResolver is IW3CResolver {
     bytes10 method0 = bytes10(didInput.methods);
     bytes10 method1 = bytes10(bytes32(uint256(didInput.methods) << 80)); // Shift to get the second 10 bytes
     bytes10 method2 = bytes10(bytes32(uint256(didInput.methods) << 160)); // Shift to get the third 10 bytes
-    // The final bytes buffer to be converted to string
+      // The final bytes buffer to be converted to string
     bytes memory finalEncode = abi.encodePacked("did:", method0, ":");
     if (method1 != bytes10(0)) {
       finalEncode = abi.encodePacked(finalEncode, method1, ":");
@@ -285,15 +271,15 @@ contract W3CResolver is IW3CResolver {
       return new bytes(0);
     }
     bytes memory withoutZeros = new bytes(input.length);
-    uint length = 0;
-    for (uint i = 0; i < input.length; i++) {
+    uint256 length = 0;
+    for (uint256 i = 0; i < input.length; i++) {
       if (input[i] != 0x00) {
         withoutZeros[length] = input[i];
         length++;
       }
     }
     output = new bytes(length);
-    for (uint i = 0; i < length; i++) {
+    for (uint256 i = 0; i < length; i++) {
       output[i] = withoutZeros[i];
     }
     return output;

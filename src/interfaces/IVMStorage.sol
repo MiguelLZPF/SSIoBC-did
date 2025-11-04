@@ -45,12 +45,7 @@ interface IVMStorage {
    * @param idHash The unique identifier hash of the VM.
    * @param positionHash The hash of the position of the VM.
    */
-  event VmCreated(
-    bytes32 indexed didIdHash,
-    bytes32 indexed id,
-    bytes32 indexed idHash,
-    bytes32 positionHash
-  );
+  event VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed idHash, bytes32 positionHash);
 
   /**
    * @dev Emitted when a VM is validated.
@@ -65,12 +60,7 @@ interface IVMStorage {
    * @param expired The new expiration status of the VM.
    * @param expiration The new expiration timestamp of the VM.
    */
-  event VmExpirationUpdated(
-    bytes32 indexed didIdHash,
-    bytes32 indexed id,
-    bool indexed expired,
-    uint256 expiration
-  );
+  event VmExpirationUpdated(bytes32 indexed didIdHash, bytes32 indexed id, bool indexed expired, uint256 expiration);
 
   // * Errors
   error MissingRequiredParameter();

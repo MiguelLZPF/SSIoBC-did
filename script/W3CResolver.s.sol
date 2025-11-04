@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import { Script, console } from "forge-std/Script.sol";
+import { Script } from "forge-std/Script.sol";
 import { Configuration, Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
 import { IDidManager } from "@src/interfaces/IDidManager.sol";
 import { W3CResolver } from "@src/W3CResolver.sol";
@@ -20,27 +20,20 @@ contract W3CResolverScript is Script {
   string private constant CONTRACT_FILE_NAME = "W3CResolver.sol";
   Configuration config = new Configuration();
 
-  function deploy(
-    IDidManager didManager,
-    bool store,
-    string calldata tag,
-    bool broadcast
-  ) external returns (W3CResolver w3cResolver, Deployment memory deployment) {
+  function deploy(IDidManager didManager, bool store, string calldata tag, bool broadcast)
+    external
+    returns (W3CResolver w3cResolver, Deployment memory deployment)
+  {
     bytes32 tag_ = bytes32(bytes(tag));
-    return
-      _deploy(
-        DeployCommand({
-          didManager: didManager,
-          storeInfo: DeploymentStoreInfo({ store: store, tag: tag_ })
-        }),
-        broadcast
-      );
+    return _deploy(
+      DeployCommand({ didManager: didManager, storeInfo: DeploymentStoreInfo({ store: store, tag: tag_ }) }), broadcast
+    );
   }
 
-  function _deploy(
-    DeployCommand memory command,
-    bool broadcast
-  ) internal returns (W3CResolver w3cResolver, Deployment memory deployment) {
+  function _deploy(DeployCommand memory command, bool broadcast)
+    internal
+    returns (W3CResolver w3cResolver, Deployment memory deployment)
+  {
     // Only thing that is executed in the blockchain
     if (broadcast) {
       vm.startBroadcast();

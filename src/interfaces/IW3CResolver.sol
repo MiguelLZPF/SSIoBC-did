@@ -49,10 +49,10 @@ interface IW3CResolver {
    * @param includeExpired Flag indicating whether to include expired DID documents.
    * @return didDocument The resolved DID document.
    */
-  function resolve(
-    W3CDidInput memory didInput,
-    bool includeExpired
-  ) external view returns (W3CDidDocument memory didDocument);
+  function resolve(W3CDidInput memory didInput, bool includeExpired)
+    external
+    view
+    returns (W3CDidDocument memory didDocument);
 
   /**
    * @dev Resolves a specific verification method (VM) within a W3C DID and returns the corresponding VM.
@@ -60,10 +60,7 @@ interface IW3CResolver {
    * @param vmId The ID of the verification method.
    * @return vm The resolved verification method.
    */
-  function resolveVm(
-    W3CDidInput memory didInput,
-    bytes32 vmId
-  ) external view returns (W3CVerificationMethod memory vm);
+  function resolveVm(W3CDidInput memory didInput, bytes32 vmId) external view returns (W3CVerificationMethod memory vm);
 
   /**
    * @dev Resolves a specific service within a W3C DID and returns the corresponding service.
@@ -71,8 +68,8 @@ interface IW3CResolver {
    * @param serviceId The ID of the service.
    * @return service The resolved service.
    */
-  function resolveService(
-    W3CDidInput memory didInput,
-    bytes32 serviceId
-  ) external view returns (W3CService memory service);
+  function resolveService(W3CDidInput memory didInput, bytes32 serviceId)
+    external
+    view
+    returns (W3CService memory service);
 }

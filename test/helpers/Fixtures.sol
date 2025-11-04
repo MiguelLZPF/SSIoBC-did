@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
-import { DEFAULT_VM_ID, DEFAULT_VM_EXPIRATION } from "@src/interfaces/IVMStorage.sol";
 import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 
 /**
@@ -98,8 +96,7 @@ library Fixtures {
 
   // VM Ethereum Addresses
   address internal constant EMPTY_VM_ETHEREUM_ADDRESS = address(0);
-  address internal constant DEFAULT_VM_ETHEREUM_ADDRESS =
-    address(0xab16a96D359eC26a11e2C2b3d8f8B8942d5Bfcdb);
+  address internal constant DEFAULT_VM_ETHEREUM_ADDRESS = address(0xab16a96D359eC26a11e2C2b3d8f8B8942d5Bfcdb);
 
   // VM Expiration
   uint256 internal constant EMPTY_VM_EXPIRATION = 0; // Means never validated (invalid)
@@ -168,11 +165,7 @@ library Fixtures {
   bytes32 internal constant SERVICE_ID_TEST_2 = bytes32("test-service-2");
 
   // Service Types
-  function defaultServiceType()
-    internal
-    pure
-    returns (bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory)
-  {
+  function defaultServiceType() internal pure returns (bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory) {
     bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory result;
     result[0][0] = bytes32("LinkedDomains");
     return result;

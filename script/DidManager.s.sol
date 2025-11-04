@@ -18,23 +18,18 @@ contract DidManagerScript is Script {
   string private constant CONTRACT_FILE_NAME = "DidManager.sol";
   Configuration config = new Configuration();
 
-  function deploy(
-    bool store,
-    string calldata tag,
-    bool broadcast
-  ) external returns (DidManager didManager, Deployment memory deployment) {
+  function deploy(bool store, string calldata tag, bool broadcast)
+    external
+    returns (DidManager didManager, Deployment memory deployment)
+  {
     bytes32 tag_ = bytes32(bytes(tag));
-    return
-      _deploy(
-        DeployCommand({ storeInfo: DeploymentStoreInfo({ store: store, tag: tag_ }) }),
-        broadcast
-      );
+    return _deploy(DeployCommand({ storeInfo: DeploymentStoreInfo({ store: store, tag: tag_ }) }), broadcast);
   }
 
-  function _deploy(
-    DeployCommand memory command,
-    bool broadcast
-  ) internal returns (DidManager didManager, Deployment memory deployment) {
+  function _deploy(DeployCommand memory command, bool broadcast)
+    internal
+    returns (DidManager didManager, Deployment memory deployment)
+  {
     // Only thing that is executed in the blockchain
     if (broadcast) {
       console.logString("WARN: Broadcasting deployment, make sure to use --broadcast flag");
