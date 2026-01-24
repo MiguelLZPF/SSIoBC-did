@@ -30,13 +30,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [AI Orchestration & Routing](#ai-orchestration--routing)
 - [Project Knowledge Reference](#project-knowledge-reference)
 - [Development Guidelines](#development-guidelines)
+- [Security Guidelines](#security-guidelines)
 - [File References](#file-references)
 
 ## Quick Facts
 
 - **Project**: W3C-compliant fully on-chain DID management system
 - **Innovation**: First complete on-chain DID document storage (vs event-based)
-- **Language**: Solidity 0.8.24 (Foundry framework)
+- **Language**: Solidity 0.8.33 (Foundry framework)
 - **Coverage**: >90% required (enforced in CI/CD)
 - **Architecture**: 4 contracts (DidManager, VMStorage, ServiceStorage, W3CResolver)
 - **Storage**: Hash-based lists with EnumerableSet (gas-optimized)
@@ -254,6 +255,71 @@ GitHub Actions (`.github/workflows/ai-quality-check.yml`):
 - Gas cost analysis
 - Security scan summary
 - PR comments with quality metrics
+
+## Security Guidelines
+
+### DID/SSI Project Security Considerations
+
+When developing or reviewing smart contracts for this DID/SSI project, the following security considerations are critical:
+
+#### W3C DID Specification Compliance
+- **Mandatory Compliance**: All DID operations must conform to W3C DID Core v1.0 specification
+- **Document Structure**: Verify that DID documents follow the correct JSON-LD format
+- **Method Support**: Ensure multi-method DID resolution works as specified
+- **Verification Method Format**: VM properties must match W3C requirements
+
+#### Privacy and Data Protection
+- **On-Chain Storage**: Consider privacy implications of storing identity data on-chain
+- **GDPR Considerations**: Blockchain immutability conflicts with "right to be forgotten"
+- **PII Minimization**: Store only necessary data on-chain, use hashes where possible
+- **Controller Privacy**: Protect controller addresses and relationships
+
+#### Gas Cost Optimization
+- **Identity Operations**: Gas costs must be reasonable for real-world adoption
+- **DID Creation**: Should be affordable for individual users
+- **Updates**: Frequent operations (VM updates, service changes) need efficient implementation
+- **Batch Operations**: Consider supporting batch updates to reduce per-operation costs
+
+#### Multi-Method DID Security
+- **Method Validation**: Ensure method bytes are properly validated and immutable
+- **Cross-Method**: Prevent confusion attacks between different method namespaces
+- **Method Collision**: Hash-based indexing must prevent collisions
+
+#### Verification Method Security
+- **Key Management**: Secure storage and validation of cryptographic keys
+- **VM Types**: Support standard key types (EcdsaSecp256k1, Ed25519, etc.)
+- **VM Updates**: Ensure proper authentication for VM additions/removals
+- **VM Revocation**: Implement secure verification method deactivation
+
+#### Controller Delegation Security
+- **Authorization**: Verify controller permissions before state changes
+- **Delegation Chain**: Prevent circular or malicious delegation patterns
+- **Controller Updates**: Secure mechanism for controller changes
+- **Attack Surfaces**: Protect against controller impersonation
+
+#### Common Attack Vectors
+- **Reentrancy**: Protect external calls and state changes
+- **Front-running**: Consider MEV implications for DID operations
+- **Signature Replay**: Prevent signature reuse across different contexts
+- **DoS**: Protect against resource exhaustion attacks
+- **Access Control**: Ensure only authorized parties can modify DIDs
+
+### Security Review Process
+
+When requesting security audits, use **@blockchain-code-assassin** (manual invocation only):
+
+```
+User: "@blockchain-code-assassin, please audit DidManager.sol for security issues"
+```
+
+The agent will perform:
+- Reentrancy analysis
+- Access control validation
+- Gas optimization review
+- W3C DID compliance check
+- Common vulnerability scan
+
+**Never auto-route to blockchain-code-assassin** - always wait for explicit user approval due to the depth and cost of analysis.
 
 ## File References
 

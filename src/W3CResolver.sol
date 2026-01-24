@@ -9,8 +9,8 @@ import {
   W3CDidInput
 } from "./interfaces/IW3CResolver.sol";
 import { IDidManager, Controller, CONTROLLERS_MAX_LENGTH, DEFAULT_DID_METHODS } from "./interfaces/IDidManager.sol";
-import { VerificationMethod } from "./VMStorage.sol";
-import { Service, SERVICE_MAX_LENGTH } from "./ServiceStorage.sol";
+import { VerificationMethod } from "@src/VMStorage.sol";
+import { Service, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 // ! This Contract is NOT necessary, only adds ONchain DID resolution

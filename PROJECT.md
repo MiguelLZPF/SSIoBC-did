@@ -27,7 +27,8 @@ This file is the **single source of truth** for project domain knowledge, refere
 
 ### Core Technologies
 
-- **Solidity**: 0.8.24 (fixed version for deterministic builds)
+- **Solidity**: 0.8.33 (fixed version for deterministic builds)
+- **EVM**: Osaka (Fusaka hardfork)
 - **Framework**: Foundry (Forge, Cast, Anvil)
 - **Testing**: Forge test framework with >90% coverage requirement
 - **Libraries**: OpenZeppelin (EnumerableSet, Ownable)
