@@ -144,7 +144,7 @@ Total Base Slots: 5 (reduced from 28 in v0.8.0)
 
 #### 3. ServiceStorage.sol
 
-**Purpose**: Service endpoints storage with hash-based approach
+**Purpose**: Service endpoints storage with dynamic bytes (optimized in v1.1)
 
 **Type**: Abstract contract (inherited by DidManager)
 
@@ -153,7 +153,47 @@ Total Base Slots: 5 (reduced from 28 in v0.8.0)
 - Service type management
 - Service endpoint URL storage
 
-**Storage Approach**: Hash-based indexing similar to VMStorage
+**Storage Architecture (v1.1 - Optimized):**
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    ServiceStorage State Variables                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Slot 0: _serviceIds                                                    │
+│  mapping(bytes32 serviceDidHash => EnumerableSet.Bytes32Set ids)        │
+│  Purpose: O(1) add/remove/contains for service IDs                      │
+│                                                                          │
+│  Slot 1: _serviceByNsAndId                                              │
+│  mapping(bytes32 => mapping(bytes32 => Service))                        │
+│  Purpose: Main Service data storage                                      │
+│                                                                          │
+│  Slot 2: _servicePositionByNsAndId                                      │
+│  mapping(bytes32 => mapping(bytes32 => uint8))                          │
+│  Purpose: Position tracking for events                                   │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Service Struct (v1.1 Optimized):**
+```solidity
+struct Service {
+  bytes32 id;           // 1 slot - service identifier
+  bytes type_;          // dynamic bytes - packed types with '\x00' delimiter
+  bytes serviceEndpoint; // dynamic bytes - packed URLs with '\x00' delimiter
+}
+```
+
+**Storage Efficiency:**
+- **Before (v1.0):** 161 slots per service (5,152 bytes) - fixed `bytes32[20][4]` arrays
+- **After (v1.1):** ~6 slots typical (192 bytes) - dynamic bytes
+- **Savings:** 96% reduction per service
+
+**Key Optimizations:**
+1. **Dynamic Bytes:** Uses only needed storage vs fixed 161-slot arrays
+2. **Null Delimiter:** Types/endpoints packed with `\x00` separator
+3. **Flexible Lengths:** Max 500 bytes for types, 2000 bytes for endpoints
+4. **Gas Reduction:** ~90% reduction in service creation gas
 
 #### 4. W3CResolver.sol
 

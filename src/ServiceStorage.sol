@@ -2,6 +2,13 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {
+  IServiceStorage,
+  Service,
+  SERVICE_NAMESPACE,
+  MAX_SERVICE_TYPE_LENGTH,
+  MAX_SERVICE_ENDPOINT_LENGTH
+} from "src/interfaces/IServiceStorage.sol";
 
 // Example of a service:
 // {
@@ -12,31 +19,8 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 //   }]
 // }
 
-bytes32 constant SERVICE_NAMESPACE = bytes32("service");
-// Maximum length (x times 32 bytes) of the service type and service endpoint. Each one is 32 bytes x SERVICE_MAX_LENGTH
-uint8 constant SERVICE_MAX_LENGTH = 4;
-// Maximum length of the service type and endpoint list (max number of different endpoints amd types for a service)
-uint8 constant SERVICE_MAX_LENGTH_LIST = 20;
-
-struct Service {
-  bytes32 id;
-  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] type_;
-  bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] serviceEndpoint;
-}
-
-abstract contract ServiceStorage {
+abstract contract ServiceStorage is IServiceStorage {
   using EnumerableSet for EnumerableSet.Bytes32Set;
-  //* Events
-  /**
-   * @dev Emitted when a new service is created for a DID.
-   * @param didIdHash The unique identifier of the DID.
-   * @param id The unique identifier of the service.
-   * @param serviceIdHash The unique identifier hash of the service.
-   * @param positionHash The hash of the position of the service.
-   */
-  event ServiceUpdated(
-    bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed serviceIdHash, bytes32 positionHash
-  );
 
   //* Storage
   // Per service DID hash (namespaced), maintain the set of service IDs
@@ -48,25 +32,27 @@ abstract contract ServiceStorage {
 
   /**
    * @dev Updates, creates or removes a service in the contract.
+   * Uses dynamic bytes for flexible storage following VMStorage v1.0 pattern.
    * @param didHash The hash of the decentralized identifier (DID) associated with the service.
    * @param id The unique identifier of the service.
-   * @param type_ An array of service types.
-   * @param serviceEndpoint An array of service endpoints.
+   * @param type_ Packed service types with '\x00' delimiter.
+   * @param serviceEndpoint Packed service endpoints with '\x00' delimiter.
    */
-  function _updateService(
-    bytes32 didHash,
-    bytes32 id,
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory type_,
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint
-  ) internal {
+  function _updateService(bytes32 didHash, bytes32 id, bytes memory type_, bytes memory serviceEndpoint) internal {
     bytes32 serviceDidHash = _addServiceNameSpace(didHash);
     // Check parameters
     require(id != bytes32(0), "ID cannot be 0");
+
+    // Validate size limits
+    if (type_.length > MAX_SERVICE_TYPE_LENGTH) revert ServiceTypeTooLarge();
+    if (serviceEndpoint.length > MAX_SERVICE_ENDPOINT_LENGTH) revert ServiceEndpointTooLarge();
+
     bytes32 idHash = _svcCalculateIdHash(serviceDidHash, id);
     bool exists = _serviceIds[serviceDidHash].contains(id);
     uint8 position = _servicePositionByNsAndId[serviceDidHash][id];
-    // Delete path
-    if (exists && type_[0][0] == bytes32(0) && serviceEndpoint[0][0] == bytes32(0)) {
+
+    // Delete path: both type and endpoint are empty
+    if (exists && type_.length == 0 && serviceEndpoint.length == 0) {
       uint256 len = _serviceIds[serviceDidHash].length();
       bytes32 lastId = _serviceIds[serviceDidHash].at(len - 1);
       // Remove id
@@ -85,9 +71,11 @@ abstract contract ServiceStorage {
       emit ServiceUpdated(didHash, lastId, lastIdHash, newPositionHash);
       return;
     }
+
     // Create/update path
-    require(type_[0][0] != bytes32(0), "Type cannot be 0");
-    require(serviceEndpoint[0][0] != bytes32(0), "Endpoint cannot be 0");
+    require(type_.length > 0, "Type cannot be empty");
+    require(serviceEndpoint.length > 0, "Endpoint cannot be empty");
+
     bytes32 positionHash;
     if (!exists) {
       bool added = _serviceIds[serviceDidHash].add(id);
@@ -98,11 +86,13 @@ abstract contract ServiceStorage {
     } else {
       positionHash = _svcCalculatePositionHash(serviceDidHash, position);
     }
+
     // Store the service payload by ID
     Service storage service = _serviceByNsAndId[serviceDidHash][id];
     service.id = id;
     service.type_ = type_;
     service.serviceEndpoint = serviceEndpoint;
+
     // Emit event
     emit ServiceUpdated(didHash, id, idHash, positionHash);
   }

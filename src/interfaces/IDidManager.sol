@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { VerificationMethod } from "@src/VMStorage.sol";
-import { Service, SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
+import { Service } from "@src/interfaces/IServiceStorage.sol";
 
 /**
  * @dev Struct representing a controller of a DID.
@@ -209,8 +209,8 @@ interface IDidManager {
    * @param senderVmId The unique identifier of the sender's VM.
    * @param targetId The unique identifier of the new target's DID to be modified.
    * @param serviceId The service ID.
-   * @param type_ An array of service types.
-   * @param serviceEndpoint An array of service endpoints.
+   * @param type_ Service types packed with '\x00' delimiter.
+   * @param serviceEndpoint Service endpoints packed with '\x00' delimiter.
    */
   function updateService(
     bytes32 methods,
@@ -218,8 +218,8 @@ interface IDidManager {
     bytes32 senderVmId,
     bytes32 targetId,
     bytes32 serviceId,
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory type_,
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint
+    bytes memory type_,
+    bytes memory serviceEndpoint
   ) external;
 
   /**

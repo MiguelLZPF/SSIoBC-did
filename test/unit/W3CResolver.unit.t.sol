@@ -103,8 +103,8 @@ contract W3CResolverUnitTest is TestBase {
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.DEFAULT_SERVICE_ID,
-      Fixtures.defaultServiceType(),
-      Fixtures.defaultServiceEndpoint()
+      Fixtures.DEFAULT_SERVICE_TYPE,
+      Fixtures.DEFAULT_SERVICE_ENDPOINT
     );
 
     // Test: Resolve the DID document
@@ -260,8 +260,8 @@ contract W3CResolverUnitTest is TestBase {
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.DEFAULT_SERVICE_ID,
-      Fixtures.defaultServiceType(),
-      Fixtures.defaultServiceEndpoint()
+      Fixtures.DEFAULT_SERVICE_TYPE,
+      Fixtures.DEFAULT_SERVICE_ENDPOINT
     );
 
     // Test: Resolve specific service
@@ -323,8 +323,8 @@ contract W3CResolverUnitTest is TestBase {
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.DEFAULT_SERVICE_ID,
-      Fixtures.defaultServiceType(),
-      Fixtures.defaultServiceEndpoint()
+      Fixtures.DEFAULT_SERVICE_TYPE,
+      Fixtures.DEFAULT_SERVICE_ENDPOINT
     );
 
     // Test: Resolve the complete DID document

@@ -10,7 +10,8 @@ import {
   CONTROLLERS_MAX_LENGTH
 } from "src/interfaces/IDidManager.sol";
 import { VMStorage, VerificationMethod, CreateVmCommand } from "src/VMStorage.sol";
-import { ServiceStorage, Service, SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "src/ServiceStorage.sol";
+import { ServiceStorage } from "src/ServiceStorage.sol";
+import { Service } from "src/interfaces/IServiceStorage.sol";
 
 // import {ServiceStorage} from "./ServiceStorage.sol";
 
@@ -164,8 +165,8 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     bytes32 senderVmId,
     bytes32 targetId,
     bytes32 serviceId,
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory type_,
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint
+    bytes memory type_,
+    bytes memory serviceEndpoint
   ) external {
     //* Implementation
     (, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);

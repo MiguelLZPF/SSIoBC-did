@@ -6,7 +6,6 @@ import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
 import { CreateVmCommand, EXPIRATION } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
-import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 import { console } from "forge-std/console.sol";
 
 /**
@@ -169,11 +168,8 @@ contract GasOptimizationPerformanceTest is TestBase {
     for (uint256 i = 1; i <= 5; i++) {
       uint256 gasStart = gasleft();
 
-      bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceType;
-      serviceType[0][0] = bytes32(abi.encodePacked("ServiceType", i));
-
-      bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint;
-      serviceEndpoint[0][0] = bytes32(abi.encodePacked("https://service", i, ".example.com"));
+      bytes memory serviceType = abi.encodePacked("ServiceType", vm.toString(i));
+      bytes memory serviceEndpoint = abi.encodePacked("https://service", vm.toString(i), ".example.com");
 
       didManager.updateService(
         didResult.didInfo.methods,
@@ -189,7 +185,8 @@ contract GasOptimizationPerformanceTest is TestBase {
       console.log("Service creation gas used:", gasUsed);
 
       // Gas should remain relatively constant (O(1) operations)
-      assertLt(gasUsed, 700000); // Updated for Foundry v1.4.3
+      // Updated threshold: dynamic bytes are much cheaper than fixed 161-slot arrays
+      assertLt(gasUsed, 200000);
     }
 
     _stopPrank();
@@ -290,10 +287,8 @@ contract GasOptimizationPerformanceTest is TestBase {
       DidTestHelpers.createVm(vm, didManager, vmCommand);
 
       // Add service
-      bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceType;
-      serviceType[0][0] = bytes32(abi.encodePacked("CleanupService", i));
-      bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint;
-      serviceEndpoint[0][0] = bytes32(abi.encodePacked("https://cleanup", i, ".example.com"));
+      bytes memory serviceType = abi.encodePacked("CleanupService", vm.toString(i));
+      bytes memory serviceEndpoint = abi.encodePacked("https://cleanup", vm.toString(i), ".example.com");
 
       didManager.updateService(
         didResult.didInfo.methods,

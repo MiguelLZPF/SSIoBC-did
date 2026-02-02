@@ -13,7 +13,6 @@ import {
 } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_VM_ID, IVMStorage } from "@src/interfaces/IVMStorage.sol";
-import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 /**
@@ -844,11 +843,6 @@ contract DidManagerUnitTest is TestBase {
     );
 
     // Try to update service - should fail
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceType;
-    serviceType[0][0] = bytes32("TestService");
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint;
-    serviceEndpoint[0][0] = bytes32("https://example.com");
-
     vm.expectRevert(IDidManager.DidExpired.selector);
     didManager.updateService(
       didResult.didInfo.methods,
@@ -856,8 +850,8 @@ contract DidManagerUnitTest is TestBase {
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       bytes32("service-id"),
-      serviceType,
-      serviceEndpoint
+      bytes("TestService"),
+      bytes("https://example.com")
     );
 
     _stopPrank();
@@ -977,25 +971,15 @@ contract DidManagerUnitTest is TestBase {
       DidTestHelpers.createDid(vm, didManager, customMethods, randomValue, DEFAULT_VM_ID);
 
     // Add multiple services to ensure cleanup loop runs multiple times
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceType1;
-    serviceType1[0][0] = bytes32("ServiceType1");
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint1;
-    serviceEndpoint1[0][0] = bytes32("https://service1.example.com");
-
     didManager.updateService(
       firstDid.didInfo.methods,
       firstDid.didInfo.id,
       DEFAULT_VM_ID,
       firstDid.didInfo.id,
       bytes32("service1"),
-      serviceType1,
-      serviceEndpoint1
+      bytes("ServiceType1"),
+      bytes("https://service1.example.com")
     );
-
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceType2;
-    serviceType2[0][0] = bytes32("ServiceType2");
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint2;
-    serviceEndpoint2[0][0] = bytes32("https://service2.example.com");
 
     didManager.updateService(
       firstDid.didInfo.methods,
@@ -1003,8 +987,8 @@ contract DidManagerUnitTest is TestBase {
       DEFAULT_VM_ID,
       firstDid.didInfo.id,
       bytes32("service2"),
-      serviceType2,
-      serviceEndpoint2
+      bytes("ServiceType2"),
+      bytes("https://service2.example.com")
     );
 
     // Add multiple VMs to ensure VM cleanup loop runs multiple times
@@ -1100,19 +1084,14 @@ contract DidManagerUnitTest is TestBase {
 
     // Add extensive data to make cleanup work harder
     for (uint256 i = 1; i <= 3; i++) {
-      bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceType;
-      serviceType[0][0] = bytes32(abi.encodePacked("ServiceType", i));
-      bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint;
-      serviceEndpoint[0][0] = bytes32(abi.encodePacked("https://service", i, ".example.com"));
-
       didManager.updateService(
         originalDid.didInfo.methods,
         originalDid.didInfo.id,
         DEFAULT_VM_ID,
         originalDid.didInfo.id,
         keccak256(abi.encodePacked("service", i, block.timestamp, block.prevrandao)),
-        serviceType,
-        serviceEndpoint
+        abi.encodePacked("ServiceType", i),
+        abi.encodePacked("https://service", i, ".example.com")
       );
     }
 
@@ -1168,42 +1147,30 @@ contract DidManagerUnitTest is TestBase {
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.DEFAULT_SERVICE_ID,
-      Fixtures.defaultServiceType(),
-      Fixtures.defaultServiceEndpoint()
+      Fixtures.DEFAULT_SERVICE_TYPE,
+      Fixtures.DEFAULT_SERVICE_ENDPOINT
     );
 
     // Add second service
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory service2Type;
-    service2Type[0][0] = bytes32("SecondServiceType");
-
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory service2Endpoint;
-    service2Endpoint[0][0] = bytes32("https://service2.example.com");
-
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.SERVICE_ID_TEST_1,
-      service2Type,
-      service2Endpoint
+      bytes("SecondServiceType"),
+      bytes("https://service2.example.com")
     );
 
     // Add third service to ensure while loop executes multiple times
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory service3Type;
-    service3Type[0][0] = bytes32("ThirdServiceType");
-
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory service3Endpoint;
-    service3Endpoint[0][0] = bytes32("https://service3.example.com");
-
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.SERVICE_ID_TEST_2,
-      service3Type,
-      service3Endpoint
+      bytes("ThirdServiceType"),
+      bytes("https://service3.example.com")
     );
 
     // Verify services exist
@@ -1238,8 +1205,8 @@ contract DidManagerUnitTest is TestBase {
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.DEFAULT_SERVICE_ID,
-      Fixtures.defaultServiceType(),
-      Fixtures.defaultServiceEndpoint()
+      Fixtures.DEFAULT_SERVICE_TYPE,
+      Fixtures.DEFAULT_SERVICE_ENDPOINT
     );
 
     // Add additional VM

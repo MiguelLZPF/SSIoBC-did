@@ -10,7 +10,7 @@ import {
 } from "./interfaces/IW3CResolver.sol";
 import { IDidManager, Controller, CONTROLLERS_MAX_LENGTH, DEFAULT_DID_METHODS } from "./interfaces/IDidManager.sol";
 import { VerificationMethod } from "@src/VMStorage.sol";
-import { Service, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
+import { Service } from "@src/interfaces/IServiceStorage.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 // ! This Contract is NOT necessary, only adds ONchain DID resolution
@@ -184,34 +184,83 @@ contract W3CResolver is IW3CResolver {
   }
 
   function _toW3cService(Service memory service) internal pure returns (W3CService memory w3cService) {
-    // First count the length of the arrays
-    uint256 typesLength = 0;
-    uint256 serviceEndpointLength = 0;
-    for (uint256 i = 0; i < SERVICE_MAX_LENGTH; i++) {
-      // Break if both are empty
-      if (service.type_[i][0] == bytes32(0) && service.serviceEndpoint[i][0] == bytes32(0)) {
-        break;
-      }
-      if (service.type_[i][0] != bytes32(0)) {
-        typesLength++;
-      }
-      if (service.serviceEndpoint[i][0] != bytes32(0)) {
-        serviceEndpointLength++;
-      }
-    }
-    // Then create the final arrays
-    string[] memory types = new string[](typesLength);
-    string[] memory serviceEndpoints = new string[](serviceEndpointLength);
-    for (uint256 i = 0; i < typesLength; i++) {
-      types[i] = string(_trimBytes(abi.encodePacked(service.type_[i])));
-    }
-    for (uint256 i = 0; i < serviceEndpointLength; i++) {
-      serviceEndpoints[i] = string(_trimBytes(abi.encodePacked(service.serviceEndpoint[i])));
-    }
-    // Finally return the W3CService
+    // Parse packed bytes into string arrays using '\x00' delimiter
+    string[] memory types = _parsePackedStrings(service.type_);
+    string[] memory serviceEndpoints = _parsePackedStrings(service.serviceEndpoint);
+
     return W3CService({
-      id: string(_trimBytes(abi.encodePacked(service.id))), type_: types, serviceEndpoint: serviceEndpoints
+      id: string(_trimBytes(abi.encodePacked(service.id))),
+      type_: types,
+      serviceEndpoint: serviceEndpoints
     });
+  }
+
+  /**
+   * @dev Parses packed bytes into string array using '\x00' as delimiter.
+   * Example: "LinkedDomains\x00DIDCommMessaging" -> ["LinkedDomains", "DIDCommMessaging"]
+   * @param packed The packed bytes with '\x00' delimited strings.
+   * @return strings Array of parsed strings.
+   */
+  function _parsePackedStrings(bytes memory packed) internal pure returns (string[] memory strings) {
+    if (packed.length == 0) {
+      return new string[](0);
+    }
+
+    // First pass: count delimiters to determine array size
+    uint256 count = 1; // At least one string if not empty
+    for (uint256 i = 0; i < packed.length; i++) {
+      if (packed[i] == 0x00) {
+        count++;
+      }
+    }
+
+    // Second pass: extract strings
+    strings = new string[](count);
+    uint256 stringIndex = 0;
+    uint256 startPos = 0;
+
+    for (uint256 i = 0; i <= packed.length; i++) {
+      // Check for delimiter or end of array
+      if (i == packed.length || packed[i] == 0x00) {
+        uint256 strLen = i - startPos;
+        if (strLen > 0) {
+          bytes memory strBytes = new bytes(strLen);
+          for (uint256 j = 0; j < strLen; j++) {
+            strBytes[j] = packed[startPos + j];
+          }
+          strings[stringIndex] = string(strBytes);
+        } else {
+          strings[stringIndex] = "";
+        }
+        stringIndex++;
+        startPos = i + 1;
+      }
+    }
+
+    // Trim array if we have trailing empty strings from consecutive delimiters
+    // Count actual non-empty strings or necessary empty strings
+    uint256 actualCount = 0;
+    for (uint256 i = 0; i < strings.length; i++) {
+      if (bytes(strings[i]).length > 0) {
+        actualCount = i + 1; // Keep all strings up to and including the last non-empty one
+      }
+    }
+
+    // If all strings are empty (edge case), return empty array
+    if (actualCount == 0 && strings.length > 0 && bytes(strings[0]).length == 0) {
+      return new string[](0);
+    }
+
+    // Create properly sized array
+    if (actualCount < strings.length) {
+      string[] memory trimmed = new string[](actualCount);
+      for (uint256 i = 0; i < actualCount; i++) {
+        trimmed[i] = strings[i];
+      }
+      return trimmed;
+    }
+
+    return strings;
   }
 
   function _toW3cController(Controller[CONTROLLERS_MAX_LENGTH] memory controllers, bytes32 methods)

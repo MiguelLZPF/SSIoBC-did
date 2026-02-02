@@ -6,7 +6,6 @@ import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
 import { CreateVmCommand, Controller, CONTROLLERS_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
-import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
 import { console } from "forge-std/console.sol";
 
 /**
@@ -95,11 +94,8 @@ contract StressTest is TestBase {
     for (uint256 i = 1; i <= maxServices; i++) {
       uint256 gasStart = gasleft();
 
-      bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceType;
-      serviceType[0][0] = bytes32(abi.encodePacked("StressService", i));
-
-      bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint;
-      serviceEndpoint[0][0] = bytes32(abi.encodePacked("https://stress", i, ".example.com"));
+      bytes memory serviceType = abi.encodePacked("StressService", vm.toString(i));
+      bytes memory serviceEndpoint = abi.encodePacked("https://stress", vm.toString(i), ".example.com");
 
       didManager.updateService(
         didResult.didInfo.methods,
@@ -255,17 +251,24 @@ contract StressTest is TestBase {
 
     console.log("=== LARGE DATA STRUCTURE PERFORMANCE TEST ===");
 
-    // Create service with maximum endpoint complexity
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory largeServiceType;
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory largeServiceEndpoint;
-
-    // Fill arrays to test maximum data handling
-    for (uint256 i = 0; i < SERVICE_MAX_LENGTH_LIST && i < 3; i++) {
-      for (uint256 j = 0; j < SERVICE_MAX_LENGTH && j < 2; j++) {
-        largeServiceType[i][j] = bytes32(abi.encodePacked("LargeType", i, "-", j));
-        largeServiceEndpoint[i][j] = bytes32(abi.encodePacked("https://large", i, "-", j, ".example.com"));
-      }
-    }
+    // Create service with multiple types and endpoints (testing dynamic bytes)
+    // Using null byte delimiter as specified in optimization plan
+    bytes memory largeServiceType = abi.encodePacked(
+      "LargeType0-0", "\x00",
+      "LargeType0-1", "\x00",
+      "LargeType1-0", "\x00",
+      "LargeType1-1", "\x00",
+      "LargeType2-0", "\x00",
+      "LargeType2-1"
+    );
+    bytes memory largeServiceEndpoint = abi.encodePacked(
+      "https://large0-0.example.com", "\x00",
+      "https://large0-1.example.com", "\x00",
+      "https://large1-0.example.com", "\x00",
+      "https://large1-1.example.com", "\x00",
+      "https://large2-0.example.com", "\x00",
+      "https://large2-1.example.com"
+    );
 
     uint256 gasStart = gasleft();
     didManager.updateService(
@@ -346,10 +349,8 @@ contract StressTest is TestBase {
 
       // Rapid service addition
       for (uint256 i = 1; i <= 2; i++) {
-        bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceType;
-        serviceType[0][0] = bytes32(abi.encodePacked("RapidService", i));
-        bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory serviceEndpoint;
-        serviceEndpoint[0][0] = bytes32(abi.encodePacked("https://rapid", i, ".user", userIndex, ".com"));
+        bytes memory serviceType = abi.encodePacked("RapidService", vm.toString(i));
+        bytes memory serviceEndpoint = abi.encodePacked("https://rapid", vm.toString(i), ".user", vm.toString(userIndex), ".com");
 
         didManager.updateService(
           didResult.didInfo.methods,

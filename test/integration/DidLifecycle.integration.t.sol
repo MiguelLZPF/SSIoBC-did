@@ -133,8 +133,8 @@ contract DidLifecycleIntegrationTest is TestBase {
       DEFAULT_VM_ID,
       aliceDid.didInfo.id,
       bytes32("identity-hub"),
-      Fixtures.defaultServiceType(),
-      Fixtures.defaultServiceEndpoint()
+      Fixtures.DEFAULT_SERVICE_TYPE,
+      Fixtures.DEFAULT_SERVICE_ENDPOINT
     );
 
     // Verify service was added

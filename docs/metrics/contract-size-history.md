@@ -32,7 +32,8 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | v0.7.0  | ~11.9 kB   | ~12.7 kB    | Performance optimizations |
 | v0.8.0  | ~12.0 kB   | ~12.8 kB    | W3C resolver completion |
 | v1.0-pre | 14.3 kB     | 13.1 kB     | VMStorage optimization + Base58 |
-| **v1.0** | **13.9 kB** | **12.4 kB** | **Pre-encoded multibase (Base58 removed)** |
+| v1.0 | 13.9 kB | 12.4 kB | Pre-encoded multibase (Base58 removed) |
+| **v1.1** | **13.9 kB** | **12.8 kB** | **ServiceStorage optimization (dynamic bytes)** |
 
 ### Visual Documentation
 
@@ -79,6 +80,14 @@ The v1.0 release includes a comprehensive VMStorage optimization that traded inc
 | W3CResolver | 12,429           | 13,180            | 12,147             | 35,972             |
 ```
 
+#### v1.1 (ServiceStorage Optimization - Dynamic Bytes)
+```
+| Contract    | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|-------------|------------------|-------------------|--------------------|--------------------|
+| DidManager  | 13,904           | 13,932            | 10,672             | 35,220             |
+| W3CResolver | 12,846           | 13,597            | 11,730             | 35,555             |
+```
+
 #### Size Changes Summary (v0.8.0 → v1.0)
 | Contract | v0.8.0 (B) | v1.0 (B) | Change | % Change |
 |----------|------------|----------|--------|----------|
@@ -99,6 +108,31 @@ The v1.0 release removes the OpenZeppelin Base58 library from W3CResolver by sto
 |----------|-----------|----------|---------|----------|
 | W3CResolver | 13,123 | 12,429 | -694 | -5.3% |
 | DidManager | 14,317 | 13,946 | -371 | -2.6% |
+
+### v1.1 ServiceStorage Optimization Analysis (February 2026)
+
+The v1.1 release transforms ServiceStorage from fixed `bytes32[20][4]` arrays (161 slots per service) to dynamic bytes (~6 slots typical), achieving 96% storage reduction per service.
+
+**Key Changes:**
+1. **Dynamic Bytes Storage:** Service types and endpoints now use `bytes` instead of fixed arrays
+2. **Null Delimiter:** Multiple types/endpoints packed with `\x00` separator
+3. **Flexible Limits:** Max 500 bytes for types, 2000 bytes for endpoints
+4. **W3CResolver Parsing:** Added `_parsePackedStrings()` for delimiter-based parsing
+
+**Size Impact (v1.0 → v1.1):**
+| Contract | v1.0 (B) | v1.1 (B) | Change | % Change |
+|----------|----------|----------|--------|----------|
+| DidManager | 13,946 | 13,904 | -42 | -0.3% |
+| W3CResolver | 12,429 | 12,846 | +417 | +3.4% |
+
+**Storage Efficiency Impact:**
+| Metric | v1.0 (Fixed Arrays) | v1.1 (Dynamic Bytes) | Improvement |
+|--------|---------------------|----------------------|-------------|
+| Storage per service | 161 slots (5,152 B) | ~6 slots (192 B) | 96% reduction |
+| Gas (create service) | ~3,200,000 gas | ~227,000 gas | 93% reduction |
+| Gas (delete service) | ~1,600,000 gas | ~25,000 gas | 98% reduction |
+
+**Trade-off:** W3CResolver increased by 417 bytes (+3.4%) due to added parsing logic, but this is offset by massive per-service storage and gas savings.
 
 #### Trade-off Analysis
 
@@ -169,4 +203,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v1.0 - Pre-encoded multibase optimization (Base58 library removed, 694 bytes savings)*
+*Last Updated: v1.1 - ServiceStorage optimization (dynamic bytes, 96% per-service storage reduction)*

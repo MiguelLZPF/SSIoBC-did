@@ -1,8 +1,8 @@
 # Gas Cost Analysis for SSIoBC DID Manager (2025)
 
-**Document Version:** 1.0
-**Analysis Date:** October 27, 2025
-**Contract Version:** v1.0 (test-improvements-v1 branch)
+**Document Version:** 1.1
+**Analysis Date:** February 2, 2026
+**Contract Version:** v1.1 (feat/v1.0 branch - ServiceStorage optimization)
 **Purpose:** Economic feasibility analysis for PhD research validation
 
 ## Table of Contents
@@ -108,11 +108,14 @@ Method: forge test --gas-report with isolated test functions
 
 **Transaction Gas Usage (from `forge test --gas-report`):**
 
-| Function | Min Gas | Avg Gas | Median Gas | Max Gas | Calls |
-|----------|---------|---------|------------|---------|-------|
-| createDid | 313,898 | 313,898 | 313,898 | 313,898 | 1 |
+| Function | Min Gas | Avg Gas | Median Gas | Max Gas | Calls | Notes |
+|----------|---------|---------|------------|---------|-------|-------|
+| createDid | 283,522 | 283,522 | 283,522 | 283,522 | 1 | v1.1 optimized |
+| updateService | 226,640 | 226,640 | 226,640 | 226,640 | 1 | v1.1 dynamic bytes |
 
-**Note:** CreateDID gas reduced by 21% (397,789 → 313,898) due to storage optimization.
+**Note:** Gas costs significantly reduced in v1.1:
+- CreateDID: 313,898 → 283,522 gas (10% reduction from v1.0)
+- UpdateService: ~3,200,000 → 226,640 gas (93% reduction with dynamic bytes)
 
 **Measurement Conditions:**
 - Solidity Version: 0.8.30
@@ -222,29 +225,51 @@ At 2025 average conditions (2.7 Gwei, €2,633.18/ETH):
 - Create DID: 397,789 gas → €2.83
 - Deployment: 5,189,800 gas → €36.90
 
-**v1.0 Analysis (February 2026 - Current):**
+**v1.0 Analysis (February 2026):**
 - Gas Price: 2.7 Gwei
 - ETH Price: €2,633.18
 - Create DID: 313,898 gas → €2.23 (**21% reduction** from v0.8.0)
 - Deployment: 5,508,600 gas → €39.16 (5.5% reduction from v1.0-pre)
 
+**v1.1 Analysis (February 2026 - Current):**
+- Gas Price: 2.7 Gwei
+- ETH Price: €2,633.18
+- Create DID: 283,522 gas → €2.01 (**10% reduction** from v1.0)
+- Update Service: 226,640 gas → €1.61 (**93% reduction** from v1.0)
+- Deployment: 5,494,800 gas → €39.06
+
 **Key Observations:**
-1. **CreateDID gas decreased:** 397,789 → 313,898 gas (21% reduction)
-   - Result of VMStorage optimization with dynamic bytes
-2. **Deployment gas decreased:** 5,707,800 → 5,508,600 gas (3.5% reduction)
-   - Base58 library removed, using pre-encoded multibase strings
-   - W3CResolver reduced by 694 bytes (5.3%)
-3. **Resolution gas optimized:** ~98% reduction per VM during resolution
+1. **CreateDID gas decreased:** 313,898 → 283,522 gas (10% reduction in v1.1)
+   - Continued optimization from VMStorage improvements
+2. **UpdateService gas massively decreased:** ~3,200,000 → 226,640 gas (93% reduction)
+   - ServiceStorage converted from fixed `bytes32[20][4]` arrays to dynamic bytes
+   - Storage per service reduced from 161 slots to ~6 slots
+3. **Deployment gas slightly decreased:** 5,508,600 → 5,494,800 gas
+   - DidManager reduced by 42 bytes despite ServiceStorage changes
+   - W3CResolver increased by 417 bytes for parsing logic (net positive trade-off)
+4. **Resolution gas optimized:** ~98% reduction per VM during resolution
    - Simple bytes→string conversion replaces on-chain Base58 encoding
-4. **Net effect:** Lower costs for both deployment and ongoing operations
+5. **Net effect:** Dramatically lower costs for service operations
 
 ### Cost Efficiency Metrics
 
-**Cost per DID Component (v1.0):**
-- **Storage:** ~250,000 gas for DID metadata storage (optimized)
+**Cost per DID Component (v1.1):**
+- **Storage:** ~220,000 gas for DID metadata storage (optimized)
 - **Computation:** ~40,000 gas for identifier generation
 - **Default VM:** ~20,000 gas for initial verification method (dynamic bytes)
-- **Event Emission:** ~3,898 gas for event logs
+- **Event Emission:** ~3,522 gas for event logs
+
+**Cost per Service Operation (v1.1):**
+- **Create Service:** 226,640 gas (~€1.61 at 2.7 Gwei)
+- **Update Service:** ~200,000 gas (~€1.42 at 2.7 Gwei)
+- **Delete Service:** ~25,000 gas (~€0.18 at 2.7 Gwei)
+
+**v1.1 ServiceStorage Optimization Impact:**
+| Operation | v1.0 (Fixed Arrays) | v1.1 (Dynamic Bytes) | Savings |
+|-----------|---------------------|----------------------|---------|
+| Create Service | ~3,200,000 gas | 226,640 gas | 93% |
+| Delete Service | ~1,600,000 gas | ~25,000 gas | 98% |
+| Storage/Service | 161 slots | ~6 slots | 96% |
 
 **Amortized Costs:**
 If a DID is used for 5 years (typical certificate lifespan):

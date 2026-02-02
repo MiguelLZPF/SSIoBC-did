@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
-
 /**
  * @title Fixtures
  * @notice Test data fixtures and constants for consistent test data
@@ -164,7 +162,7 @@ library Fixtures {
   uint8 internal constant INVALID_ARRAY_POSITION = 99; // For testing invalid array access
 
   // =========================================================================
-  // Service-related constants
+  // Service-related constants (v1.1 optimized - dynamic bytes)
   // =========================================================================
 
   // Service IDs
@@ -172,44 +170,45 @@ library Fixtures {
   bytes32 internal constant SERVICE_ID_TEST_1 = bytes32("test-service-1");
   bytes32 internal constant SERVICE_ID_TEST_2 = bytes32("test-service-2");
 
-  // Service Types
-  function defaultServiceType() internal pure returns (bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory) {
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory result;
-    result[0][0] = bytes32("LinkedDomains");
-    return result;
+  // Service Types (packed bytes with '\x00' delimiter)
+  bytes internal constant DEFAULT_SERVICE_TYPE = "LinkedDomains";
+  bytes internal constant EMPTY_SERVICE_TYPE = "";
+
+  // Multiple types packed with delimiter
+  bytes internal constant SERVICE_TYPE_MULTIPLE = "LinkedDomains\x00DIDCommMessaging";
+  bytes internal constant SERVICE_TYPE_SMART_CONTRACT = "VerifiableCredentialService\x00SmartContractEndpoint";
+
+  // Service Endpoints (packed bytes with '\x00' delimiter)
+  bytes internal constant DEFAULT_SERVICE_ENDPOINT = "https://bar.example.com";
+  bytes internal constant EMPTY_SERVICE_ENDPOINT = "";
+
+  // Multiple endpoints packed with delimiter
+  bytes internal constant SERVICE_ENDPOINT_MULTIPLE = "https://primary.example.com\x00https://backup.example.com";
+  bytes internal constant SERVICE_ENDPOINT_SMART_CONTRACT = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+
+  // Service fixture functions for backward compatibility
+  function defaultServiceType() internal pure returns (bytes memory) {
+    return DEFAULT_SERVICE_TYPE;
   }
 
-  function serviceTypeSmartContract()
-    internal
-    pure
-    returns (bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory)
-  {
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory result;
-    result[0][0] = bytes32("VerifiableCredentialService");
-    result[1][0] = bytes32("SmartContractEndpoint");
-    return result;
+  function emptyServiceType() internal pure returns (bytes memory) {
+    return EMPTY_SERVICE_TYPE;
   }
 
-  // Service Endpoints
-  function defaultServiceEndpoint()
-    internal
-    pure
-    returns (bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory)
-  {
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory result;
-    result[0][0] = bytes32("https://bar.example.com");
-    return result;
+  function defaultServiceEndpoint() internal pure returns (bytes memory) {
+    return DEFAULT_SERVICE_ENDPOINT;
   }
 
-  function serviceEndpointSmartContract()
-    internal
-    pure
-    returns (bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory)
-  {
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory result;
-    result[0][0] = bytes32("0xe7f1725E7734CE288F8367e1Bb143E");
-    result[0][1] = bytes32("90bb3F0512");
-    return result;
+  function emptyServiceEndpoint() internal pure returns (bytes memory) {
+    return EMPTY_SERVICE_ENDPOINT;
+  }
+
+  function serviceTypeSmartContract() internal pure returns (bytes memory) {
+    return SERVICE_TYPE_SMART_CONTRACT;
+  }
+
+  function serviceEndpointSmartContract() internal pure returns (bytes memory) {
+    return SERVICE_ENDPOINT_SMART_CONTRACT;
   }
 
   // =========================================================================

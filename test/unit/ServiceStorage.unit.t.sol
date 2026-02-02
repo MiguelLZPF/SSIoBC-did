@@ -4,13 +4,13 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { Service, SERVICE_MAX_LENGTH_LIST, SERVICE_MAX_LENGTH } from "@src/ServiceStorage.sol";
+import { Service, MAX_SERVICE_TYPE_LENGTH, MAX_SERVICE_ENDPOINT_LENGTH } from "@src/interfaces/IServiceStorage.sol";
 import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
 
 /**
  * @title ServiceStorageUnitTest
  * @notice Unit tests for service storage functionality in DidManager
- * @dev Tests service creation, updates, deletion, and retrieval
+ * @dev Tests service creation, updates, deletion, and retrieval using optimized dynamic bytes
  */
 contract ServiceStorageUnitTest is TestBase {
   using DidTestHelpers for *;
@@ -72,8 +72,8 @@ contract ServiceStorageUnitTest is TestBase {
     );
 
     assertEq(service.id, Fixtures.DEFAULT_SERVICE_ID);
-    assertEq(service.type_[0][0], bytes32("LinkedDomains"));
-    assertEq(service.serviceEndpoint[0][0], bytes32("https://bar.example.com"));
+    assertEq(string(service.type_), "LinkedDomains");
+    assertEq(string(service.serviceEndpoint), "https://bar.example.com");
 
     _stopPrank();
   }
@@ -96,11 +96,8 @@ contract ServiceStorageUnitTest is TestBase {
     );
 
     // Test: Update the service with new data
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory newServiceType;
-    newServiceType[0][0] = bytes32("UpdatedServiceType");
-
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory newServiceEndpoint;
-    newServiceEndpoint[0][0] = bytes32("https://updated.example.com");
+    bytes memory newServiceType = "UpdatedServiceType";
+    bytes memory newServiceEndpoint = "https://updated.example.com";
 
     didManager.updateService(
       didResult.didInfo.methods,
@@ -121,8 +118,8 @@ contract ServiceStorageUnitTest is TestBase {
       didManager.getService(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.DEFAULT_SERVICE_ID, 0);
 
     assertEq(service.id, Fixtures.DEFAULT_SERVICE_ID);
-    assertEq(service.type_[0][0], bytes32("UpdatedServiceType"));
-    assertEq(service.serviceEndpoint[0][0], bytes32("https://updated.example.com"));
+    assertEq(string(service.type_), "UpdatedServiceType");
+    assertEq(string(service.serviceEndpoint), "https://updated.example.com");
 
     _stopPrank();
   }
@@ -145,11 +142,8 @@ contract ServiceStorageUnitTest is TestBase {
     );
 
     // Test: Create second service
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory service2Type;
-    service2Type[0][0] = bytes32("SecondServiceType");
-
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory service2Endpoint;
-    service2Endpoint[0][0] = bytes32("https://service2.example.com");
+    bytes memory service2Type = "SecondServiceType";
+    bytes memory service2Endpoint = "https://service2.example.com";
 
     didManager.updateService(
       didResult.didInfo.methods,
@@ -169,13 +163,13 @@ contract ServiceStorageUnitTest is TestBase {
     Service memory service1 =
       didManager.getService(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.DEFAULT_SERVICE_ID, 0);
     assertEq(service1.id, Fixtures.DEFAULT_SERVICE_ID);
-    assertEq(service1.type_[0][0], bytes32("LinkedDomains"));
+    assertEq(string(service1.type_), "LinkedDomains");
 
     // Verify: Second service details
     Service memory service2 =
       didManager.getService(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.SERVICE_ID_TEST_1, 0);
     assertEq(service2.id, Fixtures.SERVICE_ID_TEST_1);
-    assertEq(service2.type_[0][0], bytes32("SecondServiceType"));
+    assertEq(string(service2.type_), "SecondServiceType");
 
     _stopPrank();
   }
@@ -208,9 +202,6 @@ contract ServiceStorageUnitTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
     // Test: Try to create service with empty type
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory emptyType;
-    // emptyType is already initialized to all zeros
-
     vm.expectRevert();
     didManager.updateService(
       didResult.didInfo.methods,
@@ -218,7 +209,7 @@ contract ServiceStorageUnitTest is TestBase {
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.DEFAULT_SERVICE_ID,
-      emptyType, // Empty service type
+      Fixtures.emptyServiceType(), // Empty service type
       Fixtures.defaultServiceEndpoint()
     );
 
@@ -232,9 +223,6 @@ contract ServiceStorageUnitTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
     // Test: Try to create service with empty endpoint
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory emptyEndpoint;
-    // emptyEndpoint is already initialized to all zeros
-
     vm.expectRevert();
     didManager.updateService(
       didResult.didInfo.methods,
@@ -243,7 +231,7 @@ contract ServiceStorageUnitTest is TestBase {
       didResult.didInfo.id,
       Fixtures.DEFAULT_SERVICE_ID,
       Fixtures.defaultServiceType(),
-      emptyEndpoint // Empty service endpoint
+      Fixtures.emptyServiceEndpoint() // Empty service endpoint
     );
 
     _stopPrank();
@@ -274,19 +262,15 @@ contract ServiceStorageUnitTest is TestBase {
     uint256 initialLength = didManager.getServiceListLength(didResult.didInfo.methods, didResult.didInfo.id);
     assertEq(initialLength, 1);
 
-    // Test: Delete service by providing empty type and endpoint arrays
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory emptyType;
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory emptyEndpoint;
-    // Both are already initialized to all zeros
-
+    // Test: Delete service by providing empty type and endpoint
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.DEFAULT_SERVICE_ID,
-      emptyType,
-      emptyEndpoint
+      Fixtures.emptyServiceType(),
+      Fixtures.emptyServiceEndpoint()
     );
 
     // Verify: Service was deleted
@@ -314,11 +298,8 @@ contract ServiceStorageUnitTest is TestBase {
     );
 
     // Create second service
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory service2Type;
-    service2Type[0][0] = bytes32("SecondServiceType");
-
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory service2Endpoint;
-    service2Endpoint[0][0] = bytes32("https://service2.example.com");
+    bytes memory service2Type = "SecondServiceType";
+    bytes memory service2Endpoint = "https://service2.example.com";
 
     didManager.updateService(
       didResult.didInfo.methods,
@@ -335,17 +316,14 @@ contract ServiceStorageUnitTest is TestBase {
     assertEq(initialLength, 2);
 
     // Test: Delete first service
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory emptyType;
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory emptyEndpoint;
-
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.DEFAULT_SERVICE_ID,
-      emptyType,
-      emptyEndpoint
+      Fixtures.emptyServiceType(),
+      Fixtures.emptyServiceEndpoint()
     );
 
     // Verify: One service remains
@@ -359,8 +337,8 @@ contract ServiceStorageUnitTest is TestBase {
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.SERVICE_ID_TEST_1,
-      emptyType,
-      emptyEndpoint
+      Fixtures.emptyServiceType(),
+      Fixtures.emptyServiceEndpoint()
     );
 
     // Verify: No services remain
@@ -400,8 +378,8 @@ contract ServiceStorageUnitTest is TestBase {
 
     // Verify: Correct service returned
     assertEq(service.id, Fixtures.DEFAULT_SERVICE_ID);
-    assertEq(service.type_[0][0], bytes32("LinkedDomains"));
-    assertEq(service.serviceEndpoint[0][0], bytes32("https://bar.example.com"));
+    assertEq(string(service.type_), "LinkedDomains");
+    assertEq(string(service.serviceEndpoint), "https://bar.example.com");
 
     _stopPrank();
   }
@@ -432,8 +410,8 @@ contract ServiceStorageUnitTest is TestBase {
 
     // Verify: Correct service returned
     assertEq(service.id, Fixtures.DEFAULT_SERVICE_ID);
-    assertEq(service.type_[0][0], bytes32("LinkedDomains"));
-    assertEq(service.serviceEndpoint[0][0], bytes32("https://bar.example.com"));
+    assertEq(string(service.type_), "LinkedDomains");
+    assertEq(string(service.serviceEndpoint), "https://bar.example.com");
 
     _stopPrank();
   }
@@ -454,8 +432,8 @@ contract ServiceStorageUnitTest is TestBase {
 
     // Verify: Empty service returned
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0][0], bytes32(0));
-    assertEq(service.serviceEndpoint[0][0], bytes32(0));
+    assertEq(service.type_.length, 0);
+    assertEq(service.serviceEndpoint.length, 0);
 
     _stopPrank();
   }
@@ -472,8 +450,8 @@ contract ServiceStorageUnitTest is TestBase {
 
     // Verify: Empty service returned
     assertEq(service.id, bytes32(0));
-    assertEq(service.type_[0][0], bytes32(0));
-    assertEq(service.serviceEndpoint[0][0], bytes32(0));
+    assertEq(service.type_.length, 0);
+    assertEq(service.serviceEndpoint.length, 0);
 
     _stopPrank();
   }
@@ -508,11 +486,8 @@ contract ServiceStorageUnitTest is TestBase {
     assertEq(afterFirstService, 1);
 
     // Add second service
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory service2Type;
-    service2Type[0][0] = bytes32("SecondServiceType");
-
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory service2Endpoint;
-    service2Endpoint[0][0] = bytes32("https://service2.example.com");
+    bytes memory service2Type = "SecondServiceType";
+    bytes memory service2Endpoint = "https://service2.example.com";
 
     didManager.updateService(
       didResult.didInfo.methods,
@@ -564,17 +539,14 @@ contract ServiceStorageUnitTest is TestBase {
     assertEq(beforeDeletion, 1);
 
     // Test: Delete service
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory emptyType;
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory emptyEndpoint;
-
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,
       DEFAULT_VM_ID,
       didResult.didInfo.id,
       Fixtures.DEFAULT_SERVICE_ID,
-      emptyType,
-      emptyEndpoint
+      Fixtures.emptyServiceType(),
+      Fixtures.emptyServiceEndpoint()
     );
 
     // Verify: Service list length decreased
@@ -588,21 +560,15 @@ contract ServiceStorageUnitTest is TestBase {
   // COMPLEX SCENARIOS TESTS
   // =========================================================================
 
-  function test_UpdateService_Should_HandleComplexServiceEndpoints_When_MultipleEndpointsProvided() public {
+  function test_UpdateService_Should_HandleMultipleTypesAndEndpoints_When_PackedWithDelimiter() public {
     _startPrank(user1);
 
     // Setup: Create a DID first
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
-    // Test: Create service with multiple types and endpoints
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory multipleTypes;
-    multipleTypes[0][0] = bytes32("ServiceType1");
-    multipleTypes[1][0] = bytes32("ServiceType2");
-
-    bytes32[SERVICE_MAX_LENGTH_LIST][SERVICE_MAX_LENGTH] memory multipleEndpoints;
-    multipleEndpoints[0][0] = bytes32("https://endpoint1.example.com");
-    multipleEndpoints[1][0] = bytes32("https://endpoint2.example.com");
-    multipleEndpoints[2][0] = bytes32("https://endpoint3.example.com");
+    // Test: Create service with multiple types and endpoints using delimiter
+    bytes memory multipleTypes = "ServiceType1\x00ServiceType2";
+    bytes memory multipleEndpoints = "https://endpoint1.example.com\x00https://endpoint2.example.com\x00https://endpoint3.example.com";
 
     didManager.updateService(
       didResult.didInfo.methods,
@@ -619,11 +585,103 @@ contract ServiceStorageUnitTest is TestBase {
       didManager.getService(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.DEFAULT_SERVICE_ID, 0);
 
     assertEq(service.id, Fixtures.DEFAULT_SERVICE_ID);
-    assertEq(service.type_[0][0], bytes32("ServiceType1"));
-    assertEq(service.type_[1][0], bytes32("ServiceType2"));
-    assertEq(service.serviceEndpoint[0][0], bytes32("https://endpoint1.example.com"));
-    assertEq(service.serviceEndpoint[1][0], bytes32("https://endpoint2.example.com"));
-    assertEq(service.serviceEndpoint[2][0], bytes32("https://endpoint3.example.com"));
+    // The raw bytes contain the packed format with delimiters
+    assertEq(string(service.type_), "ServiceType1\x00ServiceType2");
+    assertEq(string(service.serviceEndpoint), "https://endpoint1.example.com\x00https://endpoint2.example.com\x00https://endpoint3.example.com");
+
+    _stopPrank();
+  }
+
+  // =========================================================================
+  // SIZE LIMIT TESTS
+  // =========================================================================
+
+  function test_RevertWhen_UpdateService_WithTypeTooLarge() public {
+    _startPrank(user1);
+
+    // Setup: Create a DID first
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create type that exceeds MAX_SERVICE_TYPE_LENGTH (500)
+    bytes memory oversizedType = new bytes(MAX_SERVICE_TYPE_LENGTH + 1);
+    for (uint256 i = 0; i < oversizedType.length; i++) {
+      oversizedType[i] = "A";
+    }
+
+    // Test: Try to create service with oversized type
+    vm.expectRevert();
+    didManager.updateService(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      didResult.didInfo.id,
+      Fixtures.DEFAULT_SERVICE_ID,
+      oversizedType,
+      Fixtures.defaultServiceEndpoint()
+    );
+
+    _stopPrank();
+  }
+
+  function test_RevertWhen_UpdateService_WithEndpointTooLarge() public {
+    _startPrank(user1);
+
+    // Setup: Create a DID first
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create endpoint that exceeds MAX_SERVICE_ENDPOINT_LENGTH (2000)
+    bytes memory oversizedEndpoint = new bytes(MAX_SERVICE_ENDPOINT_LENGTH + 1);
+    for (uint256 i = 0; i < oversizedEndpoint.length; i++) {
+      oversizedEndpoint[i] = "A";
+    }
+
+    // Test: Try to create service with oversized endpoint
+    vm.expectRevert();
+    didManager.updateService(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      didResult.didInfo.id,
+      Fixtures.DEFAULT_SERVICE_ID,
+      Fixtures.defaultServiceType(),
+      oversizedEndpoint
+    );
+
+    _stopPrank();
+  }
+
+  function test_UpdateService_Should_AcceptMaxSizeTypeAndEndpoint() public {
+    _startPrank(user1);
+
+    // Setup: Create a DID first
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create type at exactly MAX_SERVICE_TYPE_LENGTH
+    bytes memory maxType = new bytes(MAX_SERVICE_TYPE_LENGTH);
+    for (uint256 i = 0; i < maxType.length; i++) {
+      maxType[i] = "T";
+    }
+
+    // Create endpoint at exactly MAX_SERVICE_ENDPOINT_LENGTH
+    bytes memory maxEndpoint = new bytes(MAX_SERVICE_ENDPOINT_LENGTH);
+    for (uint256 i = 0; i < maxEndpoint.length; i++) {
+      maxEndpoint[i] = "E";
+    }
+
+    // Test: Create service with max size type and endpoint - should succeed
+    didManager.updateService(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      didResult.didInfo.id,
+      Fixtures.DEFAULT_SERVICE_ID,
+      maxType,
+      maxEndpoint
+    );
+
+    // Verify: Service was created
+    uint256 serviceLength = didManager.getServiceListLength(didResult.didInfo.methods, didResult.didInfo.id);
+    assertEq(serviceLength, 1);
 
     _stopPrank();
   }
