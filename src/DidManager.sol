@@ -62,8 +62,8 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
         didHash: idHash,
         id: vmId,
         type_: [bytes32(0), bytes32(0)],
-        publicKeyMultibase: EMPTY_PUBLIC_KEY,
-        blockchainAccountId: EMPTY_BLOCKCHAIN_ACCOUNT_ID,
+        publicKeyMultibase: "", // Empty - using ethereumAddress for auth
+        blockchainAccountId: "", // Empty CAIP-10 string
         ethereumAddress: tx.origin,
         relationships: bytes1(0x01), // 0x01 (Authentication)
         expiration: 1 // Just to avoid one if statement

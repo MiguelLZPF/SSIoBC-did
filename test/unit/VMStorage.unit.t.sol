@@ -79,11 +79,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: bytes32(0), // Empty VM ID
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.defaultVmPublicKey(),
+      publicKeyMultibase: Fixtures.defaultVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
     vm.recordLogs();
@@ -144,11 +144,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.defaultVmPublicKey(),
+      publicKeyMultibase: Fixtures.defaultVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: address(0), // No ethereum address
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
     didManager.createVm(command);
@@ -178,11 +178,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(), // Empty
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(), // Empty
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(), // Empty
       ethereumAddress: address(0), // Empty
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
     vm.expectRevert();
@@ -215,11 +215,11 @@ contract VMStorageUnitTest is TestBase {
         targetId: didResult.didInfo.id,
         vmId: Fixtures.VM_ID_CUSTOM,
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
         relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
       })
     );
 
@@ -245,11 +245,11 @@ contract VMStorageUnitTest is TestBase {
         targetId: didResult.didInfo.id,
         vmId: Fixtures.VM_ID_CUSTOM,
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
         relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION // Unvalidated VM
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION) // Unvalidated VM
       })
     );
 
@@ -302,11 +302,11 @@ contract VMStorageUnitTest is TestBase {
         targetId: didResult.didInfo.id,
         vmId: Fixtures.VM_ID_CUSTOM,
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
         relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION // Unvalidated VM
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION) // Unvalidated VM
       })
     );
 
@@ -516,11 +516,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.defaultVmPublicKey(),
+      publicKeyMultibase: Fixtures.defaultVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: address(0), // No ethereum address = real expiration
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.createVm(vm, didManager, vmCommand);
 
@@ -572,11 +572,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.defaultVmPublicKey(),
+      publicKeyMultibase: Fixtures.defaultVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: address(0), // No ethereum address = real expiration
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.createVm(vm, didManager, vmCommand);
 
@@ -615,11 +615,11 @@ contract VMStorageUnitTest is TestBase {
         targetId: didResult.didInfo.id,
         vmId: vmIds[i],
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: address(uint160(uint160(user1) + i + 1)),
         relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
       });
       DidTestHelpers.createVm(vm, didManager, vmCommand);
     }
@@ -731,11 +731,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: testVmId,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.defaultVmPublicKey(),
+      publicKeyMultibase: Fixtures.defaultVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: address(0), // No ethereum address
       relationships: Fixtures.VM_RELATIONSHIPS_AUTH_AND_DELEGATION, // Has authentication and capability delegation
-      expiration: block.timestamp + Fixtures.SECONDS_IN_YEAR // Set expiration to avoid line 230
+      expiration: uint88(block.timestamp + Fixtures.SECONDS_IN_YEAR) // Set expiration to avoid line 230
     });
     DidTestHelpers.createVm(vm, didManager, vmCommand);
 
@@ -761,11 +761,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: testVmId,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: user2,
       relationships: Fixtures.VM_RELATIONSHIPS_AUTHENTICATION, // Only authentication
-      expiration: block.timestamp + Fixtures.SECONDS_IN_YEAR // Valid expiration in future
+      expiration: uint88(block.timestamp + Fixtures.SECONDS_IN_YEAR) // Valid expiration in future
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, vmCommand);
 
@@ -795,8 +795,8 @@ contract VMStorageUnitTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
     // Create empty arrays for publicKeyMultibase and blockchainAccountId
-    bytes32[16] memory emptyPublicKey;
-    bytes32[5] memory emptyBlockchainId;
+    bytes memory emptyPublicKeyMultibase;
+    bytes memory emptyBlockchainId;
 
     // Try to create VM with all key fields empty - should trigger line 49
     CreateVmCommand memory emptyVmCommand = CreateVmCommand({
@@ -806,11 +806,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: bytes32("empty-fields-vm"),
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: emptyPublicKey, // All zeros
+      publicKeyMultibase: emptyPublicKeyMultibase, // Empty multibase string
       blockchainAccountId: emptyBlockchainId, // All zeros
       ethereumAddress: address(0), // Empty
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
     vm.expectRevert(IVMStorage.PubKeyBlockchainAccountORAddressRequired.selector);
@@ -853,11 +853,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_TEST_1,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: user2,
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.createVm(vm, didManager, vm2Command);
 
@@ -869,11 +869,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_TEST_2,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: user3,
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.createVm(vm, didManager, vm3Command);
 
@@ -913,11 +913,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: user2, // Set to user2 address
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, vmCommand);
 
@@ -943,11 +943,11 @@ contract VMStorageUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.defaultVmPublicKey(),
+      publicKeyMultibase: Fixtures.defaultVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: address(0), // No ethereum address
       relationships: Fixtures.VM_RELATIONSHIPS_CAPABILITY_INVOCATION, // 0x08
-      expiration: block.timestamp + Fixtures.WARP_TO_EXPIRE_VM
+      expiration: uint88(block.timestamp + Fixtures.WARP_TO_EXPIRE_VM)
     });
     DidTestHelpers.createVm(vm, didManager, vmCommand);
 
@@ -983,11 +983,11 @@ contract VMStorageUnitTest is TestBase {
         targetId: didResult.didInfo.id,
         vmId: keccak256(abi.encodePacked("cleanup-vm-", i, block.timestamp)),
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: address(uint160(uint160(user1) + i + 1)), // Different addresses
         relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
       });
       DidTestHelpers.createVm(vm, didManager, vmCommands[i]);
     }

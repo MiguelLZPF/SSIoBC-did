@@ -54,11 +54,11 @@ contract StressTest is TestBase {
         targetId: didResult.didInfo.id,
         vmId: keccak256(abi.encodePacked("stress-vm-", i, block.timestamp, block.prevrandao, address(this))),
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: address(uint160(uint160(user1) + i)),
         relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
       });
 
       DidTestHelpers.createVm(vm, didManager, vmCommand);
@@ -282,10 +282,8 @@ contract StressTest is TestBase {
     console.log("Large service creation gas:", gasUsed);
 
     // Create VM with maximum blockchain account data
-    bytes32[5] memory largeBlockchainAccountId;
-    largeBlockchainAccountId[0] = bytes32("eip155:1:0x1234567890abcdef");
-    largeBlockchainAccountId[1] = bytes32("additional-chain-info-1");
-    largeBlockchainAccountId[2] = bytes32("additional-chain-info-2");
+    bytes memory largeBlockchainAccountId =
+      abi.encodePacked("eip155:1:0x1234567890abcdef", "additional-chain-info-1", "additional-chain-info-2");
 
     gasStart = gasleft();
     CreateVmCommand memory largeVmCommand = CreateVmCommand({
@@ -295,11 +293,11 @@ contract StressTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: keccak256(abi.encodePacked("large-vm", block.timestamp, block.prevrandao, address(this))),
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.defaultVmPublicKey(),
+      publicKeyMultibase: Fixtures.defaultVmPublicKeyMultibase(),
       blockchainAccountId: largeBlockchainAccountId,
       ethereumAddress: address(0), // No ethereum address for this test
       relationships: Fixtures.VM_RELATIONSHIPS_ALL, // All relationships
-      expiration: Fixtures.futureTimestamp(365 days)
+      expiration: uint88(Fixtures.futureTimestamp(365 days))
     });
     DidTestHelpers.createVm(vm, didManager, largeVmCommand);
     gasUsed = gasStart - gasleft();
@@ -337,11 +335,11 @@ contract StressTest is TestBase {
           targetId: didResult.didInfo.id,
           vmId: keccak256(abi.encodePacked("rapid-vm-", userIndex, "-", i, block.timestamp, block.prevrandao)),
           type_: Fixtures.defaultVmType(),
-          publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+          publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
           blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
           ethereumAddress: address(uint160(uint160(currentUser) + i)),
           relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-          expiration: Fixtures.EMPTY_VM_EXPIRATION
+          expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
         });
         DidTestHelpers.createVm(vm, didManager, vmCommand);
       }
@@ -399,11 +397,11 @@ contract StressTest is TestBase {
         targetId: didResult.didInfo.id,
         vmId: DEFAULT_VM_ID, // Duplicate ID
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: user1,
         relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
       })
     ) {
       revert("Should have failed with duplicate VM ID");
@@ -420,11 +418,11 @@ contract StressTest is TestBase {
         targetId: didResult.didInfo.id,
         vmId: bytes32("invalid-vm"),
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: user1,
         relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
       })
     ) {
       revert("Should have failed with invalid methods");
@@ -440,11 +438,11 @@ contract StressTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: keccak256(abi.encodePacked("resilience-vm", block.timestamp, block.prevrandao, address(this))),
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: user2,
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, validVmCommand);
     successfulOperations++;

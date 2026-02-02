@@ -125,11 +125,11 @@ contract DidManagerFuzzTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
       relationships: relationships,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
     DidTestHelpers.CreateVmResult memory result = DidTestHelpers.createVm(vm, didManager, command);
@@ -177,11 +177,11 @@ contract DidManagerFuzzTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: ethAddress,
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
     // Note: When ethereumAddress is provided, expiration is set to 0 for validation
@@ -249,11 +249,11 @@ contract DidManagerFuzzTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
       relationships: relationships,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, command);

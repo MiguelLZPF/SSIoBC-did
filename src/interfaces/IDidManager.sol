@@ -12,6 +12,10 @@ struct Controller {
   bytes32 vmId; // (optional) The unique identifier of the controller's VM.
 }
 
+/**
+ * @dev Command struct for creating a Verification Method via DidManager.
+ * Uses optimized storage with dynamic bytes and packed expiration.
+ */
 struct CreateVmCommand {
   bytes32 methods; // The methods used to create the VM, concatenated each one limited to 10 bytes.
   bytes32 senderId; // The ID of the sender.
@@ -19,11 +23,11 @@ struct CreateVmCommand {
   bytes32 targetId; // The ID of the target.
   bytes32 vmId; // The ID of the verification method.
   bytes32[2] type_; // The type of the VM.
-  bytes32[16] publicKeyMultibase; // The public key of the VM.
-  bytes32[5] blockchainAccountId; // The blockchain account ID of the VM.
+  bytes publicKeyMultibase; // Pre-encoded multibase string (e.g., "z6MkhaXg...")
+  bytes blockchainAccountId; // CAIP-10 format string (e.g., "eip155:1:0xabc...")
   address ethereumAddress; // The address of the blockchain where the VM is created.
   bytes1 relationships; // The relationships of the VM.
-  uint256 expiration; // The expiration time of the VM.
+  uint88 expiration; // The expiration time of the VM (packed, max ~9.8 million years).
 }
 
 bytes32 constant DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;"); // ";" is the null or escape

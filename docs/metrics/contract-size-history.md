@@ -31,6 +31,8 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | v0.6.0  | ~12.0 kB   | ~12.5 kB    | DidManager test coverage |
 | v0.7.0  | ~11.9 kB   | ~12.7 kB    | Performance optimizations |
 | v0.8.0  | ~12.0 kB   | ~12.8 kB    | W3C resolver completion |
+| v1.0-pre | 14.3 kB     | 13.1 kB     | VMStorage optimization + Base58 |
+| **v1.0** | **13.9 kB** | **12.4 kB** | **Pre-encoded multibase (Base58 removed)** |
 
 ### Visual Documentation
 
@@ -49,31 +51,63 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 
 ## Size Comparison Analysis
 
-### Recent Optimization Analysis
+### v1.0 Storage Optimization Analysis (February 2026)
 
-Based on detailed size comparison data available in [sizes_before.txt](../assets/data/sizes_before.txt) and [sizes_after.txt](../assets/data/sizes_after.txt):
+The v1.0 release includes a comprehensive VMStorage optimization that traded increased contract size for significantly improved per-operation gas efficiency.
 
-#### Before Optimization
-```
-| Contract    | Size (kB) | Margin (kB) |
-|-------------|-----------|-------------|
-| DidManager  | 12.132    | 12.444      |
-| W3CResolver | 12.816    | 11.760      |
-```
-
-#### After Optimization
+#### v0.8.0 (Before Storage Optimization)
 ```
 | Contract    | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
 |-------------|------------------|-------------------|--------------------|--------------------|
-| DidManager  | 12,066           | 12,419            | 12,510             | 36,733             |
+| DidManager  | 12,081           | 12,434            | 12,495             | 36,718             |
 | W3CResolver | 12,464           | 13,195            | 12,112             | 35,957             |
 ```
 
-#### Key Improvements
-- **DidManager**: Size reduced from 12.132 kB to 12.066 B (runtime)
-- **W3CResolver**: Size reduced from 12.816 kB to 12.464 B (runtime)
-- **Margin Safety**: Improved safety margins across all contracts
-- **Deployment Efficiency**: Optimized initcode sizes for gas efficiency
+#### v1.0-pre (With Base58 Library)
+```
+| Contract    | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|-------------|------------------|-------------------|--------------------|--------------------|
+| DidManager  | 14,317           | 14,345            | 10,259             | 34,807             |
+| W3CResolver | 13,123           | 13,874            | 11,453             | 35,278             |
+```
+
+#### v1.0 (After Base58 Removal - Pre-encoded Multibase)
+```
+| Contract    | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|-------------|------------------|-------------------|--------------------|--------------------|
+| DidManager  | 13,946           | 13,974            | 10,630             | 35,178             |
+| W3CResolver | 12,429           | 13,180            | 12,147             | 35,972             |
+```
+
+#### Size Changes Summary (v0.8.0 → v1.0)
+| Contract | v0.8.0 (B) | v1.0 (B) | Change | % Change |
+|----------|------------|----------|--------|----------|
+| DidManager | 12,081 | 13,946 | +1,865 | +15.4% |
+| W3CResolver | 12,464 | 12,429 | -35 | -0.3% |
+
+#### v1.0 Optimization: Pre-encoded Multibase
+
+The v1.0 release removes the OpenZeppelin Base58 library from W3CResolver by storing pre-encoded multibase strings instead of raw bytes + multicodec.
+
+**Key Changes:**
+1. **Base58 Library Removed**: Eliminated ~694 bytes from W3CResolver
+2. **Pre-encoded Input**: Callers now provide multibase strings (e.g., "zQ3shok...") instead of raw bytes
+3. **Simplified Resolution**: W3CResolver now performs simple bytes→string conversion
+
+**Size Impact (v1.0-pre → v1.0):**
+| Contract | Before (B) | After (B) | Savings | % Change |
+|----------|-----------|----------|---------|----------|
+| W3CResolver | 13,123 | 12,429 | -694 | -5.3% |
+| DidManager | 14,317 | 13,946 | -371 | -2.6% |
+
+#### Trade-off Analysis
+
+The v1.0 architecture provides:
+- **Contract Size Reduction**: W3CResolver reduced by 694 bytes (5.3%)
+- **Gas Optimization**: ~98% reduction in resolution gas per VM (no Base58 encoding)
+- **Flexible key storage**: Supports RSA-4096 and post-quantum keys (up to 1500 bytes)
+- **Storage efficiency**: Dynamic bytes use only needed storage vs fixed arrays
+- **Off-chain Encoding**: Callers encode multibase strings (one-time cost)
 
 ## Optimization Impact
 
@@ -135,4 +169,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v0.8.0 - Current version maintains optimal size-to-functionality ratio for production deployment*
+*Last Updated: v1.0 - Pre-encoded multibase optimization (Base58 library removed, 694 bytes savings)*

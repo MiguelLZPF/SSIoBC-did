@@ -31,7 +31,7 @@ This file is the **single source of truth** for project domain knowledge, refere
 - **EVM**: Osaka (Fusaka hardfork)
 - **Framework**: Foundry (Forge, Cast, Anvil)
 - **Testing**: Forge test framework with >90% coverage requirement
-- **Libraries**: OpenZeppelin (EnumerableSet, Ownable)
+- **Libraries**: OpenZeppelin (EnumerableSet, Ownable, Strings)
 - **Network**: Ethereum (EVM-compatible chains)
 
 ## Academic Context & Innovation
@@ -101,15 +101,46 @@ The system consists of four main contracts working together:
 - Expiration tracking for VMs
 - Ethereum address validation
 
-**Storage Approach**:
-- EnumerableSet for O(1) operations on VM IDs
-- Hash-based indexing: `keccak256(abi.encodePacked(namespace, id))`
-- Position-hash mapping for VM validation
+**Storage Architecture (v1.0):**
 
-**Verification Method Types Supported**:
-- `publicKeyMultibase`
-- `blockchainAccountId`
-- `ethereumAddress`
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                      VMStorage State Variables                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Slot 0: _vmIds                                                         │
+│  mapping(bytes32 didHash => EnumerableSet.Bytes32Set vmIds)             │
+│  Purpose: O(1) add/remove/contains operations for VM IDs                │
+│                                                                          │
+│  Slot 1: _vmByNsAndId                                                   │
+│  mapping(bytes32 didHash => mapping(bytes32 vmId => VerificationMethod))│
+│  Purpose: Main VM data storage                                          │
+│                                                                          │
+│  Slot 2: _vmIdByPositionHash                                            │
+│  mapping(bytes32 positionHash => bytes32 vmId)                          │
+│  Purpose: Position-based VM lookup for validation                       │
+│                                                                          │
+│  Slot 3: _didHashByPositionHash                                         │
+│  mapping(bytes32 positionHash => bytes32 didHash)                       │
+│  Purpose: Locate DID from position hash                                 │
+│                                                                          │
+│  Slot 4: _positionHashByDidAndId                                        │
+│  mapping(bytes32 didHash => mapping(bytes32 vmId => bytes32 posHash))   │
+│  Purpose: Reverse lookup for cleanup                                    │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+Total Base Slots: 5 (reduced from 28 in v0.8.0)
+```
+
+**Verification Method Storage (per VM):**
+- Dynamic bytes for keys: Uses only needed storage vs fixed 512-byte arrays
+- Slot packing: `ethereumAddress` + `relationships` + `expiration` in single slot
+- Supports RSA-4096 and post-quantum keys (up to 1024 bytes)
+
+**Key Types Supported:**
+- `publicKeyMultibase` (pre-encoded multibase string, e.g., "zQ3shok...")
+- `blockchainAccountId` (CAIP-10 format string)
+- `ethereumAddress` (native Ethereum address)
 
 #### 3. ServiceStorage.sol
 
@@ -269,20 +300,35 @@ bytes32 didHash = keccak256(abi.encodePacked(methods, id));
 
 Verification methods enable cryptographic authentication of DID controllers.
 
-#### Structure
+#### Structure (v1.0 - Optimized)
 
 ```solidity
 struct VerificationMethod {
-    bytes32 id;                        // VM identifier
-    string vmType;                     // e.g., "EcdsaSecp256k1VerificationKey2019"
-    address controller;                // Controller address
-    string publicKeyMultibase;         // Multibase-encoded public key
-    string blockchainAccountId;        // e.g., "eip155:1:0x..."
-    address ethereumAddress;           // Ethereum address (if applicable)
-    uint256 expirationTime;            // Expiration timestamp
-    bool active;                       // Active status
+    bytes32 id;                    // VM identifier (e.g., "vm-0")
+    bytes32[2] type_;              // VM type (e.g., ["EcdsaSecp256k1VerificationKey20", "19"])
+    bytes publicKeyMultibase;      // Pre-encoded multibase string (e.g., "zQ3shok...")
+    bytes blockchainAccountId;     // CAIP-10 format string (e.g., "eip155:1:0xabc...")
+    address ethereumAddress;       // Ethereum address (20 bytes) - packed
+    bytes1 relationships;          // Relationship bitmask (1 byte) - packed
+    uint88 expiration;             // Expiration timestamp (11 bytes) - packed
 }
+// Note: ethereumAddress + relationships + expiration = 32 bytes (1 slot)
 ```
+
+#### Key Storage Design
+
+**Public Key Storage:**
+- `publicKeyMultibase`: Pre-encoded multibase string (must start with 'z' for base58btc)
+- Callers encode the public key off-chain: `'z' + Base58(multicodec + rawPublicKey)`
+- No on-chain Base58 encoding (gas optimization)
+
+**Blockchain Account ID:**
+- Stored as CAIP-10 format string directly (e.g., `"eip155:1:0xabc..."`)
+- No encoding/decoding overhead
+
+**Slot Packing:**
+- `ethereumAddress` (20 bytes) + `relationships` (1 byte) + `expiration` (11 bytes) = 1 slot
+- `uint88` supports timestamps up to ~9.8 million years
 
 #### Relationship Types
 
@@ -296,13 +342,14 @@ VMs can be used for different purposes:
 
 #### Storage
 
-- Stored in mapping: `mapping(bytes32 => VerificationMethod) private _vms`
+- Stored in mapping: `mapping(bytes32 didHash => mapping(bytes32 vmId => VerificationMethod))`
 - Indexed by: `keccak256(abi.encodePacked(didHash, vmId))`
-- Enumerated via: `EnumerableSet.Bytes32Set private _vmIds`
+- Enumerated via: `EnumerableSet.Bytes32Set private _vmIds` per DID
+- Position-hash mappings for validation and cleanup
 
 #### Expiration
 
-- VMs include expiration timestamps
+- VMs include `uint88` expiration timestamps (11 bytes, packed with address)
 - Expired VMs are automatically filtered in resolution
 - Cleanup functions available for gas reclamation
 
@@ -472,7 +519,7 @@ require(condition, "Invalid DID");  // String storage expensive
 
 - **DID Core**: v1.0 specification compliance
 - **DID Methods**: Multi-level method support (`did:method0:method1:method2:id`)
-- **Verification Methods**: publicKeyMultibase, blockchainAccountId, ethereumAddress
+- **Verification Methods**: publicKeyMultibase (pre-encoded), blockchainAccountId, ethereumAddress
 - **Service Endpoints**: Standard W3C service format
 - **Resolution**: On-chain W3C-compliant resolver
 
@@ -563,6 +610,6 @@ script/
 
 ---
 
-**Last Updated**: 2025-01-02
+**Last Updated**: 2026-02-02
 **Purpose**: Single source of truth for SSIoBC-did project knowledge
 **Referenced By**: CLAUDE.md, AGENTS.md, GEMINI.md

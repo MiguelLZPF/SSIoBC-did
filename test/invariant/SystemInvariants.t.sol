@@ -223,11 +223,11 @@ contract InvariantHandler is Test {
       targetId: selectedDid,
       vmId: vmId,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
       relationships: relationships,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
     try didManager.createVm(command) {

@@ -79,11 +79,11 @@ contract DidLifecycleIntegrationTest is TestBase {
         targetId: aliceDid.didInfo.id,
         vmId: bytes32("assertion-key"),
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.defaultVmPublicKey(),
+        publicKeyMultibase: Fixtures.defaultVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: alice, // Alice's assertion key
         relationships: Fixtures.VM_RELATIONSHIPS_ASSERTION_METHOD,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
       });
 
       DidTestHelpers.CreateVmResult memory assertionVmResult =
@@ -102,11 +102,11 @@ contract DidLifecycleIntegrationTest is TestBase {
         targetId: aliceDid.didInfo.id,
         vmId: bytes32("key-agreement"),
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: carol, // Different address for key agreement
         relationships: Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT | Fixtures.VM_RELATIONSHIPS_AUTHENTICATION,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
       });
 
       DidTestHelpers.CreateVmResult memory keyAgreementVmResult =
@@ -175,11 +175,11 @@ contract DidLifecycleIntegrationTest is TestBase {
       targetId: aliceDid.didInfo.id, // But target is Alice's DID
       vmId: bytes32("bob-controlled-vm"),
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: bob,
       relationships: Fixtures.VM_RELATIONSHIPS_CAPABILITY_DELEGATION | Fixtures.VM_RELATIONSHIPS_AUTHENTICATION,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
     {
@@ -339,11 +339,11 @@ contract DidLifecycleIntegrationTest is TestBase {
       targetId: aliceDid.didInfo.id,
       vmId: bytes32("bob-managed-vm"),
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: bob,
       relationships: Fixtures.VM_RELATIONSHIPS_ASSERTION_METHOD | Fixtures.VM_RELATIONSHIPS_AUTHENTICATION,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.CreateVmResult memory bobVmResult = DidTestHelpers.createVm(vm, didManager, bobVmCommand);
 
@@ -360,11 +360,11 @@ contract DidLifecycleIntegrationTest is TestBase {
       targetId: aliceDid.didInfo.id,
       vmId: bytes32("carol-managed-vm"),
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: carol,
       relationships: Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT | Fixtures.VM_RELATIONSHIPS_AUTHENTICATION,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.CreateVmResult memory carolVmResult = DidTestHelpers.createVm(vm, didManager, carolVmCommand);
 
@@ -418,11 +418,11 @@ contract DidLifecycleIntegrationTest is TestBase {
       targetId: aliceDid.didInfo.id,
       vmId: bytes32("invalid-vm"),
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: alice,
       relationships: bytes1(0), // Invalid: empty relationships
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
     vm.expectRevert();

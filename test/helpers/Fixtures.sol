@@ -52,46 +52,54 @@ library Fixtures {
     return [bytes32(0), bytes32(0)];
   }
 
-  // VM Public Keys
-  function defaultVmPublicKey() internal pure returns (bytes32[16] memory) {
-    bytes32[16] memory result;
-    result[0] = bytes32("FD756c746962617365206973206177");
-    result[1] = bytes32("65736F6d6521205C6f2F");
-    result[2] = bytes32("65736F6d6521205C6f2F");
-    return result;
+  // =========================================================================
+  // VM Public Key constants (pre-encoded multibase format)
+  // =========================================================================
+
+  // Pre-encoded multibase strings (base58btc with 'z' prefix)
+  // These are valid multibase-encoded public keys for testing purposes
+  // Format: 'z' + base58btc(multicodec + rawPublicKey)
+
+  // Test secp256k1 compressed public key multibase
+  // Original raw: 0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
+  // Multicodec: 0xe701 (secp256k1-pub)
+  bytes internal constant TEST_SECP256K1_MULTIBASE = "zQ3shokFTS3brHcDQrn82RUDfQ23n1FVsyBYbepBrn4Q8nyB1";
+
+  // Test Ed25519 public key multibase
+  // Original raw: 0xd75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a
+  // Multicodec: 0xed01 (ed25519-pub)
+  bytes internal constant TEST_ED25519_MULTIBASE = "z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK";
+
+  // Empty multibase for VMs that use ethereumAddress instead
+  bytes internal constant EMPTY_PUBLIC_KEY_MULTIBASE = "";
+
+  // VM Public Keys - returns pre-encoded multibase string
+  function defaultVmPublicKeyMultibase() internal pure returns (bytes memory) {
+    return TEST_SECP256K1_MULTIBASE;
   }
 
-  function emptyVmPublicKey() internal pure returns (bytes32[16] memory) {
-    return [
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0),
-      bytes32(0)
-    ];
+  function ed25519VmPublicKeyMultibase() internal pure returns (bytes memory) {
+    return TEST_ED25519_MULTIBASE;
   }
 
-  // VM Blockchain Account ID
-  function defaultVmBlockchainAccountId() internal pure returns (bytes32[5] memory) {
-    bytes32[5] memory result;
-    result[0] = bytes32("eid155:1:0xab16a96d359ec26a11e2c");
-    result[1] = bytes32("2b3d8f8b8942d5bfcdb");
-    return result;
+  function emptyVmPublicKeyMultibase() internal pure returns (bytes memory) {
+    return EMPTY_PUBLIC_KEY_MULTIBASE;
   }
 
-  function emptyVmBlockchainAccountId() internal pure returns (bytes32[5] memory) {
-    return [bytes32(0), bytes32(0), bytes32(0), bytes32(0), bytes32(0)];
+  // =========================================================================
+  // VM Blockchain Account ID (CAIP-10 format string)
+  // =========================================================================
+
+  // CAIP-10 format: chain_id:account_address
+  // Example: eip155:1:0xab16a96d359ec26a11e2c2b3d8f8b8942d5bfcdb
+  bytes internal constant DEFAULT_CAIP10_ACCOUNT_ID = "eip155:1:0xab16a96d359ec26a11e2c2b3d8f8b8942d5bfcdb";
+
+  function defaultVmBlockchainAccountId() internal pure returns (bytes memory) {
+    return DEFAULT_CAIP10_ACCOUNT_ID;
+  }
+
+  function emptyVmBlockchainAccountId() internal pure returns (bytes memory) {
+    return "";
   }
 
   // VM Ethereum Addresses

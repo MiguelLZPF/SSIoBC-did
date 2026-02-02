@@ -136,11 +136,11 @@ contract W3CResolverUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.defaultVmPublicKey(), // Use publicKeyMultibase instead
+      publicKeyMultibase: Fixtures.defaultVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: address(0), // No ethereum address so VM can expire
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: block.timestamp + Fixtures.TEST_VM_EXPIRATION_OFFSET // 1 minute from now
+      expiration: uint88(block.timestamp + Fixtures.TEST_VM_EXPIRATION_OFFSET) // 1 minute from now
     });
     DidTestHelpers.createVm(vm, didManager, command);
 
@@ -173,11 +173,11 @@ contract W3CResolverUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: block.timestamp + Fixtures.TEST_VM_EXPIRATION_OFFSET // 1 minute from now
+      expiration: uint88(block.timestamp + Fixtures.TEST_VM_EXPIRATION_OFFSET) // 1 minute from now
     });
     DidTestHelpers.createVm(vm, didManager, command);
 
@@ -413,12 +413,12 @@ contract W3CResolverUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: user1, // Valid ethereum address for validation
       relationships: Fixtures.VM_RELATIONSHIPS_CAPABILITY_DELEGATION, // 0x10 - maps to capabilityInvocation (bug in
         // W3CResolver)
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, vmCommand);
 
@@ -510,12 +510,12 @@ contract W3CResolverUnitTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.defaultVmPublicKey(),
+      publicKeyMultibase: Fixtures.defaultVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: user1, // Valid ethereum address for validation
       relationships: Fixtures.VM_RELATIONSHIPS_CAPABILITY_INVOCATION, // 0x08 - maps to capabilityDelegation (bug in
         // W3CResolver)
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, vmCommand);
 

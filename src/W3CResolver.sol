@@ -171,15 +171,15 @@ contract W3CResolver is IW3CResolver {
     pure
     returns (W3CVerificationMethod memory w3cVm)
   {
-    // * no real arrays here
+    // publicKeyMultibase is pre-encoded, just convert bytes to string
     return W3CVerificationMethod({
       id: string(_trimBytes(abi.encodePacked(vm.id))),
       type_: string(_trimBytes(abi.encodePacked(vm.type_))),
       controller: _formatDidString(didInput),
-      publicKeyMultibase: string(_trimBytes(abi.encodePacked(vm.publicKeyMultibase))),
-      blockchainAccountId: string(_trimBytes(abi.encodePacked(vm.blockchainAccountId))),
+      publicKeyMultibase: string(vm.publicKeyMultibase),
+      blockchainAccountId: string(vm.blockchainAccountId), // CAIP-10 string, stored as-is
       ethereumAddress: Strings.toHexString(vm.ethereumAddress),
-      expiration: vm.expiration * 1000 // expiration in ms
+      expiration: uint256(vm.expiration) * 1000 // expiration in ms (cast from uint88)
     });
   }
 

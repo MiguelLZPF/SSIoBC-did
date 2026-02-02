@@ -5,6 +5,10 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 import {
   DEFAULT_VM_ID,
   DEFAULT_VM_EXPIRATION,
+  DEFAULT_VM_TYPE_0,
+  DEFAULT_VM_TYPE_1,
+  MAX_PUBLIC_KEY_MULTIBASE_LENGTH,
+  MAX_BLOCKCHAIN_ACCOUNT_ID_LENGTH,
   CreateVmCommand,
   VerificationMethod,
   IVMStorage
@@ -12,12 +16,7 @@ import {
 
 abstract contract VMStorage is IVMStorage {
   using EnumerableSet for EnumerableSet.Bytes32Set;
-  //* Constant Variables
-  // Empty values
-  bytes32[16] internal EMPTY_PUBLIC_KEY = [bytes32(0)];
-  bytes32[5] internal EMPTY_BLOCKCHAIN_ACCOUNT_ID = [bytes32(0), bytes32(0), bytes32(0), bytes32(0), bytes32(0)];
-  // Default values
-  bytes32[2] private DEFAULT_VM_TYPE = [bytes32("EcdsaSecp256k1VerificationKey20"), bytes32("19")];
+
   //* Storage
   // Per DID hash, maintain the set of VM IDs (for O(1) add/remove/len/at)
   mapping(bytes32 => EnumerableSet.Bytes32Set) private _vmIds;
@@ -37,28 +36,38 @@ abstract contract VMStorage is IVMStorage {
    */
   function _createVm(CreateVmCommand memory command) internal returns (bytes32 idHash, bytes32 positionHash) {
     //* Params validation
-    // Required
-    // require(command.didHash != bytes32(0), "DID hash required"); //! Unreachable code
+    // Length validation for dynamic bytes
+    if (command.publicKeyMultibase.length > MAX_PUBLIC_KEY_MULTIBASE_LENGTH) revert PublicKeyTooLarge();
+    if (command.blockchainAccountId.length > MAX_BLOCKCHAIN_ACCOUNT_ID_LENGTH) revert BlockchainAccountIdTooLarge();
+
+    // Required: at least one identification method
     if (
-      command.publicKeyMultibase[0] == bytes32(0) && command.blockchainAccountId[0] == bytes32(0)
+      command.publicKeyMultibase.length == 0 && command.blockchainAccountId.length == 0
         && command.ethereumAddress == address(0)
     ) {
       revert PubKeyBlockchainAccountORAddressRequired();
     }
-    // Optional
+
+    // Multibase prefix validation: if public key provided, must start with 'z' (base58btc)
+    if (command.publicKeyMultibase.length > 0 && command.publicKeyMultibase[0] != "z") {
+      revert InvalidMultibasePrefix();
+    }
+
+    // Optional defaults
     if (command.id == bytes32(0)) {
       command.id = DEFAULT_VM_ID; // "vm-0"
     }
     if (command.type_[0] == bytes32(0)) {
-      command.type_ = [DEFAULT_VM_TYPE[0], DEFAULT_VM_TYPE[1]]; // "EcdsaSecp256k1VerificationKey20", "19"
+      command.type_ = [DEFAULT_VM_TYPE_0, DEFAULT_VM_TYPE_1]; // "EcdsaSecp256k1VerificationKey20", "19"
     }
     if (command.expiration == 0) {
-      command.expiration = block.timestamp + DEFAULT_VM_EXPIRATION;
+      command.expiration = uint88(block.timestamp + DEFAULT_VM_EXPIRATION);
     }
     if (command.ethereumAddress != address(0)) {
       // Needed to validate thisBcAddress
       command.expiration = 0;
     }
+
     //* Implementation
     // Existence check
     if (_vmIds[command.didHash].contains(command.id)) revert VmAlreadyExists();
@@ -68,6 +77,7 @@ abstract contract VMStorage is IVMStorage {
     uint8 position = uint8(_vmIds[command.didHash].length());
     idHash = _calculateIdHash(command.didHash, command.id);
     positionHash = _calculatePositionHash(command.didHash, position);
+
     // Store VM
     VerificationMethod storage vm = _vmByNsAndId[command.didHash][command.id];
     vm.id = command.id;
@@ -77,10 +87,12 @@ abstract contract VMStorage is IVMStorage {
     vm.ethereumAddress = command.ethereumAddress;
     vm.relationships = command.relationships;
     vm.expiration = command.expiration;
+
     // Map position hash to ID and DID for validateVm lookup and cleanup
     _vmIdByPositionHash[positionHash] = command.id;
     _didHashByPositionHash[positionHash] = command.didHash;
     _positionHashByDidAndId[command.didHash][command.id] = positionHash;
+
     // Event
     emit VmCreated(command.didHash, command.id, idHash, positionHash);
     return (idHash, positionHash);
@@ -107,7 +119,7 @@ abstract contract VMStorage is IVMStorage {
     if (vm.expiration != 0) revert VmAlreadyValidated(); // This means that the VM is already validated
     if (vm.ethereumAddress != sender) revert InvalidSignature(); // This means that the Tx Signer is not the VM's
       // Ethereum Address or actual signature validation
-    vm.expiration = expiration;
+    vm.expiration = uint88(expiration);
     //Event
     emit VmValidated(vm.id);
     return (vm.id);
@@ -122,7 +134,7 @@ abstract contract VMStorage is IVMStorage {
   function _expireVm(bytes32 didHash, bytes32 id) internal {
     VerificationMethod storage vm = _vmByNsAndId[didHash][id];
     if (vm.expiration <= block.timestamp) revert VmAlreadyExpired();
-    vm.expiration = block.timestamp;
+    vm.expiration = uint88(block.timestamp);
     emit VmExpirationUpdated(didHash, id, true, vm.expiration);
   }
 

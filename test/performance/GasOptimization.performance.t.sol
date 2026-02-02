@@ -74,11 +74,11 @@ contract GasOptimizationPerformanceTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_TEST_1,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: user2,
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.createVm(vm, didManager, vmCommand);
     uint256 gasUsed = gasStart - gasleft();
@@ -140,11 +140,11 @@ contract GasOptimizationPerformanceTest is TestBase {
         targetId: didResult.didInfo.id,
         vmId: keccak256(abi.encodePacked("test-vm-", i, block.timestamp, block.prevrandao)),
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: address(uint160(uint160(user1) + i)),
         relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
       });
       DidTestHelpers.createVm(vm, didManager, vmCommand);
 
@@ -222,11 +222,11 @@ contract GasOptimizationPerformanceTest is TestBase {
         targetId: didResult.didInfo.id,
         vmId: vmId,
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: vmEthereumAddress,
         relationships: Fixtures.VM_RELATIONSHIPS_AUTHENTICATION,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
       });
       DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, vmCommand);
 
@@ -281,11 +281,11 @@ contract GasOptimizationPerformanceTest is TestBase {
         targetId: didResult.didInfo.id,
         vmId: keccak256(abi.encodePacked("cleanup-vm-", i, block.timestamp, block.prevrandao)),
         type_: Fixtures.defaultVmType(),
-        publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+        publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
         blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
         ethereumAddress: address(uint160(uint160(user1) + i)),
         relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-        expiration: Fixtures.EMPTY_VM_EXPIRATION
+        expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
       });
       DidTestHelpers.createVm(vm, didManager, vmCommand);
 
@@ -359,11 +359,11 @@ contract GasOptimizationPerformanceTest is TestBase {
       targetId: didResult.didInfo.id,
       vmId: bytes32("research-vm"),
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: user2,
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.createVm(vm, didManager, vmCommand);
     gasUsed = gasStart - gasleft();

@@ -117,11 +117,11 @@ library DidTestHelpers {
       targetId: didInfo.id,
       vmId: vmId,
       type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKey(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
-      expiration: Fixtures.EMPTY_VM_EXPIRATION
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
     CreateVmResult memory vmResult = createVm(vm, didManager, command);
@@ -176,8 +176,8 @@ library DidTestHelpers {
   function assertEmptyVm(VerificationMethod memory vm) internal pure {
     assert(vm.type_[0] == bytes32(0));
     assert(vm.type_[1] == bytes32(0));
-    assert(vm.publicKeyMultibase[0] == bytes32(0));
-    assert(vm.blockchainAccountId[0] == bytes32(0));
+    assert(vm.publicKeyMultibase.length == 0);
+    assert(vm.blockchainAccountId.length == 0);
     assert(vm.ethereumAddress == address(0));
     assert(vm.relationships == bytes1(0));
     assert(vm.expiration == 0);
@@ -189,14 +189,14 @@ library DidTestHelpers {
    * @param expectedVmType Expected VM type
    * @param expectedAddress Expected ethereum address
    * @param expectedRelationships Expected relationships
-   * @param expectedExpiration Expected expiration
+   * @param expectedExpiration Expected expiration (as uint88)
    */
   function assertVm(
     VerificationMethod memory actualVm,
     bytes32[2] memory expectedVmType,
     address expectedAddress,
     bytes1 expectedRelationships,
-    uint256 expectedExpiration
+    uint88 expectedExpiration
   ) internal pure {
     assert(actualVm.type_[0] == expectedVmType[0]);
     assert(actualVm.type_[1] == expectedVmType[1]);
