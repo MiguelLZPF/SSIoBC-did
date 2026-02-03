@@ -144,7 +144,7 @@ Total Base Slots: 5 (reduced from 28 in v0.8.0)
 
 #### 3. ServiceStorage.sol
 
-**Purpose**: Service endpoints storage with dynamic bytes (optimized in v1.1)
+**Purpose**: Service endpoints storage with dynamic bytes (optimized in v1.0.1)
 
 **Type**: Abstract contract (inherited by DidManager)
 
@@ -153,7 +153,7 @@ Total Base Slots: 5 (reduced from 28 in v0.8.0)
 - Service type management
 - Service endpoint URL storage
 
-**Storage Architecture (v1.1 - Optimized):**
+**Storage Architecture (v1.0.1 - Optimized):**
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -175,7 +175,7 @@ Total Base Slots: 5 (reduced from 28 in v0.8.0)
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Service Struct (v1.1 Optimized):**
+**Service Struct (v1.0.1 Optimized):**
 ```solidity
 struct Service {
   bytes32 id;           // 1 slot - service identifier
@@ -186,7 +186,7 @@ struct Service {
 
 **Storage Efficiency:**
 - **Before (v1.0):** 161 slots per service (5,152 bytes) - fixed `bytes32[20][4]` arrays
-- **After (v1.1):** ~6 slots typical (192 bytes) - dynamic bytes
+- **After (v1.0.1):** ~6 slots typical (192 bytes) - dynamic bytes
 - **Savings:** 96% reduction per service
 
 **Key Optimizations:**
@@ -412,6 +412,21 @@ struct Controller {
 - **Maximum**: 5 controllers (CONTROLLERS_MAX_LENGTH = 5)
 - **Self-sovereign default**: Empty controllers = owner controls
 - **Delegation**: Can delegate to other DIDs with optional VM specification
+
+#### Controller Operations
+
+The `updateController` function supports three operations:
+- **Create**: Add a new controller at a specific position (0-4)
+- **Update**: Overwrite an existing controller at a given position
+- **Remove**: Set `controllerId = bytes32(0)` to clear a controller at that position
+
+```solidity
+// Add controller at position 0
+updateController(methods, senderId, senderVmId, targetId, controllerId, controllerVmId, 0);
+
+// Remove controller at position 0
+updateController(methods, senderId, senderVmId, targetId, bytes32(0), bytes32(0), 0);
+```
 
 #### Controller Logic
 

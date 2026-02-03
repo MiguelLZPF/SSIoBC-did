@@ -431,25 +431,54 @@ contract DidManagerUnitTest is TestBase {
   // ADDITIONAL CONTROLLER TESTS
   // =========================================================================
 
-  function test_UpdateController_Should_RevertWithMissingParameter_When_ControllerIdIsZero() public {
-    // Create a DID first
+  function test_UpdateController_Should_RemoveController_When_ControllerIdIsZero() public {
+    // Create two DIDs (one as owner, one as controller)
     _startPrank(user1);
-    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+    DidTestHelpers.CreateDidResult memory ownerDid = DidTestHelpers.createDefaultDid(vm, didManager);
     _stopPrank();
 
-    // Try to update controller with empty controllerId - should hit uncovered branch
+    _startPrank(user2);
+    DidTestHelpers.CreateDidResult memory controllerDid =
+      DidTestHelpers.createDid(vm, didManager, DEFAULT_DID_METHODS, Fixtures.DEFAULT_RANDOM_1, bytes32(0));
+    _stopPrank();
+
+    // First, add a controller at position 0
     _startPrank(user1);
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.updateController(
       DEFAULT_DID_METHODS,
-      didResult.didInfo.id,
+      ownerDid.didInfo.id,
       DEFAULT_VM_ID,
-      didResult.didInfo.id,
-      bytes32(0), // controllerId = 0 (should trigger uncovered branch)
+      ownerDid.didInfo.id,
+      controllerDid.didInfo.id,
       bytes32(0),
       0
     );
     _stopPrank();
+
+    // Verify controller was added
+    Controller[CONTROLLERS_MAX_LENGTH] memory controllersBeforeRemoval =
+      didManager.getControllerList(DEFAULT_DID_METHODS, ownerDid.didInfo.id);
+    assertEq(controllersBeforeRemoval[0].id, controllerDid.didInfo.id, "Controller should be set at position 0");
+
+    // Now the controller removes itself by setting controllerId to bytes32(0)
+    // Note: Only controllers can make changes once a controller is set
+    _startPrank(user2);
+    didManager.updateController(
+      DEFAULT_DID_METHODS,
+      controllerDid.didInfo.id, // sender is the controller
+      DEFAULT_VM_ID,
+      ownerDid.didInfo.id, // target is the owner's DID
+      bytes32(0), // controllerId = 0 removes the controller
+      bytes32(0),
+      0
+    );
+    _stopPrank();
+
+    // Verify controller was removed
+    Controller[CONTROLLERS_MAX_LENGTH] memory controllersAfterRemoval =
+      didManager.getControllerList(DEFAULT_DID_METHODS, ownerDid.didInfo.id);
+    assertEq(controllersAfterRemoval[0].id, bytes32(0), "Controller should be removed (set to bytes32(0))");
+    assertEq(controllersAfterRemoval[0].vmId, bytes32(0), "Controller vmId should also be bytes32(0)");
   }
 
   function test_UpdateController_Should_UseLastPosition_When_PositionExceedsMax() public {

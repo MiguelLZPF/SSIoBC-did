@@ -141,8 +141,8 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     uint8 controllerPosition
   ) external {
     //* Params validation
-    // Required
-    if (methods == bytes32(0) || senderId == bytes32(0) || targetId == bytes32(0) || controllerId == bytes32(0)) {
+    // Required (controllerId can be bytes32(0) for removal)
+    if (methods == bytes32(0) || senderId == bytes32(0) || targetId == bytes32(0)) {
       revert MissingRequiredParameter();
     }
     //* Implementation

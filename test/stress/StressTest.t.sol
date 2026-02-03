@@ -254,19 +254,29 @@ contract StressTest is TestBase {
     // Create service with multiple types and endpoints (testing dynamic bytes)
     // Using null byte delimiter as specified in optimization plan
     bytes memory largeServiceType = abi.encodePacked(
-      "LargeType0-0", "\x00",
-      "LargeType0-1", "\x00",
-      "LargeType1-0", "\x00",
-      "LargeType1-1", "\x00",
-      "LargeType2-0", "\x00",
+      "LargeType0-0",
+      "\x00",
+      "LargeType0-1",
+      "\x00",
+      "LargeType1-0",
+      "\x00",
+      "LargeType1-1",
+      "\x00",
+      "LargeType2-0",
+      "\x00",
       "LargeType2-1"
     );
     bytes memory largeServiceEndpoint = abi.encodePacked(
-      "https://large0-0.example.com", "\x00",
-      "https://large0-1.example.com", "\x00",
-      "https://large1-0.example.com", "\x00",
-      "https://large1-1.example.com", "\x00",
-      "https://large2-0.example.com", "\x00",
+      "https://large0-0.example.com",
+      "\x00",
+      "https://large0-1.example.com",
+      "\x00",
+      "https://large1-0.example.com",
+      "\x00",
+      "https://large1-1.example.com",
+      "\x00",
+      "https://large2-0.example.com",
+      "\x00",
       "https://large2-1.example.com"
     );
 
@@ -350,7 +360,8 @@ contract StressTest is TestBase {
       // Rapid service addition
       for (uint256 i = 1; i <= 2; i++) {
         bytes memory serviceType = abi.encodePacked("RapidService", vm.toString(i));
-        bytes memory serviceEndpoint = abi.encodePacked("https://rapid", vm.toString(i), ".user", vm.toString(userIndex), ".com");
+        bytes memory serviceEndpoint =
+          abi.encodePacked("https://rapid", vm.toString(i), ".user", vm.toString(userIndex), ".com");
 
         didManager.updateService(
           didResult.didInfo.methods,

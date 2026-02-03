@@ -137,15 +137,18 @@ interface IDidManager {
     returns (bool);
 
   /**
-   * @dev Updates the controller of the DID manager.
+   * @dev Updates the controller of the DID manager. This function can be used to:
+   * - **Create**: Add a new controller at a specific position
+   * - **Update**: Modify an existing controller at a given position
+   * - **Remove**: Set controllerId to bytes32(0) to remove a controller at that position
    * @param methods The methods used to update the controller.
    * @param senderId The unique identifier of the sender's DID.
    * @param senderVmId The unique identifier of the sender's VM.
    * @param targetId The unique identifier of the new target's DID to be modified.
-   * @param controllerId The unique identifier of the new controller's DID.
+   * @param controllerId The unique identifier of the new controller's DID. Use bytes32(0) to remove.
    * @param controllerVmId (optional) The unique identifier of the new controller's VM.
-   * @param controllerPosition The position of the new controller's VM. If greater than CONTROLLER_MAX_LENGTH, it will
-   * overwrite the last controller.
+   * @param controllerPosition The position of the controller (0-4). If greater than CONTROLLERS_MAX_LENGTH, it will
+   * overwrite the last position.
    */
   function updateController(
     bytes32 methods,

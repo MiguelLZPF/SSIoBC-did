@@ -189,9 +189,7 @@ contract W3CResolver is IW3CResolver {
     string[] memory serviceEndpoints = _parsePackedStrings(service.serviceEndpoint);
 
     return W3CService({
-      id: string(_trimBytes(abi.encodePacked(service.id))),
-      type_: types,
-      serviceEndpoint: serviceEndpoints
+      id: string(_trimBytes(abi.encodePacked(service.id))), type_: types, serviceEndpoint: serviceEndpoints
     });
   }
 

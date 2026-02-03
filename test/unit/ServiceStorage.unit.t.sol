@@ -568,7 +568,8 @@ contract ServiceStorageUnitTest is TestBase {
 
     // Test: Create service with multiple types and endpoints using delimiter
     bytes memory multipleTypes = "ServiceType1\x00ServiceType2";
-    bytes memory multipleEndpoints = "https://endpoint1.example.com\x00https://endpoint2.example.com\x00https://endpoint3.example.com";
+    bytes memory multipleEndpoints =
+      "https://endpoint1.example.com\x00https://endpoint2.example.com\x00https://endpoint3.example.com";
 
     didManager.updateService(
       didResult.didInfo.methods,
@@ -587,7 +588,10 @@ contract ServiceStorageUnitTest is TestBase {
     assertEq(service.id, Fixtures.DEFAULT_SERVICE_ID);
     // The raw bytes contain the packed format with delimiters
     assertEq(string(service.type_), "ServiceType1\x00ServiceType2");
-    assertEq(string(service.serviceEndpoint), "https://endpoint1.example.com\x00https://endpoint2.example.com\x00https://endpoint3.example.com");
+    assertEq(
+      string(service.serviceEndpoint),
+      "https://endpoint1.example.com\x00https://endpoint2.example.com\x00https://endpoint3.example.com"
+    );
 
     _stopPrank();
   }
