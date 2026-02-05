@@ -207,6 +207,26 @@ abstract contract VMStorage is IVMStorage {
   }
 
   /**
+   * @dev Checks if the given sender owns a VM with authentication relationship, without checking VM expiration.
+   * Used specifically for self-reactivation where the DID is deactivated but VMs are preserved.
+   * @param didHash The hash of the Decentralized Identifier (DID).
+   * @param vmId The ID of the Verification Method (VM).
+   * @param sender The address of the sender.
+   * @return A boolean indicating whether the sender owns the VM with authentication relationship.
+   */
+  function _isVmOwner(bytes32 didHash, bytes32 vmId, address sender) internal view returns (bool) {
+    if (vmId == bytes32(0) || sender == address(0)) {
+      revert MissingRequiredParameter();
+    }
+    // Get VM
+    VerificationMethod memory vm = _vmByNsAndId[didHash][vmId];
+    // Check if VM exists (has an id set)
+    if (vm.id == bytes32(0)) return false;
+    // Check if sender owns this VM and has authentication relationship (0x01)
+    return (vm.ethereumAddress == sender && (vm.relationships & bytes1(0x01)) == bytes1(0x01));
+  }
+
+  /**
    * @dev Checks if the given sender is in the specified relationship for the specified DID hash and VM ID.
    * @param didHash The hash of the Decentralized Identifier (DID).
    * @param id The ID of the Verification Method (VM).

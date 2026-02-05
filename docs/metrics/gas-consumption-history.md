@@ -42,12 +42,24 @@ This document tracks gas consumption evolution across SSIoBC-did versions, provi
 ### Core DID Operations
 
 #### DID Creation (`createDid`)
-- **Current Gas Cost**: 249,448 gas
+- **Current Gas Cost**: ~283,522 gas
 - **Optimization**: Hash-based ID generation with pseudorandom elements
 - **Components**:
   - ID generation: `keccak256(methods, random, tx.origin, block.prevrandao)`
   - Storage mapping updates
   - Event emission
+
+#### DID Deactivation (`deactivateDid`)
+- **Current Gas Cost**: ~63,159 gas
+- **Operation**: Sets DID expiration to 0 (permanent deactivation)
+- **Authorization**: Requires controller or self-sovereign owner
+
+#### DID Reactivation (`reactivateDid`) - v1.0.2
+- **Self-Reactivation**: ~61,450 gas (owner reactivating own DID)
+- **Controller Reactivation**: ~86,492 gas (controller reactivating another DID)
+- **Operation**: Restores DID expiration to 4 years from current timestamp
+- **Authorization**: Self-reactivation validates VM ownership; controller reactivation requires active controller DID
+- **Note**: Preserves all VMs, Services, and Controllers during deactivation/reactivation cycle
 
 #### Verification Method Operations
 - **Add VM**: ~75,000-90,000 gas (varies by VM type)
@@ -85,7 +97,10 @@ This document tracks gas consumption evolution across SSIoBC-did versions, provi
 ### Operation Costs (EUR)
 
 #### DID Operations
-- **Create DID**: €1.27 (249,448 gas)
+- **Create DID**: €1.44 (~283,522 gas)
+- **Deactivate DID**: €0.32 (~63,159 gas)
+- **Reactivate DID (self)**: €0.31 (~61,450 gas)
+- **Reactivate DID (controller)**: €0.44 (~86,492 gas)
 - **Full Deployment**: €14.24 (2,803,776 gas)
 - **Add VM**: €0.43 (average 82,500 gas)
 - **Add Service**: €0.39 (average 77,500 gas)
@@ -181,4 +196,4 @@ Performance data referenced in:
 
 ---
 
-*Last Updated: v0.8.0 - Current gas consumption represents optimized production-ready implementation*
+*Last Updated: v1.0.2 - Added reactivateDid() gas costs (~61k self, ~86k controller)*

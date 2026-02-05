@@ -19,10 +19,11 @@ The documentation transforms raw performance data collected through screenshots 
 
 ### Key Performance Highlights
 
-- **Contract Size**: Maintained ~12kB for core contracts (v0.1.0 → v0.8.0)
+- **Contract Size**: Maintained ~12kB for core contracts (v0.1.0 → v1.0.1)
 - **Gas Efficiency**: 249,448 gas per DID creation (€1.27 at 3.174 Gwei, €1,600 ETH)
-- **Test Coverage**: Consistently >90% throughout development (v0.1.2 → v0.8.0)
+- **Test Coverage**: Consistently >90% throughout development (v0.1.2 → v1.0.1)
 - **Deployment Cost**: 2,803,776 gas (€14.24) for full system deployment
+- **Storage Optimization**: 96% reduction in ServiceStorage (v1.0.1)
 
 ## Documentation Structure
 
@@ -35,6 +36,7 @@ docs/
 │   └── test-coverage-history.md       # Quality assurance tracking
 ├── analysis/                           # Research-focused analysis
 │   ├── performance-trends.md          # Cross-metric trend analysis
+│   ├── storage-layout-analysis.md     # Storage optimization analysis
 │   └── research-validation.md         # Academic findings & validation
 └── assets/                             # Supporting data & evidence
     ├── screenshots/                    # Organized visual documentation
@@ -44,6 +46,9 @@ docs/
     └── data/                           # Raw data files
         ├── sizes_before.txt            # Pre-optimization size data
         └── sizes_after.txt             # Post-optimization size data
+
+# Related Documentation
+PROJECT.md                              # Architecture diagrams & design patterns
 ```
 
 ## Metrics History
@@ -113,8 +118,19 @@ Academic validation of thesis claims:
 - Performance optimization focus
 - W3C resolver completion
 
+#### Production Phase (v1.0.x)
+- **v1.0.1** - Major storage optimization release
+  - 96% storage reduction in ServiceStorage (dynamic bytes)
+  - VMStorage optimization with uint88 packing
+  - Controller removal via `bytes32(0)`
+  - W3C-compliant `deactivateDid` functionality
+  - EnumerableSet migration (replacing HashBasedList)
+  - Custom errors replacing require statements
+  - Method parameters consolidated to single `bytes32`
+  - >90% test coverage maintained
+
 ### Git Tags Available
-`v0.1.1`, `v0.1.2`, `v0.1.4`, `v0.2.0`, `v0.3.0`, `v0.4.0`, `v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`
+`v0.1.1`, `v0.1.2`, `v0.1.4`, `v0.2.0`, `v0.3.0`, `v0.4.0`, `v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v1.0.1`
 
 ## How to Use This Documentation
 
@@ -162,6 +178,7 @@ Documentation provides:
 
 ### 🚀 Quick Start
 - **New to Project**: Start with [this README](#overview)
+- **Architecture Diagrams**: See [PROJECT.md](../PROJECT.md#architecture-diagrams) for visual system overview
 - **Performance Data**: Check [Gas Consumption History](./metrics/gas-consumption-history.md)
 - **Quality Metrics**: Review [Test Coverage History](./metrics/test-coverage-history.md)
 - **Size Analysis**: Explore [Contract Size History](./metrics/contract-size-history.md)

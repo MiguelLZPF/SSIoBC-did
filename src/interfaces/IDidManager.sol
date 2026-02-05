@@ -64,6 +64,12 @@ interface IDidManager {
    */
   event DidDeactivated(bytes32 indexed targetDidHash);
 
+  /**
+   * @dev Emitted when a deactivated DID is reactivated.
+   * @param targetDidHash The hash of the reactivated DID.
+   */
+  event DidReactivated(bytes32 indexed targetDidHash);
+
   // * Errors
   // Declared in IVMStorage.sol
   // error MissingRequiredParameter();
@@ -75,6 +81,8 @@ interface IDidManager {
   error NotAuthenticatedAsSenderId();
 
   error NotAControllerforTargetId();
+
+  error DidNotDeactivated();
 
   /**
    * @dev Creates a new DID.
@@ -104,6 +112,17 @@ interface IDidManager {
    * @param targetId The ID of the DID to deactivate.
    */
   function deactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external;
+
+  /**
+   * @dev Reactivates a deactivated DID by setting its expiration to 4 years from now.
+   * Only works on DIDs with expiration == 0 (deactivated, not just expired).
+   * Requires the sender to have an active DID with valid VM and be a controller of the target.
+   * @param methods The methods used to identify the DID.
+   * @param senderId The ID of the sender.
+   * @param senderVmId The ID of the sender's Verification Method.
+   * @param targetId The ID of the DID to reactivate.
+   */
+  function reactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external;
 
   /**
    * @dev Returns the expiration timestamp for a given DID or VM ID.

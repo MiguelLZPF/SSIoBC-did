@@ -6,6 +6,7 @@ This file is the **single source of truth** for project domain knowledge, refere
 
 - [Project Overview](#project-overview)
 - [Academic Context & Innovation](#academic-context--innovation)
+- [Architecture Diagrams](#architecture-diagrams)
 - [Smart Contract Architecture](#smart-contract-architecture)
 - [DID Structure & Concepts](#did-structure--concepts)
 - [Key Design Patterns](#key-design-patterns)
@@ -63,6 +64,556 @@ This is a **PhD research project** demonstrating that complete DID document stor
 | **EBSI** | Privacy-first, mediated | Off-chain | ✅ Yes | ⚠️ Limited |
 | **LACChain** | Enhanced governance | Hybrid | ✅ Yes | ⚠️ Bureaucratic |
 | **uPort/ONCHAINID** | Pre-W3C standards | Hybrid | ❌ Pre-standard | ⚠️ Limited |
+
+## Architecture Diagrams
+
+This section provides visual representations of the SSIoBC-did system architecture.
+
+### Contract Inheritance Hierarchy
+
+```mermaid
+classDiagram
+    direction TB
+
+    class IDidManager {
+        <<interface>>
+        +createDid()
+        +deactivateDid()
+        +updateController()
+        +createVm()
+        +validateVm()
+        +updateService()
+    }
+
+    class IVMStorage {
+        <<interface>>
+        +getVm()
+        +getVmListLength()
+        +isVmRelationship()
+    }
+
+    class IServiceStorage {
+        <<interface>>
+        +getService()
+        +getServiceListLength()
+    }
+
+    class VMStorage {
+        <<abstract>>
+        -_vmIds: EnumerableSet
+        -_vmByNsAndId: mapping
+        -_vmIdByPositionHash: mapping
+        -_didHashByPositionHash: mapping
+        -_positionHashByDidAndId: mapping
+        #_createVm()
+        #_validateVm()
+        #_expireVm()
+        #_removeAllVms()
+    }
+
+    class ServiceStorage {
+        <<abstract>>
+        -_serviceIds: EnumerableSet
+        -_serviceByNsAndId: mapping
+        -_servicePositionByNsAndId: mapping
+        #_updateService()
+        #_removeAllServices()
+    }
+
+    class DidManager {
+        -_expirationDate: mapping
+        -_controllers: mapping
+        +createDid()
+        +deactivateDid()
+        +updateController()
+        +createVm()
+        +validateVm()
+        +updateService()
+    }
+
+    class W3CResolver {
+        -_didManager: IDidManager
+        +resolve()
+        +resolveVm()
+        +resolveService()
+    }
+
+    IVMStorage <|.. VMStorage
+    IServiceStorage <|.. ServiceStorage
+    VMStorage <|-- DidManager
+    ServiceStorage <|-- DidManager
+    IDidManager <|.. DidManager
+    DidManager <-- W3CResolver : reads via interface
+```
+
+### System Component Overview
+
+```mermaid
+flowchart TB
+    subgraph External["External Callers"]
+        User[/"User/DApp"/]
+        SC["Other Smart Contracts"]
+    end
+
+    subgraph Core["Core System"]
+        DM["DidManager
+        ━━━━━━━━━━━━━
+        • DID Lifecycle
+        • Authorization
+        • Controller Delegation
+        • Expiration Management"]
+    end
+
+    subgraph Storage["Inherited Storage (Abstract)"]
+        VMS["VMStorage
+        ━━━━━━━━━━━
+        • Verification Methods
+        • Position Hashes
+        • Relationship Bitmasks
+        • EnumerableSet IDs"]
+
+        SS["ServiceStorage
+        ━━━━━━━━━━━━━
+        • Service Endpoints
+        • Dynamic Bytes
+        • Packed Strings
+        • EnumerableSet IDs"]
+    end
+
+    subgraph Resolution["W3C Resolution Layer"]
+        W3C["W3CResolver
+        ━━━━━━━━━━━━
+        • DID Document Format
+        • VM Categorization
+        • Service Parsing
+        • Expiration Filtering"]
+    end
+
+    User --> DM
+    SC --> DM
+    SC --> W3C
+    DM -.-> VMS
+    DM -.-> SS
+    W3C -->|"IDidManager"| DM
+
+    style DM fill:#e1f5fe,stroke:#01579b
+    style VMS fill:#fff3e0,stroke:#e65100
+    style SS fill:#fff3e0,stroke:#e65100
+    style W3C fill:#e8f5e9,stroke:#1b5e20
+```
+
+### DID Lifecycle State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Created: createDid()
+
+    Created --> Active: Initial VM added
+
+    state Active {
+        [*] --> Valid
+        Valid --> Valid: addVm(), updateService()
+        Valid --> Valid: updateController()
+        Valid --> Valid: Auto-renewal (4 years)
+    }
+
+    Active --> Expired: 4 years elapsed
+    Active --> Deactivated: deactivateDid()
+
+    Expired --> Cleaned: cleanup() + gas refund
+    Cleaned --> Reusable: ID available
+    Reusable --> Created: Can reuse after 4 years
+
+    Deactivated --> Active: reactivateDid() by controller
+
+    note right of Active
+        Every state-changing operation
+        resets the 4-year expiration timer
+    end note
+
+    note right of Deactivated
+        Reactivation requires:
+        - Sender has active DID
+        - Valid authentication VM
+        - Sender is controller of target
+        VMs/Services/Controllers preserved
+    end note
+```
+
+### Verification Method Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unvalidated: createVm()
+
+    state Unvalidated {
+        [*] --> PendingProof
+        PendingProof: ethereumAddress set
+        PendingProof: expiration = 0
+    }
+
+    Unvalidated --> Validated: validateVm(signature)
+
+    state Validated {
+        [*] --> Active
+        Active: expiration > now
+        Active: Can authenticate
+    }
+
+    Validated --> Expired: timestamp > expiration
+    Validated --> ManuallyExpired: expireVm()
+
+    Expired --> Cleaned: Cleanup for gas refund
+    ManuallyExpired --> Cleaned: Cleanup for gas refund
+
+    Cleaned --> [*]
+
+    note right of Unvalidated
+        User must prove ownership
+        by signing positionHash
+        off-chain
+    end note
+```
+
+### Storage Architecture
+
+```mermaid
+flowchart TB
+    subgraph DID["DID Identification"]
+        Methods["methods (bytes32)
+        ┌──────────┬──────────┬──────────┬────┐
+        │method0   │method1   │method2   │pad │
+        │ 10 bytes │ 10 bytes │ 10 bytes │ 2B │
+        └──────────┴──────────┴──────────┴────┘"]
+
+        ID["id (bytes32)
+        keccak256(methods, random, tx.origin, prevrandao)"]
+
+        Hash["didHash (bytes32)
+        keccak256(methods, id)"]
+    end
+
+    subgraph VMStore["VMStorage (5 base slots)"]
+        VM1["Slot 0: _vmIds
+        mapping(didHash => EnumerableSet)"]
+
+        VM2["Slot 1: _vmByNsAndId
+        mapping(didHash => mapping(vmId => VM))"]
+
+        VM3["Slot 2: _vmIdByPositionHash
+        mapping(positionHash => vmId)"]
+
+        VM4["Slot 3: _didHashByPositionHash
+        mapping(positionHash => didHash)"]
+
+        VM5["Slot 4: _positionHashByDidAndId
+        mapping(didHash => mapping(vmId => posHash))"]
+    end
+
+    subgraph ServiceStore["ServiceStorage (3 base slots)"]
+        S1["Slot 0: _serviceIds
+        mapping(serviceDidHash => EnumerableSet)"]
+
+        S2["Slot 1: _serviceByNsAndId
+        mapping(hash => mapping(id => Service))"]
+
+        S3["Slot 2: _servicePositionByNsAndId
+        mapping(hash => mapping(id => uint8))"]
+    end
+
+    subgraph DidStore["DidManager Direct Storage"]
+        D1["_expirationDate
+        mapping(idHash => uint256)"]
+
+        D2["_controllers
+        mapping(didHash => Controller[5])"]
+    end
+
+    Methods --> Hash
+    ID --> Hash
+    Hash --> VM1
+    Hash --> S1
+    Hash --> D1
+    Hash --> D2
+
+    style DID fill:#e3f2fd,stroke:#1565c0
+    style VMStore fill:#fff8e1,stroke:#f57f17
+    style ServiceStore fill:#fce4ec,stroke:#c2185b
+    style DidStore fill:#e8f5e9,stroke:#2e7d32
+```
+
+### Data Structures
+
+```mermaid
+classDiagram
+    class VerificationMethod {
+        bytes32 id
+        bytes32[2] type_
+        bytes publicKeyMultibase
+        bytes blockchainAccountId
+        address ethereumAddress
+        bytes1 relationships
+        uint88 expiration
+    }
+
+    class Service {
+        bytes32 id
+        bytes type_
+        bytes serviceEndpoint
+    }
+
+    class Controller {
+        bytes32 id
+        bytes32 vmId
+    }
+
+    class W3CDidDocument {
+        string[] context
+        string id
+        string[] controller
+        W3CVerificationMethod[] verificationMethod
+        string[] authentication
+        string[] assertionMethod
+        string[] keyAgreement
+        string[] capabilityDelegation
+        string[] capabilityInvocation
+        W3CService[] service
+        uint256 expiration
+    }
+
+    class W3CVerificationMethod {
+        string id
+        string type_
+        string controller
+        string publicKeyMultibase
+        string blockchainAccountId
+        string ethereumAddress
+        uint256 expiration
+    }
+
+    class W3CService {
+        string id
+        string[] type_
+        string[] serviceEndpoint
+    }
+
+    VerificationMethod ..> W3CVerificationMethod : W3CResolver transforms
+    Service ..> W3CService : W3CResolver transforms
+    W3CDidDocument *-- W3CVerificationMethod
+    W3CDidDocument *-- W3CService
+
+    note for VerificationMethod "Optimized: ethereumAddress (20B) +
+    relationships (1B) + expiration (11B) = 1 slot"
+
+    note for Service "Dynamic bytes with '\\x00' delimiter
+    96% storage reduction vs v1.0"
+```
+
+### Authentication & Authorization Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as User/DApp
+    participant DM as DidManager
+    participant VMS as VMStorage
+    participant Chain as Blockchain
+
+    Note over User,Chain: DID Creation Flow
+    User->>DM: createDid(methods, random, vmId)
+    DM->>DM: Generate ID = keccak256(methods, random, tx.origin, prevrandao)
+    DM->>DM: Calculate didHash = keccak256(methods, id)
+    DM->>VMS: _createVm(vmCommand)
+    VMS->>VMS: Store VM (expiration=0, unvalidated)
+    DM->>DM: Set expiration = now + 4 years
+    DM-->>User: Return (didHash, id)
+
+    Note over User,Chain: VM Validation Flow (Proving Ownership)
+    User->>User: Sign positionHash off-chain
+    User->>DM: validateVm(positionHash, expiration, signature)
+    DM->>VMS: _validateVm(positionHash, sender)
+    VMS->>VMS: Recover signer from signature
+    VMS->>VMS: Verify signer == vm.ethereumAddress
+    VMS->>VMS: Set vm.expiration (VM now active)
+    DM-->>User: VM validated ✓
+
+    Note over User,Chain: Authorized Operation Flow
+    User->>DM: updateService(methods, senderId, senderVmId, ...)
+    DM->>DM: _validateSenderAndTarget()
+    DM->>DM: Check sender DID not expired
+    DM->>VMS: Check sender has auth VM
+    DM->>DM: Check sender is controller of target
+    alt Authorized
+        DM->>DM: Execute operation
+        DM->>DM: Renew target DID expiration
+        DM-->>User: Success ✓
+    else Unauthorized
+        DM-->>User: Revert with error
+    end
+```
+
+### Controller Delegation Model
+
+```mermaid
+flowchart TB
+    subgraph Self["Self-Sovereign Mode"]
+        DID1["DID: did:lzpf:main:0xABC...
+        controllers: []
+        ━━━━━━━━━━━━━━━━━━━
+        Owner controls directly"]
+    end
+
+    subgraph Delegated["Delegated Mode"]
+        DID2["DID: did:lzpf:main:0xDEF...
+        controllers: [C1, C2]"]
+
+        C1["Controller 1
+        id: 0x123...
+        vmId: bytes32(0)
+        ━━━━━━━━━━
+        Any VM allowed"]
+
+        C2["Controller 2
+        id: 0x456...
+        vmId: 0x789...
+        ━━━━━━━━━━
+        Specific VM only"]
+    end
+
+    subgraph Auth["Authorization Check"]
+        Check{"Is sender
+        authorized?"}
+
+        Empty["controllers.length == 0?"]
+        Owner["sender == owner?"]
+        InList["sender in controllers?"]
+        VMMatch["vmId matches or 0?"]
+    end
+
+    DID2 --> Check
+    Check --> Empty
+    Empty -->|Yes| Owner
+    Empty -->|No| InList
+    Owner -->|Yes| Allow["✓ Authorized"]
+    Owner -->|No| Deny["✗ Denied"]
+    InList -->|Yes| VMMatch
+    InList -->|No| Deny
+    VMMatch -->|Yes| Allow
+    VMMatch -->|No| Deny
+
+    C1 -.-> DID2
+    C2 -.-> DID2
+
+    style Allow fill:#c8e6c9,stroke:#2e7d32
+    style Deny fill:#ffcdd2,stroke:#c62828
+```
+
+### W3C Resolution Data Flow
+
+```mermaid
+flowchart LR
+    subgraph Input["Resolution Input"]
+        DID["did:lzpf:main:0xABC..."]
+    end
+
+    subgraph Parse["Parse DID"]
+        Extract["Extract:
+        • methods
+        • id
+        • didHash"]
+    end
+
+    subgraph Fetch["Fetch On-Chain Data"]
+        GetDID["Get DID Info
+        • expiration
+        • controllers"]
+
+        GetVMs["Get All VMs
+        via EnumerableSet"]
+
+        GetSvc["Get All Services
+        via EnumerableSet"]
+    end
+
+    subgraph Filter["Filter & Transform"]
+        FilterExp["Filter expired VMs
+        (unless includeExpired)"]
+
+        CatVMs["Categorize VMs by
+        relationship bitmask"]
+
+        ParseSvc["Parse packed strings
+        with '\\x00' delimiter"]
+    end
+
+    subgraph Output["W3C DID Document"]
+        Doc["
+        {
+          '@context': [...],
+          'id': 'did:lzpf:main:0xABC...',
+          'controller': [...],
+          'verificationMethod': [...],
+          'authentication': [...],
+          'service': [...]
+        }
+        "]
+    end
+
+    DID --> Extract
+    Extract --> GetDID
+    Extract --> GetVMs
+    Extract --> GetSvc
+    GetVMs --> FilterExp
+    FilterExp --> CatVMs
+    GetSvc --> ParseSvc
+    GetDID --> Doc
+    CatVMs --> Doc
+    ParseSvc --> Doc
+
+    style Input fill:#e3f2fd,stroke:#1565c0
+    style Output fill:#e8f5e9,stroke:#2e7d32
+```
+
+### Gas Optimization Strategies
+
+```mermaid
+mindmap
+    root((Gas
+    Optimization))
+        Storage
+            Hash-Based Indexing
+                O(1) lookups
+                vs O(n) arrays
+            EnumerableSet
+                Efficient add/remove
+                O(1) contains
+            Slot Packing
+                address + bytes1 + uint88
+                = 1 slot (32 bytes)
+            Dynamic Bytes
+                Service: 96% reduction
+                VM: flexible key sizes
+        Code
+            Custom Errors
+                50-100 gas savings
+                vs require strings
+            Unchecked Arithmetic
+                When overflow impossible
+                Saves bounds checks
+            Storage Caching
+                Single SLOAD
+                Memory operations
+        Architecture
+            No Proxies
+                Direct calls
+                No delegate overhead
+            Abstract Contracts
+                Code reuse
+                Modular storage
+            Immutable Design
+                No upgrade checks
+                Predictable gas
+```
 
 ## Smart Contract Architecture
 
@@ -665,6 +1216,7 @@ script/
 
 ---
 
-**Last Updated**: 2026-02-02
+**Last Updated**: 2026-02-04
+**Version**: v1.0.1
 **Purpose**: Single source of truth for SSIoBC-did project knowledge
-**Referenced By**: CLAUDE.md, AGENTS.md, GEMINI.md
+**Referenced By**: CLAUDE.md, docs/README.md

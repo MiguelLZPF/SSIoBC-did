@@ -131,6 +131,51 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     updateExpiration({ idHash: targetIdHash, forceExpire: true });
   }
 
+  function reactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external {
+    //* Params validation
+    // Required
+    if (methods == bytes32(0) || senderId == bytes32(0) || targetId == bytes32(0)) {
+      revert MissingRequiredParameter();
+    }
+    //* Implementation
+    bytes32 senderIdHash = _calculateIdHash(methods, senderId);
+    bytes32 targetIdHash = _calculateIdHash(methods, targetId);
+
+    // CRITICAL: Target must be DEACTIVATED (expiration == 0), not just expired
+    if (_expirationDate[targetIdHash] != 0) {
+      revert DidNotDeactivated();
+    }
+
+    // Handle self-reactivation vs controller-reactivation differently
+    if (senderIdHash == targetIdHash) {
+      // Self-reactivation: owner reactivating their own deactivated DID
+      // Skip DID expiration check (it's deactivated), but validate VM ownership
+      if (!_isVmOwner(senderIdHash, senderVmId, tx.origin)) {
+        revert NotAuthenticatedAsSenderId();
+      }
+    } else {
+      // Controller reactivation: another DID is reactivating the target
+      // Sender's DID must be active (not expired/deactivated)
+      if (_isExpired(senderIdHash)) {
+        revert DidExpired();
+      }
+
+      // Sender must be authenticated with a valid VM
+      if (!_isAuthenticated(senderIdHash, senderVmId, tx.origin)) {
+        revert NotAuthenticatedAsSenderId();
+      }
+
+      // Sender must be controller of target
+      if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) {
+        revert NotAControllerforTargetId();
+      }
+    }
+
+    // Reactivate: set expiration to 4 years from now
+    updateExpiration({ idHash: targetIdHash, forceExpire: false });
+    emit DidReactivated(targetIdHash);
+  }
+
   function updateController(
     bytes32 methods,
     bytes32 senderId,

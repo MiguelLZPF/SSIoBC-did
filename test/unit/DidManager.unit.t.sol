@@ -1411,4 +1411,398 @@ contract DidManagerUnitTest is TestBase {
 
     _stopPrank();
   }
+
+  // =========================================================================
+  // REACTIVATE DID TESTS
+  // =========================================================================
+
+  function test_ReactivateDid_Should_ReactivateOwnDid_When_OwnerSelfReactivates() public {
+    _startPrank(user1);
+
+    // Create a DID
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Verify DID is active
+    uint256 beforeDeactivation = didManager.getExpiration(didResult.didInfo.methods, didResult.didInfo.id, bytes32(0));
+    assertGt(beforeDeactivation, block.timestamp, "DID should be active");
+
+    // Deactivate the DID
+    didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
+
+    // Verify DID is deactivated
+    uint256 afterDeactivation = didManager.getExpiration(didResult.didInfo.methods, didResult.didInfo.id, bytes32(0));
+    assertEq(afterDeactivation, 0, "DID should be deactivated (expiration == 0)");
+
+    // Reactivate the DID as owner (self-sovereign)
+    vm.recordLogs();
+    didManager.reactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
+
+    // Verify DidReactivated event was emitted
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    assertEq(entries.length, 1, "Should emit exactly one event");
+    assertEq(entries[0].topics[0], keccak256("DidReactivated(bytes32)"));
+    assertEq(entries[0].topics[1], didResult.didInfo.idHash);
+
+    // Verify DID is active again
+    uint256 afterReactivation = didManager.getExpiration(didResult.didInfo.methods, didResult.didInfo.id, bytes32(0));
+    assertGt(afterReactivation, block.timestamp, "DID should be active after reactivation");
+    assertLt(afterReactivation, block.timestamp + EXPIRATION + 1, "Expiration should be approximately 4 years from now");
+
+    _stopPrank();
+  }
+
+  function test_ReactivateDid_Should_AllowControllerToReactivate_When_ControllerIsActive() public {
+    _startPrank(user1);
+
+    // Create owner DID
+    DidTestHelpers.CreateDidResult memory ownerDid = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create controller DID (using same user for simplicity)
+    DidTestHelpers.CreateDidResult memory controllerDid =
+      DidTestHelpers.createDid(vm, didManager, DEFAULT_DID_METHODS, bytes32("controller-random"), DEFAULT_VM_ID);
+
+    // Set controller relationship
+    didManager.updateController(
+      ownerDid.didInfo.methods,
+      ownerDid.didInfo.id,
+      DEFAULT_VM_ID,
+      ownerDid.didInfo.id,
+      controllerDid.didInfo.id,
+      DEFAULT_VM_ID,
+      0
+    );
+
+    // Deactivate owner DID
+    didManager.deactivateDid(
+      ownerDid.didInfo.methods,
+      controllerDid.didInfo.id, // Controller deactivates
+      DEFAULT_VM_ID,
+      ownerDid.didInfo.id
+    );
+
+    // Verify owner DID is deactivated
+    uint256 afterDeactivation = didManager.getExpiration(ownerDid.didInfo.methods, ownerDid.didInfo.id, bytes32(0));
+    assertEq(afterDeactivation, 0, "Owner DID should be deactivated");
+
+    // Reactivate owner DID as controller
+    didManager.reactivateDid(
+      ownerDid.didInfo.methods,
+      controllerDid.didInfo.id, // Controller reactivates
+      DEFAULT_VM_ID,
+      ownerDid.didInfo.id
+    );
+
+    // Verify owner DID is active again
+    uint256 afterReactivation = didManager.getExpiration(ownerDid.didInfo.methods, ownerDid.didInfo.id, bytes32(0));
+    assertGt(afterReactivation, block.timestamp, "Owner DID should be active after controller reactivation");
+
+    _stopPrank();
+  }
+
+  function test_RevertWhen_ReactivateDid_WithActiveDid() public {
+    _startPrank(user1);
+
+    // Create a DID (active)
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Try to reactivate an active DID - should fail with DidNotDeactivated
+    vm.expectRevert(IDidManager.DidNotDeactivated.selector);
+    didManager.reactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
+
+    _stopPrank();
+  }
+
+  function test_RevertWhen_ReactivateDid_WithExpiredSenderDid() public {
+    _startPrank(user1);
+
+    // Create sender DID
+    DidTestHelpers.CreateDidResult memory senderDid = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create target DID
+    DidTestHelpers.CreateDidResult memory targetDid =
+      DidTestHelpers.createDid(vm, didManager, DEFAULT_DID_METHODS, bytes32("target-random"), DEFAULT_VM_ID);
+
+    // Deactivate target DID
+    didManager.deactivateDid(targetDid.didInfo.methods, targetDid.didInfo.id, DEFAULT_VM_ID, targetDid.didInfo.id);
+
+    _stopPrank();
+
+    // Expire the sender DID by warping time
+    vm.warp(block.timestamp + EXPIRATION + 1);
+
+    // Try to reactivate with expired sender
+    _startPrank(user1);
+    vm.expectRevert(IDidManager.DidExpired.selector);
+    didManager.reactivateDid(
+      targetDid.didInfo.methods,
+      senderDid.didInfo.id, // Expired sender
+      DEFAULT_VM_ID,
+      targetDid.didInfo.id
+    );
+
+    _stopPrank();
+  }
+
+  function test_RevertWhen_ReactivateDid_WithInvalidVm() public {
+    _startPrank(user1);
+
+    // Create a DID
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Deactivate the DID
+    didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
+
+    _stopPrank();
+
+    // Try to reactivate with invalid VM (user2 doesn't have authentication)
+    _startPrank(user2);
+    vm.expectRevert(IDidManager.NotAuthenticatedAsSenderId.selector);
+    didManager.reactivateDid(
+      didResult.didInfo.methods,
+      didResult.didInfo.id, // Using user1's DID but calling as user2
+      DEFAULT_VM_ID,
+      didResult.didInfo.id
+    );
+
+    _stopPrank();
+  }
+
+  function test_RevertWhen_ReactivateDid_WithNonController() public {
+    _startPrank(user1);
+
+    // Create owner DID
+    DidTestHelpers.CreateDidResult memory ownerDid = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create controller DID
+    DidTestHelpers.CreateDidResult memory controllerDid =
+      DidTestHelpers.createDid(vm, didManager, DEFAULT_DID_METHODS, bytes32("controller-random"), DEFAULT_VM_ID);
+
+    // Create non-controller DID
+    DidTestHelpers.CreateDidResult memory nonControllerDid =
+      DidTestHelpers.createDid(vm, didManager, DEFAULT_DID_METHODS, bytes32("non-controller-random"), DEFAULT_VM_ID);
+
+    // Set only controllerDid as controller
+    didManager.updateController(
+      ownerDid.didInfo.methods,
+      ownerDid.didInfo.id,
+      DEFAULT_VM_ID,
+      ownerDid.didInfo.id,
+      controllerDid.didInfo.id,
+      DEFAULT_VM_ID,
+      0
+    );
+
+    // Deactivate owner DID (as controller)
+    didManager.deactivateDid(
+      ownerDid.didInfo.methods,
+      controllerDid.didInfo.id, // Controller deactivates
+      DEFAULT_VM_ID,
+      ownerDid.didInfo.id
+    );
+
+    // Try to reactivate as non-controller
+    vm.expectRevert(IDidManager.NotAControllerforTargetId.selector);
+    didManager.reactivateDid(
+      ownerDid.didInfo.methods,
+      nonControllerDid.didInfo.id, // Non-controller trying to reactivate
+      DEFAULT_VM_ID,
+      ownerDid.didInfo.id
+    );
+
+    _stopPrank();
+  }
+
+  function test_RevertWhen_ReactivateDid_WithEmptyMethods() public {
+    _startPrank(user1);
+
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Deactivate first
+    didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
+
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    didManager.reactivateDid(
+      bytes32(0), // Empty methods
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      didResult.didInfo.id
+    );
+
+    _stopPrank();
+  }
+
+  function test_RevertWhen_ReactivateDid_WithEmptySenderId() public {
+    _startPrank(user1);
+
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Deactivate first
+    didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
+
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    didManager.reactivateDid(
+      didResult.didInfo.methods,
+      bytes32(0), // Empty senderId
+      DEFAULT_VM_ID,
+      didResult.didInfo.id
+    );
+
+    _stopPrank();
+  }
+
+  function test_RevertWhen_ReactivateDid_WithEmptyTargetId() public {
+    _startPrank(user1);
+
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Deactivate first
+    didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
+
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    didManager.reactivateDid(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      bytes32(0) // Empty targetId
+    );
+
+    _stopPrank();
+  }
+
+  function test_ReactivateDid_Should_AllowOperations_When_Reactivated() public {
+    _startPrank(user1);
+
+    // Create DID
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Deactivate the DID
+    didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
+
+    // Verify operations fail when deactivated
+    vm.expectRevert(IDidManager.DidExpired.selector);
+    didManager.updateService(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      didResult.didInfo.id,
+      bytes32("service-id"),
+      bytes("TestService"),
+      bytes("https://example.com")
+    );
+
+    // Reactivate the DID
+    didManager.reactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
+
+    // Now operations should work
+    didManager.updateService(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      didResult.didInfo.id,
+      bytes32("service-id"),
+      bytes("TestService"),
+      bytes("https://example.com")
+    );
+
+    // Verify service was added
+    uint8 serviceCount = didManager.getServiceListLength(didResult.didInfo.methods, didResult.didInfo.id);
+    assertEq(serviceCount, 1, "Service should be added after reactivation");
+
+    _stopPrank();
+  }
+
+  function test_ReactivateDid_Should_PreserveVmsAndServices_When_Reactivated() public {
+    _startPrank(user1);
+
+    // Create DID
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Add a VM
+    CreateVmCommand memory vmCommand = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      type_: Fixtures.defaultVmType(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
+      blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
+      ethereumAddress: user2,
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
+    });
+    DidTestHelpers.createVm(vm, didManager, vmCommand);
+
+    // Add a service
+    didManager.updateService(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      didResult.didInfo.id,
+      bytes32("service-id"),
+      bytes("TestService"),
+      bytes("https://example.com")
+    );
+
+    // Verify state before deactivation
+    uint8 vmCountBefore = didManager.getVmListLength(didResult.didInfo.methods, didResult.didInfo.id);
+    uint8 serviceCountBefore = didManager.getServiceListLength(didResult.didInfo.methods, didResult.didInfo.id);
+    assertEq(vmCountBefore, 2, "Should have 2 VMs before deactivation");
+    assertEq(serviceCountBefore, 1, "Should have 1 service before deactivation");
+
+    // Deactivate the DID
+    didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
+
+    // Reactivate the DID
+    didManager.reactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
+
+    // Verify VMs and services are preserved
+    uint8 vmCountAfter = didManager.getVmListLength(didResult.didInfo.methods, didResult.didInfo.id);
+    uint8 serviceCountAfter = didManager.getServiceListLength(didResult.didInfo.methods, didResult.didInfo.id);
+    assertEq(vmCountAfter, vmCountBefore, "VMs should be preserved after reactivation");
+    assertEq(serviceCountAfter, serviceCountBefore, "Services should be preserved after reactivation");
+
+    _stopPrank();
+  }
+
+  function test_ReactivateDid_Should_PreserveControllers_When_Reactivated() public {
+    _startPrank(user1);
+
+    // Create owner DID
+    DidTestHelpers.CreateDidResult memory ownerDid = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create controller DID
+    DidTestHelpers.CreateDidResult memory controllerDid =
+      DidTestHelpers.createDid(vm, didManager, DEFAULT_DID_METHODS, bytes32("controller-random"), DEFAULT_VM_ID);
+
+    // Set controller
+    didManager.updateController(
+      ownerDid.didInfo.methods,
+      ownerDid.didInfo.id,
+      DEFAULT_VM_ID,
+      ownerDid.didInfo.id,
+      controllerDid.didInfo.id,
+      DEFAULT_VM_ID,
+      0
+    );
+
+    // Verify controller before deactivation
+    Controller[CONTROLLERS_MAX_LENGTH] memory controllersBefore =
+      didManager.getControllerList(ownerDid.didInfo.methods, ownerDid.didInfo.id);
+    assertEq(controllersBefore[0].id, controllerDid.didInfo.id, "Controller should be set");
+
+    // Deactivate owner DID (by controller)
+    didManager.deactivateDid(ownerDid.didInfo.methods, controllerDid.didInfo.id, DEFAULT_VM_ID, ownerDid.didInfo.id);
+
+    // Reactivate owner DID (by controller)
+    didManager.reactivateDid(ownerDid.didInfo.methods, controllerDid.didInfo.id, DEFAULT_VM_ID, ownerDid.didInfo.id);
+
+    // Verify controller is preserved
+    Controller[CONTROLLERS_MAX_LENGTH] memory controllersAfter =
+      didManager.getControllerList(ownerDid.didInfo.methods, ownerDid.didInfo.id);
+    assertEq(controllersAfter[0].id, controllerDid.didInfo.id, "Controller should be preserved after reactivation");
+    assertEq(controllersAfter[0].vmId, controllersBefore[0].vmId, "Controller vmId should be preserved");
+
+    _stopPrank();
+  }
 }

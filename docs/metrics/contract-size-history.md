@@ -33,7 +33,8 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | v0.8.0  | ~12.0 kB   | ~12.8 kB    | W3C resolver completion |
 | v1.0-pre | 14.3 kB     | 13.1 kB     | VMStorage optimization + Base58 |
 | v1.0 | 13.9 kB | 12.4 kB | Pre-encoded multibase (Base58 removed) |
-| **v1.0.1** | **13.9 kB** | **12.8 kB** | **ServiceStorage optimization (dynamic bytes)** |
+| v1.0.1 | 13.9 kB | 12.8 kB | ServiceStorage optimization (dynamic bytes) |
+| **v1.0.2** | **15.2 kB** | **12.8 kB** | **reactivateDid() function + _isVmOwner() helper** |
 
 ### Visual Documentation
 
@@ -134,6 +135,46 @@ The v1.0.1 release transforms ServiceStorage from fixed `bytes32[20][4]` arrays 
 
 **Trade-off:** W3CResolver increased by 417 bytes (+3.4%) due to added parsing logic, but this is offset by massive per-service storage and gas savings.
 
+### v1.0.2 Reactivation Feature Analysis (February 2026)
+
+The v1.0.2 release adds the `reactivateDid()` function, enabling deactivated DIDs to be reactivated by their owner or an active controller.
+
+#### v1.0.2 Contract Sizes
+```
+| Contract    | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|-------------|------------------|-------------------|--------------------|--------------------|
+| DidManager  | 15,159           | 15,187            | 9,417              | 33,965             |
+| W3CResolver | 12,846           | 13,597            | 11,730             | 35,555             |
+```
+
+**Key Changes:**
+1. **reactivateDid() Function**: New public function in DidManager for reactivating deactivated DIDs
+2. **_isVmOwner() Helper**: New internal function in VMStorage for ownership validation without expiration check
+3. **Dual Reactivation Modes**: Self-reactivation (owner) and controller-reactivation (active controller)
+4. **DidNotDeactivated Error**: New custom error for attempting to reactivate active DIDs
+5. **DidReactivated Event**: New event emitted on successful reactivation
+
+**Size Impact (v1.0.1 → v1.0.2):**
+| Contract | v1.0.1 (B) | v1.0.2 (B) | Change | % Change |
+|----------|----------|----------|--------|----------|
+| DidManager | 13,904 | 15,159 | +1,255 | +9.0% |
+| W3CResolver | 12,846 | 12,846 | 0 | 0% |
+
+**Gas Costs for New Functions:**
+| Operation | Gas Cost | Notes |
+|-----------|----------|-------|
+| reactivateDid (self) | ~61,450 | Owner reactivating own DID |
+| reactivateDid (controller) | ~86,492 | Controller reactivating another DID |
+| deactivateDid | ~63,159 | For comparison |
+
+**Security Model:**
+- Self-reactivation validates VM ownership without expiration check (DID is deactivated but VMs preserved)
+- Controller-reactivation requires active controller DID with valid authentication VM
+- Only deactivated DIDs (expiration == 0) can be reactivated
+- VMs, Services, and Controllers are preserved across deactivation/reactivation cycle
+
+**Trade-off:** DidManager increased by 1,255 bytes (+9.0%) to add secure reactivation capability, enabling DID lifecycle recovery while maintaining W3C compliance.
+
 #### Trade-off Analysis
 
 The v1.0 architecture provides:
@@ -203,4 +244,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v1.0.1 - ServiceStorage optimization (dynamic bytes, 96% per-service storage reduction)*
+*Last Updated: v1.0.2 - reactivateDid() feature (DID lifecycle recovery)*

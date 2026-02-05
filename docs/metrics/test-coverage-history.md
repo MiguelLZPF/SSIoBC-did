@@ -47,6 +47,9 @@ The project has maintained comprehensive test coverage throughout development, w
 | v0.6.0  | >90%            | High          | Complete          | Strong          | DidManager test focus |
 | v0.7.0  | >90%            | High          | Complete          | Strong          | Performance optimizations |
 | v0.8.0  | >90%            | High          | Complete          | Strong          | W3C resolver completion |
+| v1.0    | >90%            | High          | Complete          | Strong          | VMStorage dynamic bytes |
+| v1.0.1  | >90%            | High          | Complete          | Strong          | ServiceStorage dynamic bytes |
+| **v1.0.2** | **98.35%** | **119/121** | **100%** | **93.55%** | **reactivateDid() + 12 new tests** |
 
 ## Quality Metrics
 
@@ -105,10 +108,15 @@ The project has maintained comprehensive test coverage throughout development, w
 ### Core Contracts Coverage
 
 #### DidManager Contract
-- **DID Lifecycle**: Create, read, update, delete operations
+- **DID Lifecycle**: Create, read, update, delete, deactivate, reactivate operations
 - **Controller Management**: All delegation scenarios
 - **Expiration Handling**: Time-based logic validation
 - **Event Emission**: Complete event testing
+- **Reactivation Testing (v1.0.2)**: 12 comprehensive tests covering:
+  - Self-reactivation by owner
+  - Controller reactivation
+  - Invalid state handling (active DID, expired sender, invalid VM, non-controller)
+  - State preservation verification (VMs, Services, Controllers preserved)
 
 #### VMStorage Contract
 - **Hash-Based Lists**: EnumerableSet operations
@@ -208,4 +216,4 @@ Coverage data supports PhD thesis claims about:
 
 ---
 
-*Last Updated: v0.8.0 - Coverage maintained throughout development demonstrating consistent quality focus*
+*Last Updated: v1.0.2 - 152 total tests, 98.35% DidManager coverage, 12 new reactivateDid tests*
