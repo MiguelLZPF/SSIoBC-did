@@ -39,7 +39,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Innovation**: First complete on-chain DID document storage (vs event-based)
 - **Language**: Solidity 0.8.33 (Foundry framework)
 - **Coverage**: >90% required (enforced in CI/CD)
-- **Architecture**: 4 contracts (DidManager, VMStorage, ServiceStorage, W3CResolver)
+- **Architecture**: 4 contracts + 1 library (DidManager, VMStorage, ServiceStorage, W3CResolver, HashUtils)
 - **Storage**: Hash-based lists with EnumerableSet (gas-optimized)
 - **Standards**: W3C DID Core v1.0 compliant
 - **Working Dir**: `/Users/miguel_lzpf/Projects/SSIoBC-did/`
@@ -140,6 +140,7 @@ Complex reasoning tasks that require Claude's capabilities:
 2. **VMStorage.sol** - Verification methods storage (abstract contract)
 3. **ServiceStorage.sol** - Service endpoints storage (abstract contract)
 4. **W3CResolver.sol** - W3C-compliant document resolution
+5. **HashUtils.sol** - Shared hash helper library (calculateIdHash, calculatePositionHash)
 
 ### DID Structure
 
@@ -153,11 +154,12 @@ did:method0:method1:method2:id
 
 ### Key Design Patterns
 
-- **Hash-Based Storage**: O(1) operations vs O(n) arrays
+- **Hash-Based Storage**: O(1) operations via HashUtils library (shared by VMStorage + ServiceStorage)
 - **EnumerableSet**: Efficient set operations for VMs and Services
 - **Immutable Architecture**: No proxies, no upgrades
-- **Custom Errors**: Gas optimization (vs require strings)
+- **Custom Errors**: Gas optimization (all contracts use custom errors, no require strings)
 - **Abstract Storage**: Modular VMStorage and ServiceStorage
+- **Storage Caching**: Direct storage reads with early exit (e.g., _isControllerFor, _isExpired)
 
 **See PROJECT.md for complete details**
 
@@ -179,7 +181,7 @@ did:method0:method1:method2:id
 
 ### Code Conventions
 
-- **Solidity**: 0.8.24 (fixed version)
+- **Solidity**: 0.8.33 (fixed version)
 - **Naming**: camelCase for public, _camelCase for internal, UPPER_CASE for constants
 - **Errors**: Custom errors instead of require strings (gas optimization)
 - **Coverage**: >90% required
@@ -195,11 +197,13 @@ did:method0:method1:method2:id
 
 ### Gas Optimization Focus
 
-- Hash-based storage instead of arrays where possible
+- Hash-based storage instead of arrays where possible (via HashUtils library)
 - EnumerableSet for efficient set operations
-- Storage caching (single SLOAD vs multiple)
+- Storage caching (single SLOAD vs multiple, e.g., _isExpired)
+- Direct storage reads with early exit (e.g., _isControllerFor avoids memory copy)
 - Unchecked arithmetic when safe
-- Custom errors over require strings
+- Custom errors over require strings (enforced across all contracts)
+- Optimizer tuned for deployment size (optimizer_runs = 200)
 
 ### Code Formatting
 
@@ -335,7 +339,7 @@ The agent will perform:
 
 ---
 
-**Last Updated**: 2025-11-03
+**Last Updated**: 2026-02-05
 **Purpose**: Claude Code project-specific context and routing overrides
 **Architecture**: Simplified 2-file system (CLAUDE.md + PROJECT.md)
 **Routing**: Inherits global rules from ~/.claude/CLAUDE.md with project-specific overrides

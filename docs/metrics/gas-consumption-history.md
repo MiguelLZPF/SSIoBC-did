@@ -42,7 +42,7 @@ This document tracks gas consumption evolution across SSIoBC-did versions, provi
 ### Core DID Operations
 
 #### DID Creation (`createDid`)
-- **Current Gas Cost**: ~283,522 gas
+- **Current Gas Cost**: ~283,506 gas (median)
 - **Optimization**: Hash-based ID generation with pseudorandom elements
 - **Components**:
   - ID generation: `keccak256(methods, random, tx.origin, block.prevrandao)`
@@ -50,13 +50,13 @@ This document tracks gas consumption evolution across SSIoBC-did versions, provi
   - Event emission
 
 #### DID Deactivation (`deactivateDid`)
-- **Current Gas Cost**: ~63,159 gas
+- **Current Gas Cost**: ~51,696 gas (median, optimized from ~63,159 in v1.0.2 via direct storage reads)
 - **Operation**: Sets DID expiration to 0 (permanent deactivation)
 - **Authorization**: Requires controller or self-sovereign owner
 
 #### DID Reactivation (`reactivateDid`) - v1.0.2
-- **Self-Reactivation**: ~61,450 gas (owner reactivating own DID)
-- **Controller Reactivation**: ~86,492 gas (controller reactivating another DID)
+- **Self-Reactivation**: ~48,229 gas (median, owner reactivating own DID)
+- **Controller Reactivation**: ~68,463 gas (max, controller reactivating another DID)
 - **Operation**: Restores DID expiration to 4 years from current timestamp
 - **Authorization**: Self-reactivation validates VM ownership; controller reactivation requires active controller DID
 - **Note**: Preserves all VMs, Services, and Controllers during deactivation/reactivation cycle
@@ -130,6 +130,7 @@ Traditional DID systems (ERC-1056) require event reconstruction, making historic
 - **v0.3.0**: VM expiration logic optimization
 - **v0.4.0-v0.6.0**: Testing integration and gas profiling
 - **v0.7.0-v0.8.0**: Final optimizations and W3C resolver completion
+- **v1.1.0**: Bytecode optimization (custom errors, dead code removal, SLOAD caching, HashUtils library, direct storage reads, optimizer_runs=200)
 
 ## Research Validation
 
@@ -196,4 +197,4 @@ Performance data referenced in:
 
 ---
 
-*Last Updated: v1.0.2 - Added reactivateDid() gas costs (~61k self, ~86k controller)*
+*Last Updated: v1.1.0 - Bytecode optimization: deactivateDid ~51k (was ~63k), updateController ~78k (was ~87k), createVm ~271k (was ~282k)*

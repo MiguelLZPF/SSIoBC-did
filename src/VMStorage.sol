@@ -13,6 +13,7 @@ import {
   VerificationMethod,
   IVMStorage
 } from "./interfaces/IVMStorage.sol";
+import { HashUtils } from "./HashUtils.sol";
 
 abstract contract VMStorage is IVMStorage {
   using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -75,8 +76,8 @@ abstract contract VMStorage is IVMStorage {
     bool added = _vmIds[command.didHash].add(command.id);
     assert(added);
     uint8 position = uint8(_vmIds[command.didHash].length());
-    idHash = _calculateIdHash(command.didHash, command.id);
-    positionHash = _calculatePositionHash(command.didHash, position);
+    idHash = HashUtils.calculateIdHash(command.didHash, command.id);
+    positionHash = HashUtils.calculatePositionHash(command.didHash, position);
 
     // Store VM
     VerificationMethod storage vm = _vmByNsAndId[command.didHash][command.id];
@@ -249,19 +250,6 @@ abstract contract VMStorage is IVMStorage {
     // Note: expiration == 0 means never validated (invalid VM)
     if (vm.expiration == 0 || vm.expiration <= block.timestamp) revert VmAlreadyExpired();
     // Check if the sender is in the VM and if the VM relationship is the same as the one provided
-    if (sender != address(0)) {
-      return (vm.ethereumAddress == sender && (vm.relationships & relationship) == relationship);
-    }
-    // else
-    return (vm.relationships & relationship == relationship);
-  }
-
-  // Helpers
-  function _calculatePositionHash(bytes32 namespace, uint8 position) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(namespace, position));
-  }
-
-  function _calculateIdHash(bytes32 namespace, bytes32 id) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(namespace, id));
+    return (vm.ethereumAddress == sender && (vm.relationships & relationship) == relationship);
   }
 }

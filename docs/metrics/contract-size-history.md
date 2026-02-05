@@ -34,7 +34,8 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | v1.0-pre | 14.3 kB     | 13.1 kB     | VMStorage optimization + Base58 |
 | v1.0 | 13.9 kB | 12.4 kB | Pre-encoded multibase (Base58 removed) |
 | v1.0.1 | 13.9 kB | 12.8 kB | ServiceStorage optimization (dynamic bytes) |
-| **v1.0.2** | **15.2 kB** | **12.8 kB** | **reactivateDid() function + _isVmOwner() helper** |
+| v1.0.2 | 15.2 kB | 12.8 kB | reactivateDid() function + _isVmOwner() helper |
+| **v1.1.0** | **12.1 kB** | **12.8 kB** | **Bytecode optimization: custom errors, dead code removal, SLOAD caching, HashUtils library, direct storage reads, optimizer_runs=200** |
 
 ### Visual Documentation
 
@@ -175,6 +176,54 @@ The v1.0.2 release adds the `reactivateDid()` function, enabling deactivated DID
 
 **Trade-off:** DidManager increased by 1,255 bytes (+9.0%) to add secure reactivation capability, enabling DID lifecycle recovery while maintaining W3C compliance.
 
+### v1.1.0 Bytecode Size Optimization (February 2026)
+
+Following v1.0.2's size increase, a systematic bytecode optimization was performed to reduce DidManager's runtime size while improving gas efficiency.
+
+#### v1.1.0 Contract Sizes
+```
+| Contract    | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|-------------|------------------|-------------------|--------------------|--------------------|
+| DidManager  | 12,102           | 12,130            | 12,474             | 37,022             |
+| W3CResolver | 12,846           | 13,597            | 11,730             | 35,555             |
+```
+
+**Optimizations Applied:**
+
+| Step | Description | Bytes Saved | Cumulative |
+|------|-------------|-------------|------------|
+| 1 | Replace `require(string)` with custom errors in ServiceStorage | -149 | -149 |
+| 2 | Remove dead code in `_isVmRelationship` (always-true condition) | -82 | -231 |
+| 3 | Cache double SLOAD in `_isExpired` | -28 | -259 |
+| 4 | Deduplicate hash helpers into HashUtils library | 0 | -259 |
+| 5 | Direct storage reads in `_isControllerFor` (avoid memory copy) | -183 | -442 |
+| 6 | Reduce `optimizer_runs` from 20,000 to 200 | -2,615 | -3,057 |
+
+**Size Impact (v1.0.2 -> v1.1.0):**
+| Contract | v1.0.2 (B) | v1.1.0 (B) | Change | % Change |
+|----------|-----------|---------------|--------|----------|
+| DidManager | 15,159 | 12,102 | -3,057 | -20.2% |
+| W3CResolver | 12,846 | 12,846 | 0 | 0% |
+
+**Gas Impact (median values, key functions):**
+| Function | Before | After | Delta | % Change |
+|----------|--------|-------|-------|----------|
+| createDid | 283,522 | 283,711 | +189 | +0.07% |
+| createVm | 282,630 | 271,557 | -11,073 | -3.9% |
+| deactivateDid | 63,159 | 51,861 | -11,298 | -17.9% |
+| updateController | 87,555 | 78,357 | -9,198 | -10.5% |
+| updateService | 209,852 | 198,588 | -11,264 | -5.4% |
+| reactivateDid | 50,759 | 48,361 | -2,398 | -4.7% |
+| validateVm | 35,446 | 35,506 | +60 | +0.17% |
+| isVmRelationship | 17,765 | 17,738 | -27 | -0.15% |
+
+**Key Achievements:**
+- 20.2% bytecode reduction with net gas improvement across write operations
+- `optimizer_runs=200` contributes 85% of size savings with <0.3% gas increase
+- Code-level optimizations (steps 1-5) contribute 442 bytes with pure gas improvement
+- EIP-170 margin increased from 9,417 to 12,474 bytes (+32.5%)
+- All 152 tests passing, coverage >90% maintained on all source contracts
+
 #### Trade-off Analysis
 
 The v1.0 architecture provides:
@@ -244,4 +293,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v1.0.2 - reactivateDid() feature (DID lifecycle recovery)*
+*Last Updated: v1.1.0 - Bytecode optimization (-3,057 bytes, -20.2%) with net gas improvement*

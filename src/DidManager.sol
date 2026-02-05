@@ -12,6 +12,7 @@ import {
 import { VMStorage, VerificationMethod, CreateVmCommand } from "src/VMStorage.sol";
 import { ServiceStorage } from "src/ServiceStorage.sol";
 import { Service } from "src/interfaces/IServiceStorage.sol";
+import { HashUtils } from "src/HashUtils.sol";
 
 // import {ServiceStorage} from "./ServiceStorage.sol";
 
@@ -52,7 +53,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     }
     //* Implementation
     bytes32 id = keccak256(abi.encodePacked(methods, random, tx.origin, block.prevrandao));
-    bytes32 idHash = _calculateIdHash(methods, id);
+    bytes32 idHash = HashUtils.calculateIdHash(methods, id);
     if (!_isExpired(idHash)) {
       revert DidAlreadyExists();
     }
@@ -138,8 +139,8 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
       revert MissingRequiredParameter();
     }
     //* Implementation
-    bytes32 senderIdHash = _calculateIdHash(methods, senderId);
-    bytes32 targetIdHash = _calculateIdHash(methods, targetId);
+    bytes32 senderIdHash = HashUtils.calculateIdHash(methods, senderId);
+    bytes32 targetIdHash = HashUtils.calculateIdHash(methods, targetId);
 
     // CRITICAL: Target must be DEACTIVATED (expiration == 0), not just expired
     if (_expirationDate[targetIdHash] != 0) {
@@ -226,7 +227,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
   //* View functions
 
   function getExpiration(bytes32 methods, bytes32 id, bytes32 vmId) external view returns (uint256 exp) {
-    bytes32 idHash = _calculateIdHash(methods, id);
+    bytes32 idHash = HashUtils.calculateIdHash(methods, id);
     if (vmId != bytes32(0)) {
       return _getExpirationVm(idHash, vmId);
     } else {
@@ -246,7 +247,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     if (methods == bytes32(0) || id == bytes32(0) || sender == address(0)) {
       revert MissingRequiredParameter();
     }
-    bytes32 idHash = _calculateIdHash(methods, id);
+    bytes32 idHash = HashUtils.calculateIdHash(methods, id);
     // Check if DID is expired/deactivated before checking VM relationship
     if (_isExpired(idHash)) {
       revert DidExpired();
@@ -259,7 +260,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     view
     returns (Controller[CONTROLLERS_MAX_LENGTH] memory controllers)
   {
-    return _controllers[_calculateIdHash(methods, id)];
+    return _controllers[HashUtils.calculateIdHash(methods, id)];
   }
 
   function getVm(bytes32 methods, bytes32 id, bytes32 vmId, uint8 position)
@@ -267,11 +268,11 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     view
     returns (VerificationMethod memory vm)
   {
-    return _getVm(_calculateIdHash(methods, id), vmId, position);
+    return _getVm(HashUtils.calculateIdHash(methods, id), vmId, position);
   }
 
   function getVmListLength(bytes32 methods, bytes32 id) external view returns (uint8) {
-    return _getVmListLength(_calculateIdHash(methods, id));
+    return _getVmListLength(HashUtils.calculateIdHash(methods, id));
   }
 
   function getService(bytes32 methods, bytes32 id, bytes32 serviceId, uint8 position)
@@ -279,11 +280,11 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     view
     returns (Service memory service)
   {
-    return _getService(_calculateIdHash(methods, id), serviceId, position);
+    return _getService(HashUtils.calculateIdHash(methods, id), serviceId, position);
   }
 
   function getServiceListLength(bytes32 methods, bytes32 id) external view returns (uint8 length) {
-    return _getServiceListLength(_calculateIdHash(methods, id));
+    return _getServiceListLength(HashUtils.calculateIdHash(methods, id));
   }
 
   //* Internal functions
@@ -294,8 +295,8 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     returns (bytes32 senderIdHash, bytes32 targetIdHash)
   {
     // Calculate the hash of the sender and target DIDs
-    senderIdHash = _calculateIdHash(methods, senderId);
-    targetIdHash = _calculateIdHash(methods, targetId);
+    senderIdHash = HashUtils.calculateIdHash(methods, senderId);
+    targetIdHash = HashUtils.calculateIdHash(methods, targetId);
     // Check if the DIDs are expired
     if (_isExpired(senderIdHash) || _isExpired(targetIdHash)) {
       revert DidExpired();
@@ -315,34 +316,26 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
     view
     returns (bool)
   {
-    // Copy the controllers of the target ID from storage to memory
-    Controller[CONTROLLERS_MAX_LENGTH] memory controllers = _controllers[targetIdHash];
-    // Check if the controllers array is empty or matches the ID
     bool controllersIsEmpty = true;
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
-      // Check if the controller is not empty (used)
-      if (controllers[i].id != bytes32(0)) {
+      Controller storage ctrl = _controllers[targetIdHash][i];
+      bytes32 ctrlId = ctrl.id;
+      if (ctrlId != bytes32(0)) {
         controllersIsEmpty = false;
-        // Execute only if not empty
-        // Check if the controller is the same as the sender ID
-        if (controllers[i].vmId != bytes32(0)) {
-          if (controllers[i].vmId == senderVmId && controllers[i].id == senderDid) {
-            // match
+        bytes32 ctrlVmId = ctrl.vmId;
+        if (ctrlVmId != bytes32(0)) {
+          if (ctrlVmId == senderVmId && ctrlId == senderDid) {
             return true;
           }
-        } else if (controllers[i].id == senderDid) {
-          // match
+        } else if (ctrlId == senderDid) {
           return true;
         }
       }
-      // check next controller
     }
-    // If the controllers array is empty and the sender ID matches the target ID, return true (controllers not used)
+    // If controllers array is empty and sender is the target, return true (controllers not used)
     if (controllersIsEmpty && senderIdHash == targetIdHash) {
       return true;
     }
-    // If the controllers array is not empty and the sender is not a controller, return false
-    // (controllers used but sender not in controllers)
     return false;
   }
 
@@ -352,11 +345,7 @@ contract DidManager is IDidManager, VMStorage, ServiceStorage {
    * @return expired True if the ID is expired, false otherwise.
    */
   function _isExpired(bytes32 idHash) internal view returns (bool expired) {
-    // Check if now is greater than expiration date or 0
-    if (block.timestamp > _expirationDate[idHash] || _expirationDate[idHash] == 0) {
-      return true;
-    } else {
-      return false;
-    }
+    uint256 exp = _expirationDate[idHash];
+    return exp == 0 || block.timestamp > exp;
   }
 }

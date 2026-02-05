@@ -9,6 +9,7 @@ import {
   MAX_SERVICE_TYPE_LENGTH,
   MAX_SERVICE_ENDPOINT_LENGTH
 } from "src/interfaces/IServiceStorage.sol";
+import { HashUtils } from "src/HashUtils.sol";
 
 // Example of a service:
 // {
@@ -41,13 +42,13 @@ abstract contract ServiceStorage is IServiceStorage {
   function _updateService(bytes32 didHash, bytes32 id, bytes memory type_, bytes memory serviceEndpoint) internal {
     bytes32 serviceDidHash = _addServiceNameSpace(didHash);
     // Check parameters
-    require(id != bytes32(0), "ID cannot be 0");
+    if (id == bytes32(0)) revert ServiceIdCannotBeZero();
 
     // Validate size limits
     if (type_.length > MAX_SERVICE_TYPE_LENGTH) revert ServiceTypeTooLarge();
     if (serviceEndpoint.length > MAX_SERVICE_ENDPOINT_LENGTH) revert ServiceEndpointTooLarge();
 
-    bytes32 idHash = _svcCalculateIdHash(serviceDidHash, id);
+    bytes32 idHash = HashUtils.calculateIdHash(serviceDidHash, id);
     bool exists = _serviceIds[serviceDidHash].contains(id);
     uint8 position = _servicePositionByNsAndId[serviceDidHash][id];
 
@@ -66,15 +67,15 @@ abstract contract ServiceStorage is IServiceStorage {
       if (lastId != id) {
         _servicePositionByNsAndId[serviceDidHash][lastId] = position;
       }
-      bytes32 lastIdHash = _svcCalculateIdHash(serviceDidHash, lastId);
-      bytes32 newPositionHash = _svcCalculatePositionHash(serviceDidHash, position);
+      bytes32 lastIdHash = HashUtils.calculateIdHash(serviceDidHash, lastId);
+      bytes32 newPositionHash = HashUtils.calculatePositionHash(serviceDidHash, position);
       emit ServiceUpdated(didHash, lastId, lastIdHash, newPositionHash);
       return;
     }
 
     // Create/update path
-    require(type_.length > 0, "Type cannot be empty");
-    require(serviceEndpoint.length > 0, "Endpoint cannot be empty");
+    if (type_.length == 0) revert ServiceTypeCannotBeEmpty();
+    if (serviceEndpoint.length == 0) revert ServiceEndpointCannotBeEmpty();
 
     bytes32 positionHash;
     if (!exists) {
@@ -82,9 +83,9 @@ abstract contract ServiceStorage is IServiceStorage {
       assert(added);
       position = uint8(_serviceIds[serviceDidHash].length());
       _servicePositionByNsAndId[serviceDidHash][id] = position;
-      positionHash = _svcCalculatePositionHash(serviceDidHash, position);
+      positionHash = HashUtils.calculatePositionHash(serviceDidHash, position);
     } else {
-      positionHash = _svcCalculatePositionHash(serviceDidHash, position);
+      positionHash = HashUtils.calculatePositionHash(serviceDidHash, position);
     }
 
     // Store the service payload by ID
@@ -144,14 +145,5 @@ abstract contract ServiceStorage is IServiceStorage {
 
   function _addServiceNameSpace(bytes32 didHash) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(didHash, SERVICE_NAMESPACE));
-  }
-
-  // Helpers used locally (duplicated minimal hashing helpers)
-  function _svcCalculatePositionHash(bytes32 namespace, uint8 position) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(namespace, position));
-  }
-
-  function _svcCalculateIdHash(bytes32 namespace, bytes32 id) internal pure returns (bytes32) {
-    return keccak256(abi.encodePacked(namespace, id));
   }
 }

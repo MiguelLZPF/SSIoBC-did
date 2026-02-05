@@ -25,7 +25,7 @@ This document provides comprehensive storage layout analysis for the SSIoBC-did 
 - Future upgrade planning
 - Academic documentation
 
-**Contract Version:** v1.0.1
+**Contract Version:** v1.1.0
 **Last Updated:** February 2026
 
 ---

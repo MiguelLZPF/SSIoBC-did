@@ -8,7 +8,7 @@ solc = '0.8.33'
 evm_version = 'osaka'
 # auto_detect_solc = true
 optimizer = true
-optimizer_runs = 20_000
+optimizer_runs = 200
 # These are the default callers, generated using `address(uint160(uint256(keccak256("foundry default caller"))))`
 # Changed to the default address of the mnemonic "test test test test test test test test test test test junk"
 sender = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'

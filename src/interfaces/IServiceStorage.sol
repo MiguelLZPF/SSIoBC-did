@@ -54,4 +54,13 @@ interface IServiceStorage {
 
   /// @dev Thrown when service endpoint bytes exceed MAX_SERVICE_ENDPOINT_LENGTH
   error ServiceEndpointTooLarge();
+
+  /// @dev Thrown when service ID is bytes32(0)
+  error ServiceIdCannotBeZero();
+
+  /// @dev Thrown when service type is empty on create/update
+  error ServiceTypeCannotBeEmpty();
+
+  /// @dev Thrown when service endpoint is empty on create/update
+  error ServiceEndpointCannotBeEmpty();
 }

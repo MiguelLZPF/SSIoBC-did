@@ -138,12 +138,21 @@ classDiagram
         +resolveService()
     }
 
+    class HashUtils {
+        <<library>>
+        +calculatePositionHash()
+        +calculateIdHash()
+    }
+
     IVMStorage <|.. VMStorage
     IServiceStorage <|.. ServiceStorage
     VMStorage <|-- DidManager
     ServiceStorage <|-- DidManager
     IDidManager <|.. DidManager
     DidManager <-- W3CResolver : reads via interface
+    HashUtils <.. VMStorage : uses
+    HashUtils <.. ServiceStorage : uses
+    HashUtils <.. DidManager : uses
 ```
 
 ### System Component Overview
@@ -595,14 +604,17 @@ mindmap
                 VM: flexible key sizes
         Code
             Custom Errors
-                50-100 gas savings
-                vs require strings
+                All contracts use custom errors
+                No require strings remaining
             Unchecked Arithmetic
                 When overflow impossible
                 Saves bounds checks
             Storage Caching
-                Single SLOAD
-                Memory operations
+                Single SLOAD in _isExpired
+                Direct storage reads in _isControllerFor
+            HashUtils Library
+                Shared hash helpers
+                Deduplicated across VMStorage and ServiceStorage
         Architecture
             No Proxies
                 Direct calls
@@ -796,17 +808,25 @@ EnumerableSet.Bytes32Set private _vmIds;  // O(1) operations
 
 #### Hash-Based Indexing
 
-Uses `keccak256(abi.encodePacked(namespace, id))` for unique identification:
+Uses `keccak256(abi.encodePacked(namespace, id))` for unique identification, centralized in the `HashUtils` library:
 
 ```solidity
-bytes32 vmHash = keccak256(abi.encodePacked(didHash, vmId));
-mapping(bytes32 => VerificationMethod) private _vms;
+// HashUtils.sol - shared by VMStorage, ServiceStorage, and DidManager
+library HashUtils {
+  function calculateIdHash(bytes32 namespace, bytes32 id) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(namespace, id));
+  }
+  function calculatePositionHash(bytes32 namespace, uint8 position) internal pure returns (bytes32) {
+    return keccak256(abi.encodePacked(namespace, position));
+  }
+}
 ```
 
 **Benefits**:
 - Collision-resistant unique keys
 - Namespace separation
 - Gas-efficient lookups
+- Single source of truth for hash calculations (no code duplication)
 
 #### Position-Hash Mapping
 
@@ -1097,6 +1117,8 @@ function updateDid(...) external onlyDidOwner(didHash) {
 
 ### 4. Custom Errors (Gas Optimization)
 
+All contracts use custom errors exclusively (no `require(string)` remaining):
+
 **✅ Saves Gas**:
 ```solidity
 error InvalidDid();
@@ -1107,10 +1129,10 @@ if (condition) revert InvalidDid();
 
 **❌ Costs More**:
 ```solidity
-require(condition, "Invalid DID");  // String storage expensive
+require(condition, "Invalid DID");  // String storage expensive (~96+ bytes each)
 ```
 
-**Gas Savings**: ~50-100 gas per error
+**Gas Savings**: ~50-100 gas per error, ~280-300 bytes bytecode reduction from eliminating require strings
 
 ## Key Technologies
 
@@ -1146,6 +1168,7 @@ src/
 ├── VMStorage.sol           # Verification methods storage (abstract)
 ├── ServiceStorage.sol      # Service endpoints storage (abstract)
 ├── W3CResolver.sol         # W3C DID document resolution
+├── HashUtils.sol           # Shared hash helper library (calculateIdHash, calculatePositionHash)
 └── interfaces/
     ├── IDidManager.sol
     ├── IVMStorage.sol
@@ -1216,7 +1239,7 @@ script/
 
 ---
 
-**Last Updated**: 2026-02-04
-**Version**: v1.0.1
+**Last Updated**: 2026-02-05
+**Version**: v1.1.0
 **Purpose**: Single source of truth for SSIoBC-did project knowledge
 **Referenced By**: CLAUDE.md, docs/README.md

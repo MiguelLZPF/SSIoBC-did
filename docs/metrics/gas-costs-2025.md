@@ -1,8 +1,8 @@
 # Gas Cost Analysis for SSIoBC DID Manager (2025)
 
-**Document Version:** 1.1
-**Analysis Date:** February 2, 2026
-**Contract Version:** v1.0.1 (feat/v1.0 branch - ServiceStorage optimization)
+**Document Version:** 1.2
+**Analysis Date:** February 5, 2026
+**Contract Version:** v1.1.0 (bytecode optimization)
 **Purpose:** Economic feasibility analysis for PhD research validation
 
 ## Table of Contents
@@ -101,27 +101,36 @@ Method: forge test --gas-report with isolated test functions
 
 | Contract | Runtime Size | Initcode Size | Runtime Margin | Initcode Margin |
 |----------|--------------|---------------|----------------|-----------------|
-| DidManager | 13,946 bytes | 13,974 bytes | 10,630 bytes | 35,178 bytes |
-| W3CResolver | 12,429 bytes | 13,180 bytes | 12,147 bytes | 35,972 bytes |
+| DidManager | 12,102 bytes | 12,130 bytes | 12,474 bytes | 37,022 bytes |
+| W3CResolver | 12,846 bytes | 13,597 bytes | 11,730 bytes | 35,555 bytes |
 
-**Note:** Sizes optimized in v1.0 via pre-encoded multibase (Base58 library removed from W3CResolver).
+**Note:** DidManager optimized in v1.1.0 via custom errors, dead code removal, SLOAD caching, HashUtils library, direct storage reads, and optimizer_runs=200 (-20.2% from v1.0.2).
 
 **Transaction Gas Usage (from `forge test --gas-report`):**
 
 | Function | Min Gas | Avg Gas | Median Gas | Max Gas | Calls | Notes |
 |----------|---------|---------|------------|---------|-------|-------|
-| createDid | 283,522 | 283,522 | 283,522 | 283,522 | 1 | v1.0.1 optimized |
-| updateService | 226,640 | 226,640 | 226,640 | 226,640 | 1 | v1.0.1 dynamic bytes |
+| createDid | 22,120 | 256,493 | 283,506 | 284,107 | 2,476 | v1.1.0 |
+| createVm | 29,500 | 268,318 | 271,166 | 424,103 | 876 | v1.1.0 |
+| deactivateDid | 24,480 | 45,032 | 51,696 | 56,482 | 24 | v1.1.0 |
+| reactivateDid | 24,480 | 45,417 | 48,229 | 68,463 | 12 | v1.0.2 new |
+| updateController | 27,480 | 76,710 | 78,192 | 98,140 | 24 | v1.1.0 |
+| updateService | 29,030 | 216,592 | 198,389 | 2,007,730 | 69 | v1.1.0 |
+| validateVm | 28,763 | 35,408 | 35,446 | 35,446 | 543 | v1.1.0 |
+| isVmRelationship | 604 | 17,506 | 17,540 | 21,926 | 1,549 | v1.1.0 |
 
-**Note:** Gas costs significantly reduced in v1.0.1:
-- CreateDID: 313,898 → 283,522 gas (10% reduction from v1.0)
-- UpdateService: ~3,200,000 → 226,640 gas (93% reduction with dynamic bytes)
+**Note:** v1.1.0 bytecode optimization achieved gas improvements on most write operations:
+- createVm median: 282,630 → 271,166 gas (-4.1% via direct storage reads)
+- deactivateDid median: 63,159 → 51,696 gas (-18.1%)
+- updateController median: 87,555 → 78,192 gas (-10.5%)
+- updateService median: 209,852 → 198,389 gas (-5.4%)
+- createDid median: 283,522 → 283,506 gas (neutral, +0.07% from optimizer_runs change)
 
 **Measurement Conditions:**
-- Solidity Version: 0.8.30
-- EVM Version: Prague
-- Optimizer: Enabled (20,000 runs)
-- Test Framework: Foundry v1.4.3
+- Solidity Version: 0.8.33
+- EVM Version: Osaka
+- Optimizer: Enabled (200 runs)
+- Test Framework: Foundry
 
 ---
 
@@ -231,12 +240,21 @@ At 2025 average conditions (2.7 Gwei, €2,633.18/ETH):
 - Create DID: 313,898 gas → €2.23 (**21% reduction** from v0.8.0)
 - Deployment: 5,508,600 gas → €39.16 (5.5% reduction from v1.0-pre)
 
-**v1.0.1 Analysis (February 2026 - Current):**
+**v1.0.1 Analysis (February 2026):**
 - Gas Price: 2.7 Gwei
 - ETH Price: €2,633.18
 - Create DID: 283,522 gas → €2.01 (**10% reduction** from v1.0)
 - Update Service: 226,640 gas → €1.61 (**93% reduction** from v1.0)
 - Deployment: 5,494,800 gas → €39.06
+
+**v1.1.0 Analysis (February 2026 - Current):**
+- Gas Price: 2.7 Gwei
+- ETH Price: €2,633.18
+- Create DID: 283,506 gas → €2.01 (neutral)
+- Deactivate DID: 51,696 gas → €0.37 (**18% reduction** from v1.0.2)
+- Update Controller: 78,192 gas → €0.56 (**11% reduction** from v1.0.2)
+- Update Service: 198,389 gas → €1.41 (**5% reduction** from v1.0.2)
+- Deployment: 4,858,000 gas → €34.53 (**12% reduction** from v1.0.1)
 
 **Key Observations:**
 1. **CreateDID gas decreased:** 313,898 → 283,522 gas (10% reduction in v1.0.1)
@@ -340,15 +358,15 @@ Traditional identity providers charge €2-5 per user per month. At €0.45 per 
 ╭----------------+------------------+-------------------+--------------------+---------------------╮
 | Contract       | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
 +==================================================================================================+
-| DidManager     | 13,946           | 13,974            | 10,630             | 35,178              |
-| W3CResolver    | 12,429           | 13,180            | 12,147             | 35,972              |
+| DidManager     | 12,102           | 12,130            | 12,474             | 37,022              |
+| W3CResolver    | 12,846           | 13,597            | 11,730             | 35,555              |
 ╰----------------+------------------+-------------------+--------------------+---------------------╯
 ```
 
 **Size Constraints:**
 - Maximum contract size: 24,576 bytes (EIP-170)
-- DidManager utilization: 56.7% of limit
-- W3CResolver utilization: 50.6% of limit
+- DidManager utilization: 49.2% of limit
+- W3CResolver utilization: 52.3% of limit
 - Both contracts remain well within size limits with room for future enhancements
 
 ### Gas Benchmark Data

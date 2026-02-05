@@ -49,7 +49,8 @@ The project has maintained comprehensive test coverage throughout development, w
 | v0.8.0  | >90%            | High          | Complete          | Strong          | W3C resolver completion |
 | v1.0    | >90%            | High          | Complete          | Strong          | VMStorage dynamic bytes |
 | v1.0.1  | >90%            | High          | Complete          | Strong          | ServiceStorage dynamic bytes |
-| **v1.0.2** | **98.35%** | **119/121** | **100%** | **93.55%** | **reactivateDid() + 12 new tests** |
+| v1.0.2 | 98.35% | 119/121 | 100% | 93.55% | reactivateDid() + 12 new tests |
+| **v1.1.0** | **98.36%** | **120/122** | **100%** | **93.10%** | **Bytecode optimization + HashUtils library (100% coverage)** |
 
 ## Quality Metrics
 
@@ -216,4 +217,4 @@ Coverage data supports PhD thesis claims about:
 
 ---
 
-*Last Updated: v1.0.2 - 152 total tests, 98.35% DidManager coverage, 12 new reactivateDid tests*
+*Last Updated: v1.1.0 - 152 total tests, 98.36% DidManager coverage, HashUtils 100% coverage, all optimizations preserve existing coverage*
