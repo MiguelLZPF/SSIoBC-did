@@ -39,7 +39,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Innovation**: First complete on-chain DID document storage (vs event-based)
 - **Language**: Solidity 0.8.33 (Foundry framework)
 - **Coverage**: >90% required (enforced in CI/CD)
-- **Architecture**: 4 contracts + 1 library (DidManager, VMStorage, ServiceStorage, W3CResolver, HashUtils)
+- **Architecture**: Dual-variant (Full W3C + Ethereum-Native) with shared DidManagerBase + ServiceStorage + HashUtils
 - **Storage**: Hash-based lists with EnumerableSet (gas-optimized)
 - **Standards**: W3C DID Core v1.0 compliant
 - **Working Dir**: `/Users/miguel_lzpf/Projects/SSIoBC-did/`
@@ -125,7 +125,7 @@ Complex reasoning tasks that require Claude's capabilities:
 
 **Detailed project information is in PROJECT.md** - reference it for:
 
-- Complete smart contract architecture (4-contract system)
+- Complete smart contract architecture (dual-variant system)
 - DID structure and concepts (methods, ID, hash generation)
 - Verification methods (VMs) and controller system
 - Design patterns (hash-based storage, EnumerableSet, etc.)
@@ -134,13 +134,22 @@ Complex reasoning tasks that require Claude's capabilities:
 
 **Quick Summary**:
 
-### Four-Contract System
+### Dual-Variant System
 
-1. **DidManager.sol** - Core DID lifecycle (inherits VMStorage + ServiceStorage)
-2. **VMStorage.sol** - Verification methods storage (abstract contract)
-3. **ServiceStorage.sol** - Service endpoints storage (abstract contract)
-4. **W3CResolver.sol** - W3C-compliant document resolution
-5. **HashUtils.sol** - Shared hash helper library (calculateIdHash, calculatePositionHash)
+**Full W3C Variant** (multi-key, multi-type):
+1. **DidManager.sol** - Core DID lifecycle (inherits VMStorage, DidManagerBase, ServiceStorage)
+2. **VMStorage.sol** - Verification methods storage (abstract, multi-type VMs)
+3. **W3CResolver.sol** - W3C-compliant document resolution
+
+**Ethereum-Native Variant** (single-key, Ethereum-only):
+4. **DidManagerNative.sol** - Native DID lifecycle (inherits VMStorageNative, DidManagerBase, ServiceStorage)
+5. **VMStorageNative.sol** - Native VM storage (abstract, 1-slot address-based VMs)
+6. **W3CResolverNative.sol** - Resolution with field derivation at query time
+
+**Shared:**
+7. **DidManagerBase.sol** - Common DID logic (expiration, controllers)
+8. **ServiceStorage.sol** - Service endpoints storage (abstract contract)
+9. **HashUtils.sol** - Shared hash helper library (calculateIdHash, calculatePositionHash)
 
 ### DID Structure
 
@@ -158,8 +167,9 @@ did:method0:method1:method2:id
 - **EnumerableSet**: Efficient set operations for VMs and Services
 - **Immutable Architecture**: No proxies, no upgrades
 - **Custom Errors**: Gas optimization (all contracts use custom errors, no require strings)
-- **Abstract Storage**: Modular VMStorage and ServiceStorage
+- **Abstract Storage**: Modular VMStorage/VMStorageNative and ServiceStorage
 - **Storage Caching**: Direct storage reads with early exit (e.g., _isControllerFor, _isExpired)
+- **Resolution-time Derivation**: W3CResolverNative derives VM fields at query time (zero extra storage)
 
 **See PROJECT.md for complete details**
 

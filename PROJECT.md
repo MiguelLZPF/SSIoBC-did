@@ -20,6 +20,7 @@ This file is the **single source of truth** for project domain knowledge, refere
 ### Key Features
 
 - **Full on-chain storage** (unlike ERC-1056 event-based approach)
+- **Dual-variant architecture**: Full W3C storage + Ethereum-native (1-slot VMs)
 - **Gas-optimized** hash-based list architecture using EnumerableSet
 - **Multi-method support** (3-level deep DID methods: `did:method0:method1:method2:id`)
 - **4-year expiration** with reuse capability
@@ -121,13 +122,13 @@ classDiagram
     }
 
     class DidManager {
-        -_expirationDate: mapping
-        -_controllers: mapping
         +createDid()
         +deactivateDid()
+        +reactivateDid()
         +updateController()
         +createVm()
         +validateVm()
+        +expireVm()
         +updateService()
     }
 
@@ -144,15 +145,81 @@ classDiagram
         +calculateIdHash()
     }
 
+    class DidManagerBase {
+        <<abstract>>
+        -_expirationDate: mapping
+        -_controllers: mapping
+        #updateExpiration()
+        #_isExpired()
+        #_isControllerFor()
+    }
+
+    class IDidManagerNative {
+        <<interface>>
+        +createDid()
+        +deactivateDid()
+        +updateController()
+        +createVm()
+        +validateVm()
+        +updateService()
+    }
+
+    class IVMStorageNative {
+        <<interface>>
+        +getVm()
+        +getVmListLength()
+        +isVmRelationship()
+    }
+
+    class VMStorageNative {
+        <<abstract>>
+        -_vmIds: EnumerableSet
+        -_vmByNsAndId: mapping
+        -_vmIdByPositionHash: mapping
+        -_didHashByPositionHash: mapping
+        -_positionHashByDidAndId: mapping
+        #_createVm()
+        #_validateVm()
+        #_expireVm()
+        #_removeAllVms()
+    }
+
+    class DidManagerNative {
+        +createDid()
+        +deactivateDid()
+        +reactivateDid()
+        +updateController()
+        +createVm()
+        +validateVm()
+        +expireVm()
+        +updateService()
+    }
+
+    class W3CResolverNative {
+        -_didManager: IDidManagerNative
+        +resolve()
+        +resolveVm()
+        +resolveService()
+    }
+
     IVMStorage <|.. VMStorage
     IServiceStorage <|.. ServiceStorage
+    IVMStorageNative <|.. VMStorageNative
     VMStorage <|-- DidManager
+    DidManagerBase <|-- DidManager
     ServiceStorage <|-- DidManager
     IDidManager <|.. DidManager
+    VMStorageNative <|-- DidManagerNative
+    DidManagerBase <|-- DidManagerNative
+    ServiceStorage <|-- DidManagerNative
+    IDidManagerNative <|.. DidManagerNative
     DidManager <-- W3CResolver : reads via interface
+    DidManagerNative <-- W3CResolverNative : reads via interface
     HashUtils <.. VMStorage : uses
+    HashUtils <.. VMStorageNative : uses
     HashUtils <.. ServiceStorage : uses
     HashUtils <.. DidManager : uses
+    HashUtils <.. DidManagerNative : uses
 ```
 
 ### System Component Overview
@@ -164,51 +231,86 @@ flowchart TB
         SC["Other Smart Contracts"]
     end
 
-    subgraph Core["Core System"]
+    subgraph FullW3C["Full W3C Variant"]
         DM["DidManager
         ━━━━━━━━━━━━━
         • DID Lifecycle
         • Authorization
-        • Controller Delegation
-        • Expiration Management"]
-    end
+        • Controller Delegation"]
 
-    subgraph Storage["Inherited Storage (Abstract)"]
         VMS["VMStorage
         ━━━━━━━━━━━
-        • Verification Methods
+        • Multi-type VMs
         • Position Hashes
-        • Relationship Bitmasks
-        • EnumerableSet IDs"]
+        • Relationship Bitmasks"]
+
+        W3C["W3CResolver
+        ━━━━━━━━━━━━
+        • DID Document Format
+        • VM Categorization
+        • Service Parsing"]
+    end
+
+    subgraph Native["Ethereum-Native Variant"]
+        DMN["DidManagerNative
+        ━━━━━━━━━━━━━━━━━
+        • DID Lifecycle
+        • Authorization
+        • Controller Delegation"]
+
+        VMSN["VMStorageNative
+        ━━━━━━━━━━━━━━━
+        • 1-slot VMs (address only)
+        • Position Hashes
+        • Relationship Bitmasks"]
+
+        W3CN["W3CResolverNative
+        ━━━━━━━━━━━━━━━━━
+        • Field Derivation at Query
+        • CAIP-10 Formatting
+        • Service Parsing"]
+    end
+
+    subgraph Shared["Shared Components"]
+        DMB["DidManagerBase
+        ━━━━━━━━━━━━━━
+        • Expiration Management
+        • Controller Logic"]
 
         SS["ServiceStorage
         ━━━━━━━━━━━━━
         • Service Endpoints
         • Dynamic Bytes
-        • Packed Strings
-        • EnumerableSet IDs"]
-    end
+        • Packed Strings"]
 
-    subgraph Resolution["W3C Resolution Layer"]
-        W3C["W3CResolver
-        ━━━━━━━━━━━━
-        • DID Document Format
-        • VM Categorization
-        • Service Parsing
-        • Expiration Filtering"]
+        HU["HashUtils
+        ━━━━━━━━
+        • calculateIdHash
+        • calculatePositionHash"]
     end
 
     User --> DM
-    SC --> DM
+    User --> DMN
     SC --> W3C
+    SC --> W3CN
     DM -.-> VMS
+    DM -.-> DMB
     DM -.-> SS
+    DMN -.-> VMSN
+    DMN -.-> DMB
+    DMN -.-> SS
     W3C -->|"IDidManager"| DM
+    W3CN -->|"IDidManagerNative"| DMN
 
     style DM fill:#e1f5fe,stroke:#01579b
+    style DMN fill:#e1f5fe,stroke:#01579b
     style VMS fill:#fff3e0,stroke:#e65100
+    style VMSN fill:#fff3e0,stroke:#e65100
     style SS fill:#fff3e0,stroke:#e65100
+    style DMB fill:#f3e5f5,stroke:#6a1b9a
+    style HU fill:#f3e5f5,stroke:#6a1b9a
     style W3C fill:#e8f5e9,stroke:#1b5e20
+    style W3CN fill:#e8f5e9,stroke:#1b5e20
 ```
 
 ### DID Lifecycle State Machine
@@ -233,7 +335,7 @@ stateDiagram-v2
     Cleaned --> Reusable: ID available
     Reusable --> Created: Can reuse after 4 years
 
-    Deactivated --> Active: reactivateDid() by controller
+    Deactivated --> Active: reactivateDid()
 
     note right of Active
         Every state-changing operation
@@ -241,10 +343,9 @@ stateDiagram-v2
     end note
 
     note right of Deactivated
-        Reactivation requires:
-        - Sender has active DID
-        - Valid authentication VM
-        - Sender is controller of target
+        Reactivation modes:
+        1. Self: owner proves VM ownership
+        2. Controller: active controller DID
         VMs/Services/Controllers preserved
     end note
 ```
@@ -330,7 +431,19 @@ flowchart TB
         mapping(hash => mapping(id => uint8))"]
     end
 
-    subgraph DidStore["DidManager Direct Storage"]
+    subgraph VMStoreNative["VMStorageNative (5 base slots, 1-slot VMs)"]
+        VN1["Slot 0: _vmIds
+        mapping(didHash => EnumerableSet)"]
+
+        VN2["Slot 1: _vmByNsAndId
+        mapping(didHash => mapping(vmId => VM))
+        VM = address(20B) + relationships(1B) + expiration(11B) = 1 slot"]
+
+        VN3["Slots 2-4: Position hash mappings
+        (same structure as VMStorage)"]
+    end
+
+    subgraph DidBaseStore["DidManagerBase Storage (shared)"]
         D1["_expirationDate
         mapping(idHash => uint256)"]
 
@@ -341,14 +454,16 @@ flowchart TB
     Methods --> Hash
     ID --> Hash
     Hash --> VM1
+    Hash --> VN1
     Hash --> S1
     Hash --> D1
     Hash --> D2
 
     style DID fill:#e3f2fd,stroke:#1565c0
     style VMStore fill:#fff8e1,stroke:#f57f17
+    style VMStoreNative fill:#fff8e1,stroke:#f57f17
     style ServiceStore fill:#fce4ec,stroke:#c2185b
-    style DidStore fill:#e8f5e9,stroke:#2e7d32
+    style DidBaseStore fill:#e8f5e9,stroke:#2e7d32
 ```
 
 ### Data Structures
@@ -406,13 +521,24 @@ classDiagram
         string[] serviceEndpoint
     }
 
+    class VerificationMethodNative {
+        address ethereumAddress
+        bytes1 relationships
+        uint88 expiration
+    }
+
     VerificationMethod ..> W3CVerificationMethod : W3CResolver transforms
+    VerificationMethodNative ..> W3CVerificationMethod : W3CResolverNative derives fields
     Service ..> W3CService : W3CResolver transforms
     W3CDidDocument *-- W3CVerificationMethod
     W3CDidDocument *-- W3CService
 
-    note for VerificationMethod "Optimized: ethereumAddress (20B) +
-    relationships (1B) + expiration (11B) = 1 slot"
+    note for VerificationMethod "Full W3C: multi-type keys, multi-slot per VM
+    ethereumAddress (20B) + relationships (1B) + expiration (11B) packed in last slot"
+
+    note for VerificationMethodNative "Native: 1 slot total = 32 bytes
+    type_, publicKeyMultibase, blockchainAccountId
+    derived at resolution time"
 
     note for Service "Dynamic bytes with '\\x00' delimiter
     96% storage reduction vs v1.0"
@@ -587,55 +713,48 @@ flowchart LR
 
 ```mermaid
 mindmap
-    root((Gas
-    Optimization))
-        Storage
-            Hash-Based Indexing
-                O(1) lookups
-                vs O(n) arrays
-            EnumerableSet
-                Efficient add/remove
-                O(1) contains
-            Slot Packing
-                address + bytes1 + uint88
-                = 1 slot (32 bytes)
-            Dynamic Bytes
-                Service: 96% reduction
-                VM: flexible key sizes
-        Code
-            Custom Errors
-                All contracts use custom errors
-                No require strings remaining
-            Unchecked Arithmetic
-                When overflow impossible
-                Saves bounds checks
-            Storage Caching
-                Single SLOAD in _isExpired
-                Direct storage reads in _isControllerFor
-            HashUtils Library
-                Shared hash helpers
-                Deduplicated across VMStorage and ServiceStorage
-        Architecture
-            No Proxies
-                Direct calls
-                No delegate overhead
-            Abstract Contracts
-                Code reuse
-                Modular storage
-            Immutable Design
-                No upgrade checks
-                Predictable gas
+  root((Gas Optimization))
+    Storage
+      Hash-Based Indexing: O1 lookups vs On arrays
+      EnumerableSet: efficient add/remove/contains
+      Slot Packing: address+bytes1+uint88 = 1 slot
+      Dynamic Bytes: 96% service storage reduction
+    Code
+      Custom Errors: no require strings
+      Unchecked Arithmetic: when overflow impossible
+      Storage Caching: single SLOAD, direct reads
+      HashUtils Library: shared hash helpers
+    Architecture
+      No Proxies: direct calls, no delegate overhead
+      Abstract Contracts: code reuse, modular storage
+      Immutable Design: no upgrade checks
 ```
 
 ## Smart Contract Architecture
 
-### Four-Contract System
+### Dual-Variant System
 
-The system consists of four main contracts working together:
+The system provides two variants sharing a common base, each optimized for different use cases:
 
-#### 1. DidManager.sol
+| Variant | VM Storage | Contract Size | Use Case |
+|---------|-----------|--------------|----------|
+| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,102 B | General-purpose DID with any key type |
+| **Ethereum-Native** (DidManagerNative) | 1-slot per VM (ethereumAddress + relationships + expiration = 32 bytes) | 9,755 B | Ethereum-only DIDs, 19% smaller bytecode |
 
-**Purpose**: Core DID lifecycle management
+Both variants share:
+- **DidManagerBase**: Expiration management, controller logic (`_isExpired`, `_isControllerFor`, `updateExpiration`)
+- **ServiceStorage**: Service endpoint storage (dynamic bytes with `\x00` delimiter)
+- **HashUtils**: Shared hash helper library (`calculateIdHash`, `calculatePositionHash`)
+
+The native variant derives W3C fields (type\_, publicKeyMultibase, blockchainAccountId) at resolution time in W3CResolverNative, rather than storing them per VM.
+
+### Contract Details
+
+The system consists of the following contracts:
+
+#### 1. DidManager.sol (Full W3C Variant)
+
+**Purpose**: Core DID lifecycle management with full W3C VM storage
 
 **Responsibilities**:
 - DID creation with unique ID generation
@@ -644,7 +763,7 @@ The system consists of four main contracts working together:
 - Controller delegation
 - Expiration handling
 
-**Inheritance**: Inherits from VMStorage and ServiceStorage
+**Inheritance**: Inherits from VMStorage, DidManagerBase, and ServiceStorage
 
 **Key Functions**:
 - `createDid(bytes32 methods, bytes32 random, bytes32 vmId)` - Create new DID
@@ -760,7 +879,7 @@ struct Service {
 
 #### 4. W3CResolver.sol
 
-**Purpose**: W3C-compliant DID document translation
+**Purpose**: W3C-compliant DID document translation (for full W3C variant)
 
 **Type**: Standalone contract (optional on-chain resolution)
 
@@ -771,6 +890,57 @@ struct Service {
 - Return resolution metadata
 
 **Output**: Complete W3C DID Document structure
+
+#### 5. DidManagerBase.sol
+
+**Purpose**: Shared abstract base for DID lifecycle logic
+
+**Type**: Abstract contract (inherited by both DidManager and DidManagerNative)
+
+**Provides**:
+- `_expirationDate` mapping and `updateExpiration()` function
+- `_controllers` mapping and `_isControllerFor()` function
+- `_isExpired()` helper with single-SLOAD caching
+- File-level types: `Controller`, constants (`EXPIRATION`, `CONTROLLERS_MAX_LENGTH`, `DEFAULT_DID_METHODS`), custom errors
+
+**Does NOT provide**: `_validateSenderAndTarget` (each concrete DidManager implements its own private copy since it calls VM-type-specific `_isAuthenticated`)
+
+#### 6. DidManagerNative.sol (Ethereum-Native Variant)
+
+**Purpose**: DID lifecycle management with 1-slot Ethereum-native VMs
+
+**Inheritance**: Inherits from VMStorageNative, DidManagerBase, and ServiceStorage
+
+**Key Difference**: VMs store only `ethereumAddress` (20B) + `relationships` (1B) + `expiration` (11B) = 1 slot per VM. W3C fields are derived at resolution time.
+
+#### 7. VMStorageNative.sol
+
+**Purpose**: 1-slot verification method storage for Ethereum-native DIDs
+
+**Type**: Abstract contract (inherited by DidManagerNative)
+
+**Native VerificationMethod struct:**
+```solidity
+struct VerificationMethod {
+    address ethereumAddress;  // 20 bytes - Ethereum address
+    bytes1 relationships;     // 1 byte - Relationship bitmask
+    uint88 expiration;        // 11 bytes - Expiration timestamp
+}
+// Total: 32 bytes = 1 storage slot
+```
+
+#### 8. W3CResolverNative.sol
+
+**Purpose**: W3C-compliant resolution with field derivation for native VMs
+
+**Type**: Standalone contract (optional on-chain resolution)
+
+**Key Derivations at Resolution Time**:
+- `type_`: Always `"EcdsaSecp256k1VerificationKey2019"` (Ethereum-native)
+- `publicKeyMultibase`: Always empty (not applicable for native VMs)
+- `blockchainAccountId`: Derived as CAIP-10 from `ethereumAddress` + `block.chainid`
+
+**Contract Size**: 11,638 B runtime
 
 ### Key Design Patterns
 
@@ -1164,14 +1334,20 @@ require(condition, "Invalid DID");  // String storage expensive (~96+ bytes each
 
 ```
 src/
-├── DidManager.sol          # Core DID lifecycle management
-├── VMStorage.sol           # Verification methods storage (abstract)
-├── ServiceStorage.sol      # Service endpoints storage (abstract)
-├── W3CResolver.sol         # W3C DID document resolution
+├── DidManagerBase.sol      # Shared DID lifecycle logic (abstract base)
+├── DidManager.sol          # Full W3C DID lifecycle management
+├── DidManagerNative.sol    # Ethereum-native DID lifecycle management
+├── VMStorage.sol           # Full W3C verification methods storage (abstract)
+├── VMStorageNative.sol     # 1-slot native verification methods storage (abstract)
+├── ServiceStorage.sol      # Service endpoints storage (abstract, shared)
+├── W3CResolver.sol         # W3C DID document resolution (full variant)
+├── W3CResolverNative.sol   # W3C DID document resolution (native, derives fields)
 ├── HashUtils.sol           # Shared hash helper library (calculateIdHash, calculatePositionHash)
 └── interfaces/
     ├── IDidManager.sol
+    ├── IDidManagerNative.sol
     ├── IVMStorage.sol
+    ├── IVMStorageNative.sol
     ├── IServiceStorage.sol
     └── IW3CResolver.sol
 ```
@@ -1182,9 +1358,11 @@ src/
 test/
 ├── unit/                          # Unit tests (isolated contract testing)
 │   ├── DidManager.unit.t.sol
+│   ├── DidManagerNative.unit.t.sol # 64 tests for native variant
 │   ├── VMStorage.unit.t.sol
 │   ├── ServiceStorage.unit.t.sol
-│   └── W3CResolver.unit.t.sol
+│   ├── W3CResolver.unit.t.sol
+│   └── W3CResolverNative.unit.t.sol # 21 tests for native resolver
 ├── integration/                    # Integration tests (multi-contract flows)
 │   └── DidLifecycle.integration.t.sol
 ├── fuzz/                          # Fuzz tests (property-based testing)
@@ -1196,9 +1374,11 @@ test/
 ├── stress/                        # Stress tests (boundary conditions)
 │   └── StressTest.t.sol
 └── helpers/
-    ├── TestBase.sol               # Base test contract
-    ├── DidTestHelpers.sol         # DID creation helpers
-    └── Fixtures.sol               # Test data fixtures
+    ├── TestBase.sol               # Base test contract (full W3C variant)
+    ├── TestBaseNative.sol         # Base test contract (native variant)
+    ├── DidTestHelpers.sol         # DID creation helpers (full variant)
+    ├── DidTestHelpersNative.sol   # DID creation helpers (native variant)
+    └── Fixtures.sol               # Shared test data fixtures
 ```
 
 ### Artifact Management
@@ -1231,15 +1411,17 @@ test/
 
 ```
 script/
-├── Configuration.s.sol     # Configuration management
-├── DidManager.s.sol        # DidManager deployment
-├── W3CResolver.s.sol       # W3CResolver deployment
-└── Helper.sol              # Shared helper functions
+├── Configuration.s.sol        # Configuration management
+├── DidManager.s.sol           # DidManager deployment (full W3C)
+├── DidManagerNative.s.sol     # DidManagerNative deployment (native)
+├── W3CResolver.s.sol          # W3CResolver deployment (full W3C)
+├── W3CResolverNative.s.sol    # W3CResolverNative deployment (native)
+└── Helper.sol                 # Shared helper functions
 ```
 
 ---
 
-**Last Updated**: 2026-02-05
-**Version**: v1.1.0
+**Last Updated**: 2026-02-08
+**Version**: v1.2.0
 **Purpose**: Single source of truth for SSIoBC-did project knowledge
 **Referenced By**: CLAUDE.md, docs/README.md

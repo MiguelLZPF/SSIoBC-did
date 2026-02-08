@@ -51,6 +51,7 @@ The project has maintained comprehensive test coverage throughout development, w
 | v1.0.1  | >90%            | High          | Complete          | Strong          | ServiceStorage dynamic bytes |
 | v1.0.2 | 98.35% | 119/121 | 100% | 93.55% | reactivateDid() + 12 new tests |
 | **v1.1.0** | **98.36%** | **120/122** | **100%** | **93.10%** | **Bytecode optimization + HashUtils library (100% coverage)** |
+| **v1.2.0** | **>98%** | **See below** | **100%** | **>90%** | **Dual-variant: 237 total tests, DidManagerNative 99%, VMStorageNative 100%, W3CResolverNative 99%** |
 
 ## Quality Metrics
 
@@ -108,7 +109,7 @@ The project has maintained comprehensive test coverage throughout development, w
 
 ### Core Contracts Coverage
 
-#### DidManager Contract
+#### DidManager Contract (Full W3C Variant)
 - **DID Lifecycle**: Create, read, update, delete, deactivate, reactivate operations
 - **Controller Management**: All delegation scenarios
 - **Expiration Handling**: Time-based logic validation
@@ -118,6 +119,21 @@ The project has maintained comprehensive test coverage throughout development, w
   - Controller reactivation
   - Invalid state handling (active DID, expired sender, invalid VM, non-controller)
   - State preservation verification (VMs, Services, Controllers preserved)
+
+#### DidManagerNative Contract (v1.2.0)
+- **64 unit tests** covering all DID lifecycle operations
+- **Coverage**: 99.03% lines, 95.65% branches, 100% functions
+- **VMStorageNative**: 100% coverage across all metrics
+- **Controller delegation**: Full controller lifecycle with native VMs
+- **Error branches**: EthereumAddressRequired, VmAlreadyExists, VmNotFound, VmAlreadyValidated, VmAlreadyExpired
+- **Edge cases**: Self-reactivation with wrong VM, relationship bitmask validation
+
+#### W3CResolverNative Contract (v1.2.0)
+- **21 unit tests** covering resolution-time field derivation
+- **Coverage**: 98.71% lines, 90.91% branches, 100% functions
+- **Relationship bitmasks**: All 5 types tested (0x01-0x10)
+- **Service parsing**: Multi-value delimiter, trailing delimiter trimming, delimiter-only input
+- **Field derivation**: CAIP-10 blockchainAccountId, type\_ constant, empty publicKeyMultibase
 
 #### VMStorage Contract
 - **Hash-Based Lists**: EnumerableSet operations
@@ -217,4 +233,4 @@ Coverage data supports PhD thesis claims about:
 
 ---
 
-*Last Updated: v1.1.0 - 152 total tests, 98.36% DidManager coverage, HashUtils 100% coverage, all optimizations preserve existing coverage*
+*Last Updated: v1.2.0 - 237 total tests (+85 for native variant), VMStorageNative 100% coverage, all source contracts >90%*

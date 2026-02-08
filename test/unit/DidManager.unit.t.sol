@@ -12,6 +12,13 @@ import {
   EXPIRATION
 } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
+import {
+  DidAlreadyExists,
+  DidExpired,
+  NotAuthenticatedAsSenderId,
+  NotAControllerforTargetId,
+  DidNotDeactivated
+} from "@src/DidManagerBase.sol";
 import { DEFAULT_VM_ID, IVMStorage } from "@src/interfaces/IVMStorage.sol";
 import { Vm } from "forge-std/Vm.sol";
 
@@ -543,7 +550,7 @@ contract DidManagerUnitTest is TestBase {
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
-    vm.expectRevert(IDidManager.DidExpired.selector);
+    vm.expectRevert(DidExpired.selector);
     didManager.createVm(command);
     _stopPrank();
   }
@@ -576,7 +583,7 @@ contract DidManagerUnitTest is TestBase {
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
-    vm.expectRevert(IDidManager.DidExpired.selector);
+    vm.expectRevert(DidExpired.selector);
     didManager.createVm(command);
     _stopPrank();
   }
@@ -744,7 +751,7 @@ contract DidManagerUnitTest is TestBase {
 
     // Try to deactivate with expired sender
     _startPrank(user1);
-    vm.expectRevert(IDidManager.DidExpired.selector);
+    vm.expectRevert(DidExpired.selector);
     didManager.deactivateDid(
       targetDid.didInfo.methods,
       senderDid.didInfo.id, // Expired sender
@@ -769,7 +776,7 @@ contract DidManagerUnitTest is TestBase {
     assertEq(expiration, 0, "DID should be deactivated");
 
     // Try to deactivate again - should fail
-    vm.expectRevert(IDidManager.DidExpired.selector);
+    vm.expectRevert(DidExpired.selector);
     didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
 
     _stopPrank();
@@ -785,7 +792,7 @@ contract DidManagerUnitTest is TestBase {
 
     // Try to deactivate as user2 (not authenticated)
     _startPrank(user2);
-    vm.expectRevert(IDidManager.NotAuthenticatedAsSenderId.selector);
+    vm.expectRevert(NotAuthenticatedAsSenderId.selector);
     didManager.deactivateDid(
       didResult.didInfo.methods,
       didResult.didInfo.id, // Using user1's DID but calling as user2
@@ -822,7 +829,7 @@ contract DidManagerUnitTest is TestBase {
     );
 
     // Try to deactivate as non-controller
-    vm.expectRevert(IDidManager.NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerforTargetId.selector);
     didManager.deactivateDid(
       ownerDid.didInfo.methods,
       nonControllerDid.didInfo.id, // Non-controller trying to deactivate
@@ -856,11 +863,11 @@ contract DidManagerUnitTest is TestBase {
       relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
-    vm.expectRevert(IDidManager.DidExpired.selector);
+    vm.expectRevert(DidExpired.selector);
     didManager.createVm(vmCommand);
 
     // Try to update controller - should fail
-    vm.expectRevert(IDidManager.DidExpired.selector);
+    vm.expectRevert(DidExpired.selector);
     didManager.updateController(
       didResult.didInfo.methods,
       didResult.didInfo.id,
@@ -872,7 +879,7 @@ contract DidManagerUnitTest is TestBase {
     );
 
     // Try to update service - should fail
-    vm.expectRevert(IDidManager.DidExpired.selector);
+    vm.expectRevert(DidExpired.selector);
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,
@@ -901,7 +908,7 @@ contract DidManagerUnitTest is TestBase {
     didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
 
     // Try to authenticate after deactivation - should revert with DidExpired
-    vm.expectRevert(IDidManager.DidExpired.selector);
+    vm.expectRevert(DidExpired.selector);
     didManager.authenticate(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, user1);
 
     _stopPrank();
@@ -933,7 +940,7 @@ contract DidManagerUnitTest is TestBase {
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
-    vm.expectRevert(IDidManager.NotAuthenticatedAsSenderId.selector);
+    vm.expectRevert(NotAuthenticatedAsSenderId.selector);
     didManager.createVm(command);
     _stopPrank();
   }
@@ -1324,7 +1331,7 @@ contract DidManagerUnitTest is TestBase {
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
-    vm.expectRevert(IDidManager.NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerforTargetId.selector);
     didManager.createVm(vmCommand);
     _stopPrank();
   }
@@ -1406,7 +1413,7 @@ contract DidManagerUnitTest is TestBase {
 
     // This should fail because nonControllerDid is not in the controllers list
     // Since we're authenticated (same user), this will reach controller validation
-    vm.expectRevert(IDidManager.NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerforTargetId.selector);
     didManager.createVm(vmCommand);
 
     _stopPrank();
@@ -1506,7 +1513,7 @@ contract DidManagerUnitTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
     // Try to reactivate an active DID - should fail with DidNotDeactivated
-    vm.expectRevert(IDidManager.DidNotDeactivated.selector);
+    vm.expectRevert(DidNotDeactivated.selector);
     didManager.reactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
 
     _stopPrank();
@@ -1532,7 +1539,7 @@ contract DidManagerUnitTest is TestBase {
 
     // Try to reactivate with expired sender
     _startPrank(user1);
-    vm.expectRevert(IDidManager.DidExpired.selector);
+    vm.expectRevert(DidExpired.selector);
     didManager.reactivateDid(
       targetDid.didInfo.methods,
       senderDid.didInfo.id, // Expired sender
@@ -1556,7 +1563,7 @@ contract DidManagerUnitTest is TestBase {
 
     // Try to reactivate with invalid VM (user2 doesn't have authentication)
     _startPrank(user2);
-    vm.expectRevert(IDidManager.NotAuthenticatedAsSenderId.selector);
+    vm.expectRevert(NotAuthenticatedAsSenderId.selector);
     didManager.reactivateDid(
       didResult.didInfo.methods,
       didResult.didInfo.id, // Using user1's DID but calling as user2
@@ -1601,7 +1608,7 @@ contract DidManagerUnitTest is TestBase {
     );
 
     // Try to reactivate as non-controller
-    vm.expectRevert(IDidManager.NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerforTargetId.selector);
     didManager.reactivateDid(
       ownerDid.didInfo.methods,
       nonControllerDid.didInfo.id, // Non-controller trying to reactivate
@@ -1679,7 +1686,7 @@ contract DidManagerUnitTest is TestBase {
     didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
 
     // Verify operations fail when deactivated
-    vm.expectRevert(IDidManager.DidExpired.selector);
+    vm.expectRevert(DidExpired.selector);
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,

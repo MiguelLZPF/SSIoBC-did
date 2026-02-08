@@ -3,14 +3,17 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { VerificationMethod } from "@src/VMStorage.sol";
 import { Service } from "@src/interfaces/IServiceStorage.sol";
-
-/**
- * @dev Struct representing a controller of a DID.
- */
-struct Controller {
-  bytes32 id; // The unique identifier of the controller's DID.
-  bytes32 vmId; // (optional) The unique identifier of the controller's VM.
-}
+import {
+  Controller,
+  DEFAULT_DID_METHODS,
+  EXPIRATION,
+  CONTROLLERS_MAX_LENGTH,
+  DidAlreadyExists,
+  DidExpired,
+  NotAuthenticatedAsSenderId,
+  NotAControllerforTargetId,
+  DidNotDeactivated
+} from "@src/DidManagerBase.sol";
 
 /**
  * @dev Command struct for creating a Verification Method via DidManager.
@@ -29,11 +32,6 @@ struct CreateVmCommand {
   bytes1 relationships; // The relationships of the VM.
   uint88 expiration; // The expiration time of the VM (packed, max ~9.8 million years).
 }
-
-bytes32 constant DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;"); // ";" is the null or escape
-  // character
-uint256 constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
-uint8 constant CONTROLLERS_MAX_LENGTH = 5;
 
 /**
  * @title IDidManager
@@ -71,18 +69,9 @@ interface IDidManager {
   event DidReactivated(bytes32 indexed targetDidHash);
 
   // * Errors
-  // Declared in IVMStorage.sol
-  // error MissingRequiredParameter();
-
-  error DidAlreadyExists();
-
-  error DidExpired();
-
-  error NotAuthenticatedAsSenderId();
-
-  error NotAControllerforTargetId();
-
-  error DidNotDeactivated();
+  // Shared errors (DidAlreadyExists, DidExpired, NotAuthenticatedAsSenderId,
+  // NotAControllerforTargetId, DidNotDeactivated, MissingRequiredParameter)
+  // are declared in DidManagerBase.sol
 
   /**
    * @dev Creates a new DID.

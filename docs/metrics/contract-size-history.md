@@ -18,24 +18,25 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 
 ### Core Contracts Size Progression
 
-| Version | DidManager | W3CResolver | Architecture Notes |
-|---------|------------|-------------|-------------------|
-| v0.1.0  | ~10.5 kB   | N/A         | Initial single-contract approach |
-| v0.1.2  | ~11.2 kB   | ~9.8 kB     | Separated resolver functionality |
-| v0.1.3  | ~11.5 kB   | ~10.1 kB    | Enhanced read functions |
-| v0.1.4  | ~11.8 kB   | ~10.5 kB    | Controller system improvements |
-| v0.2.0  | ~12.1 kB   | ~11.2 kB    | Service endpoint integration |
-| v0.3.0  | ~12.3 kB   | ~11.8 kB    | VM expiration functionality |
-| v0.4.0  | ~12.2 kB   | ~12.1 kB    | Service testing optimizations |
-| v0.5.0  | ~12.1 kB   | ~12.3 kB    | VM testing enhancements |
-| v0.6.0  | ~12.0 kB   | ~12.5 kB    | DidManager test coverage |
-| v0.7.0  | ~11.9 kB   | ~12.7 kB    | Performance optimizations |
-| v0.8.0  | ~12.0 kB   | ~12.8 kB    | W3C resolver completion |
-| v1.0-pre | 14.3 kB     | 13.1 kB     | VMStorage optimization + Base58 |
-| v1.0 | 13.9 kB | 12.4 kB | Pre-encoded multibase (Base58 removed) |
-| v1.0.1 | 13.9 kB | 12.8 kB | ServiceStorage optimization (dynamic bytes) |
-| v1.0.2 | 15.2 kB | 12.8 kB | reactivateDid() function + _isVmOwner() helper |
-| **v1.1.0** | **12.1 kB** | **12.8 kB** | **Bytecode optimization: custom errors, dead code removal, SLOAD caching, HashUtils library, direct storage reads, optimizer_runs=200** |
+| Version | DidManager | W3CResolver | DidManagerNative | W3CResolverNative | Architecture Notes |
+|---------|------------|-------------|------------------|-------------------|--------------------|
+| v0.1.0  | ~10.5 kB   | N/A         | —                | —                 | Initial single-contract approach |
+| v0.1.2  | ~11.2 kB   | ~9.8 kB     | —                | —                 | Separated resolver functionality |
+| v0.1.3  | ~11.5 kB   | ~10.1 kB    | —                | —                 | Enhanced read functions |
+| v0.1.4  | ~11.8 kB   | ~10.5 kB    | —                | —                 | Controller system improvements |
+| v0.2.0  | ~12.1 kB   | ~11.2 kB    | —                | —                 | Service endpoint integration |
+| v0.3.0  | ~12.3 kB   | ~11.8 kB    | —                | —                 | VM expiration functionality |
+| v0.4.0  | ~12.2 kB   | ~12.1 kB    | —                | —                 | Service testing optimizations |
+| v0.5.0  | ~12.1 kB   | ~12.3 kB    | —                | —                 | VM testing enhancements |
+| v0.6.0  | ~12.0 kB   | ~12.5 kB    | —                | —                 | DidManager test coverage |
+| v0.7.0  | ~11.9 kB   | ~12.7 kB    | —                | —                 | Performance optimizations |
+| v0.8.0  | ~12.0 kB   | ~12.8 kB    | —                | —                 | W3C resolver completion |
+| v1.0-pre | 14.3 kB   | 13.1 kB     | —                | —                 | VMStorage optimization + Base58 |
+| v1.0    | 13.9 kB    | 12.4 kB     | —                | —                 | Pre-encoded multibase (Base58 removed) |
+| v1.0.1  | 13.9 kB    | 12.8 kB     | —                | —                 | ServiceStorage optimization (dynamic bytes) |
+| v1.0.2  | 15.2 kB    | 12.8 kB     | —                | —                 | reactivateDid() + _isVmOwner() helper |
+| **v1.1.0** | **12.1 kB** | **12.8 kB** | **—** | **—** | **Bytecode optimization: custom errors, SLOAD caching, HashUtils, optimizer_runs=200** |
+| **v1.2.0** | **12.1 kB** | **11.3 kB** | **9.8 kB** | **11.6 kB** | **Dual-variant architecture with shared DidManagerBase** |
 
 ### Visual Documentation
 
@@ -224,6 +225,35 @@ Following v1.0.2's size increase, a systematic bytecode optimization was perform
 - EIP-170 margin increased from 9,417 to 12,474 bytes (+32.5%)
 - All 152 tests passing, coverage >90% maintained on all source contracts
 
+### v1.2.0 Dual-Variant Architecture (February 2026)
+
+The v1.2.0 release introduces the Ethereum-native variant alongside the existing full W3C variant, sharing a common DidManagerBase.
+
+#### v1.2.0 Contract Sizes
+```
+| Contract             | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|----------------------|------------------|-------------------|--------------------|--------------------|
+| DidManager           | 12,102           | 12,130            | 12,474             | 37,022             |
+| DidManagerNative     | 9,755            | 9,783             | 14,821             | 39,369             |
+| W3CResolver          | 11,295           | 12,046            | 13,281             | 37,106             |
+| W3CResolverNative    | 11,638           | 12,389            | 12,938             | 36,763             |
+```
+
+**Key Changes:**
+1. **DidManagerBase**: Shared abstract base extracted from DidManager (expiration, controllers)
+2. **VMStorageNative**: 1-slot per VM (address + relationships + expiration = 32 bytes)
+3. **DidManagerNative**: 19.4% smaller than DidManager (9,755 vs 12,102 bytes)
+4. **W3CResolverNative**: Derives W3C fields at resolution time instead of storing them
+5. **Inheritance Fix**: VMStorage/VMStorageNative no longer inherit DidManagerBase (correct dependency direction)
+
+**Variant Comparison:**
+| Metric | Full W3C (DidManager) | Native (DidManagerNative) | Difference |
+|--------|----------------------|--------------------------|------------|
+| Runtime Size | 12,102 B | 9,755 B | -19.4% |
+| VM Storage | Multi-slot per VM | 1 slot per VM | ~80% less |
+| Key Types | Any (RSA, Ed25519, secp256k1) | Ethereum secp256k1 only | Trade-off |
+| W3C Fields | Stored per VM | Derived at resolution | Trade-off |
+
 #### Trade-off Analysis
 
 The v1.0 architecture provides:
@@ -293,4 +323,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v1.1.0 - Bytecode optimization (-3,057 bytes, -20.2%) with net gas improvement*
+*Last Updated: v1.2.0 - Dual-variant architecture: DidManagerNative (9,755 B, -19.4% vs DidManager) + W3CResolverNative (11,638 B)*
