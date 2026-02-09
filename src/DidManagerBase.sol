@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import { HashUtils } from "src/HashUtils.sol";
-
 /**
  * @dev Struct representing a controller of a DID.
  */
@@ -84,5 +82,4 @@ abstract contract DidManagerBase {
     }
     return false;
   }
-
 }

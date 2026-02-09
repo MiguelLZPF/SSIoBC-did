@@ -111,4 +111,6 @@ interface IVMStorage {
   error BlockchainAccountIdTooLarge();
 
   error InvalidMultibasePrefix();
+
+  error TooManyVerificationMethods();
 }

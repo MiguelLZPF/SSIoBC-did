@@ -75,7 +75,9 @@ abstract contract VMStorage is IVMStorage {
     // Add ID to set and compute position
     bool added = _vmIds[command.didHash].add(command.id);
     assert(added);
-    uint8 position = uint8(_vmIds[command.didHash].length());
+    uint256 vmCount = _vmIds[command.didHash].length();
+    if (vmCount > type(uint8).max) revert TooManyVerificationMethods();
+    uint8 position = uint8(vmCount);
     idHash = HashUtils.calculateIdHash(command.didHash, command.id);
     positionHash = HashUtils.calculatePositionHash(command.didHash, position);
 

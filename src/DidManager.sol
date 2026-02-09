@@ -193,7 +193,7 @@ contract DidManager is IDidManager, VMStorage, DidManagerBase, ServiceStorage {
       controllerPosition = CONTROLLERS_MAX_LENGTH - 1;
     }
     // Update the controllers mapping
-    _controllers[targetIdHash][controllerPosition] = Controller(controllerId, controllerVmId);
+    _controllers[targetIdHash][controllerPosition] = Controller({ id: controllerId, vmId: controllerVmId });
     // Emit the ControllerUpdated event
     emit ControllerUpdated(senderIdHash, targetIdHash, controllerPosition, controllerVmId);
     updateExpiration({ idHash: targetIdHash, forceExpire: false });

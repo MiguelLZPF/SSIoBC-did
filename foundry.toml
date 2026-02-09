@@ -43,10 +43,12 @@ fs_permissions = [
   { access = "read-write", path = "./" },
 ] # default: all file cheat codes are disabled
 
-# Linter configuration - disable only unsafe-typecast warnings
-# String to bytes32 conversions in tests are safe and intentional
+# Linter configuration
+# - unsafe-typecast: String to bytes32 conversions in tests are safe and intentional
+# - pascal-case-struct: W3C acronym naming (W3CDidDocument, etc.) is intentional per W3C spec
+# - mixed-case-variable: UPPER_CASE for semantically-constant variables (DEFAULT_CONTEXT, script env vars)
 [lint]
-exclude_lints = ["unsafe-typecast"]
+exclude_lints = ["unsafe-typecast", "pascal-case-struct", "mixed-case-variable"]
 
 # Formatter configuration
 [fmt]

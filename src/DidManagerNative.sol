@@ -2,11 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { IDidManagerNative, CreateVmCommand as NativeCreateVmCommand } from "src/interfaces/IDidManagerNative.sol";
-import {
-  VMStorageNative,
-  VerificationMethod,
-  CreateVmCommand
-} from "src/VMStorageNative.sol";
+import { VMStorageNative, VerificationMethod, CreateVmCommand } from "src/VMStorageNative.sol";
 import { ServiceStorage } from "src/ServiceStorage.sol";
 import { Service } from "src/interfaces/IServiceStorage.sol";
 import { HashUtils } from "src/HashUtils.sol";
@@ -149,7 +145,7 @@ contract DidManagerNative is IDidManagerNative, VMStorageNative, DidManagerBase,
     if (controllerPosition > CONTROLLERS_MAX_LENGTH - 1) {
       controllerPosition = CONTROLLERS_MAX_LENGTH - 1;
     }
-    _controllers[targetIdHash][controllerPosition] = Controller(controllerId, controllerVmId);
+    _controllers[targetIdHash][controllerPosition] = Controller({ id: controllerId, vmId: controllerVmId });
     emit ControllerUpdated(senderIdHash, targetIdHash, controllerPosition, controllerVmId);
     updateExpiration({ idHash: targetIdHash, forceExpire: false });
   }

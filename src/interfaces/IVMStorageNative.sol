@@ -49,4 +49,6 @@ interface IVMStorageNative {
   error VmAlreadyExpired();
   error VmRelationshipOutOfRange();
   error InvalidSignature();
+
+  error TooManyVerificationMethods();
 }

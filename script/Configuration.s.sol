@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import { Script } from "forge-std/Script.sol";
-import "forge-std/StdJson.sol";
+import { stdJson } from "forge-std/StdJson.sol";
 import { Helper } from "@script/Helper.sol";
 
 /**

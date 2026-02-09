@@ -4,24 +4,13 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBaseNative } from "../helpers/TestBaseNative.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpersNative } from "../helpers/DidTestHelpersNative.sol";
-import { IDidManagerNative, CreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
-import {
-  IW3CResolver,
-  W3CDidDocument,
-  W3CVerificationMethod,
-  W3CService,
-  W3CDidInput
-} from "@src/interfaces/IW3CResolver.sol";
-import { DidInputRequired, W3CResolverNative } from "@src/W3CResolverNative.sol";
-import { DEFAULT_DID_METHODS } from "@src/DidManagerBase.sol";
-import {
-  DEFAULT_VM_ID_NATIVE,
-  DEFAULT_VM_EXPIRATION_NATIVE,
-  IVMStorageNative,
-  VerificationMethod
-} from "@src/interfaces/IVMStorageNative.sol";
+import { CreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
+import { W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
+import { W3CResolverNative } from "@src/W3CResolverNative.sol";
+import { DidInputRequired } from "@src/W3CResolverUtils.sol";
+import { DEFAULT_VM_ID_NATIVE } from "@src/interfaces/IVMStorageNative.sol";
 import { Vm } from "forge-std/Vm.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title W3CResolverNativeUnitTest
@@ -53,8 +42,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_Resolve_Should_ReturnValidDidDocument_When_BasicDidExists() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
     _stopPrank();
 
     W3CDidDocument memory doc = w3cResolverNative.resolve(
@@ -74,8 +62,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_Resolve_Should_HandleDidWithDefaultVm_When_NoAdditionalVmsOrServicesExist() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
     _stopPrank();
 
     W3CDidDocument memory doc = w3cResolverNative.resolve(
@@ -106,8 +93,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_Resolve_Should_DeriveBlockchainAccountId_When_EthereumAddressPresent() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
     _stopPrank();
 
     W3CDidDocument memory doc = w3cResolverNative.resolve(
@@ -128,8 +114,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_Resolve_Should_IncludeServices_When_ServicesExist() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     // Add a service
     didManagerNative.updateService(
@@ -201,8 +186,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_Resolve_Should_ExcludeExpiredMethods_When_IncludeExpiredFalse() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     // Create additional VM (this internally stops/restarts prank for VM validation)
     DidTestHelpersNative.createDefaultVm(vm, didManagerNative, didResult.didInfo, Fixtures.VM_ID_TEST_1);
@@ -211,11 +195,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
     // Re-prank as user1 to expire the second VM
     _startPrank(user1);
     didManagerNative.expireVm(
-      didResult.didInfo.methods,
-      didResult.didInfo.id,
-      DEFAULT_VM_ID_NATIVE,
-      didResult.didInfo.id,
-      Fixtures.VM_ID_TEST_1
+      didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, didResult.didInfo.id, Fixtures.VM_ID_TEST_1
     );
     _stopPrank();
 
@@ -230,8 +210,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_Resolve_Should_IncludeExpiredMethods_When_IncludeExpiredTrue() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     // Create additional VM (this internally stops/restarts prank for VM validation)
     DidTestHelpersNative.createDefaultVm(vm, didManagerNative, didResult.didInfo, Fixtures.VM_ID_TEST_1);
@@ -240,11 +219,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
     // Re-prank as user1 to expire the second VM
     _startPrank(user1);
     didManagerNative.expireVm(
-      didResult.didInfo.methods,
-      didResult.didInfo.id,
-      DEFAULT_VM_ID_NATIVE,
-      didResult.didInfo.id,
-      Fixtures.VM_ID_TEST_1
+      didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, didResult.didInfo.id, Fixtures.VM_ID_TEST_1
     );
     _stopPrank();
 
@@ -263,8 +238,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_ResolveVm_Should_ReturnVerificationMethod_When_ValidVmIdProvided() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
     _stopPrank();
 
     W3CVerificationMethod memory w3cVm = w3cResolverNative.resolveVm(
@@ -279,8 +253,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_ResolveVm_Should_ReturnEmptyVm_When_NonExistentVmIdProvided() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
     _stopPrank();
 
     W3CVerificationMethod memory w3cVm = w3cResolverNative.resolveVm(
@@ -306,8 +279,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_ResolveService_Should_ReturnService_When_ValidServiceIdProvided() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     didManagerNative.updateService(
       didResult.didInfo.methods,
@@ -344,8 +316,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_ValidateDidInput_Should_SetDefaultMethods_When_MethodsIsEmpty() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
     _stopPrank();
 
     // Call with empty methods - should use defaults
@@ -405,6 +376,96 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
   }
 
   // =========================================================================
+  // INDIVIDUAL RELATIONSHIP TESTS
+  // =========================================================================
+
+  function test_Resolve_Should_PopulateKeyAgreementArray_When_VmHas0x04Flag() public {
+    _startPrank(user1);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDid(
+      vm, didManagerNative, Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_0, Fixtures.VM_ID_CUSTOM
+    );
+
+    // Create VM with keyAgreement (0x04)
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: Fixtures.VM_ID_CUSTOM,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_TEST_1,
+      ethereumAddress: user2,
+      relationships: Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT // 0x04
+    });
+
+    vm.recordLogs();
+    didManagerNative.createVm(command);
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bytes32 positionHash = bytes32(entries[0].data);
+    _stopPrank();
+
+    _startPrank(user2);
+    didManagerNative.validateVm(positionHash, 0);
+    _stopPrank();
+
+    W3CDidDocument memory doc = w3cResolverNative.resolve(
+      W3CDidInput({ methods: didResult.didInfo.methods, id: didResult.didInfo.id, fragment: bytes32(0) }), false
+    );
+
+    // Custom VM has auth (0x01), VM_ID_TEST_1 has keyAgreement (0x04)
+    assertEq(doc.authentication.length, 1); // Only custom VM
+    assertEq(doc.assertionMethod.length, 0);
+    assertEq(doc.keyAgreement.length, 1); // Only TEST_1
+    assertEq(doc.verificationMethod.length, 2);
+  }
+
+  // =========================================================================
+  // EXPIRATION CONVERSION TESTS
+  // =========================================================================
+
+  function test_Resolve_Should_ConvertExpirationToMilliseconds_When_Resolving() public {
+    _startPrank(user1);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    _stopPrank();
+
+    W3CDidDocument memory doc = w3cResolverNative.resolve(
+      W3CDidInput({ methods: didResult.didInfo.methods, id: didResult.didInfo.id, fragment: bytes32(0) }), false
+    );
+
+    // DID expiration should be in milliseconds (seconds * 1000)
+    uint256 rawExpiration = didManagerNative.getExpiration(didResult.didInfo.methods, didResult.didInfo.id, bytes32(0));
+    assertEq(doc.expiration, rawExpiration * 1000);
+
+    // VM expiration should also be in milliseconds and in the future
+    assertGt(doc.verificationMethod[0].expiration, block.timestamp * 1000);
+  }
+
+  // =========================================================================
+  // CAIP-10 CHAIN ID TESTS
+  // =========================================================================
+
+  function test_Resolve_Should_UseBlockChainId_When_ConstructingBlockchainAccountId() public {
+    _startPrank(user1);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    _stopPrank();
+
+    W3CDidDocument memory doc = w3cResolverNative.resolve(
+      W3CDidInput({ methods: didResult.didInfo.methods, id: didResult.didInfo.id, fragment: bytes32(0) }), false
+    );
+
+    // CAIP-10 format: "eip155:{chainId}:{address}"
+    string memory chainIdStr = Strings.toString(block.chainid);
+    string memory expectedPrefix = string(abi.encodePacked("eip155:", chainIdStr, ":"));
+    string memory accountId = doc.verificationMethod[0].blockchainAccountId;
+
+    // Verify prefix matches expected chain ID
+    bytes memory actual = bytes(accountId);
+    bytes memory prefix = bytes(expectedPrefix);
+    assertTrue(actual.length > prefix.length, "Account ID should be longer than prefix");
+    for (uint256 i = 0; i < prefix.length; i++) {
+      assertEq(actual[i], prefix[i], "CAIP-10 prefix mismatch");
+    }
+  }
+
+  // =========================================================================
   // _bytesToHexString TESTS
   // =========================================================================
 
@@ -430,8 +491,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_Resolve_Should_IncludeControllers_When_ControllersExist() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     DidTestHelpersNative.CreateDidResult memory controllerDid = DidTestHelpersNative.createDid(
       vm, didManagerNative, Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_1, bytes32(0)
@@ -462,8 +522,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_Resolve_Should_ParseMultipleServiceTypes_When_DelimiterPackedValues() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     // Create a service with multiple types and endpoints (packed with \x00 delimiter)
     didManagerNative.updateService(
@@ -492,8 +551,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_ResolveService_Should_ParseMultipleTypes_When_DelimiterPackedValues() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     didManagerNative.updateService(
       didResult.didInfo.methods,
@@ -517,8 +575,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_Resolve_Should_TrimTrailingEmpty_When_ServiceTypeHasTrailingDelimiter() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     // Service type with trailing delimiter: "LinkedDomains\x00"
     bytes memory typeWithTrailing = abi.encodePacked("LinkedDomains", bytes1(0x00));
@@ -544,8 +601,7 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
   function test_Resolve_Should_ReturnEmptyArray_When_ServiceTypeIsOnlyDelimiter() public {
     _startPrank(user1);
-    DidTestHelpersNative.CreateDidResult memory didResult =
-      DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     // Service type is just a delimiter: "\x00" → should parse to empty array
     bytes memory delimiterOnly = abi.encodePacked(bytes1(0x00));

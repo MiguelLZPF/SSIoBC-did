@@ -1067,6 +1067,12 @@ bytes32 id = keccak256(
 
 **Uniqueness**: Cryptographically guaranteed through Keccak256
 
+**Predictability trade-off**: `block.prevrandao` is a RANDAO mix, not a secure random oracle. Validators can influence it within a 2^128 bias window. For DID systems this is acceptable because:
+1. DID ID collision requires a full Keccak256 preimage, not just RANDAO control
+2. The user-provided `random` value (e.g., UUIDv4) is the primary entropy source
+3. `tx.origin` binds the ID to a specific account, preventing cross-account replay
+4. Worst case: a validator front-runs to claim a *specific* DID ID — mitigated by the user choosing `random` off-chain before broadcasting
+
 #### Hash (bytes32)
 
 Internal hash for storage indexing:

@@ -4,7 +4,12 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { Service, MAX_SERVICE_TYPE_LENGTH, MAX_SERVICE_ENDPOINT_LENGTH } from "@src/interfaces/IServiceStorage.sol";
+import {
+  IServiceStorage,
+  Service,
+  MAX_SERVICE_TYPE_LENGTH,
+  MAX_SERVICE_ENDPOINT_LENGTH
+} from "@src/interfaces/IServiceStorage.sol";
 import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
 
 /**
@@ -181,7 +186,7 @@ contract ServiceStorageUnitTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
     // Test: Try to create service with empty ID
-    vm.expectRevert();
+    vm.expectRevert(IServiceStorage.ServiceIdCannotBeZero.selector);
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,
@@ -202,7 +207,7 @@ contract ServiceStorageUnitTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
     // Test: Try to create service with empty type
-    vm.expectRevert();
+    vm.expectRevert(IServiceStorage.ServiceTypeCannotBeEmpty.selector);
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,
@@ -223,7 +228,7 @@ contract ServiceStorageUnitTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
     // Test: Try to create service with empty endpoint
-    vm.expectRevert();
+    vm.expectRevert(IServiceStorage.ServiceEndpointCannotBeEmpty.selector);
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,
@@ -613,7 +618,7 @@ contract ServiceStorageUnitTest is TestBase {
     }
 
     // Test: Try to create service with oversized type
-    vm.expectRevert();
+    vm.expectRevert(IServiceStorage.ServiceTypeTooLarge.selector);
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,
@@ -640,7 +645,7 @@ contract ServiceStorageUnitTest is TestBase {
     }
 
     // Test: Try to create service with oversized endpoint
-    vm.expectRevert();
+    vm.expectRevert(IServiceStorage.ServiceEndpointTooLarge.selector);
     didManager.updateService(
       didResult.didInfo.methods,
       didResult.didInfo.id,

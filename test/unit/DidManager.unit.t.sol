@@ -101,7 +101,7 @@ contract DidManagerUnitTest is TestBase {
   function test_RevertWhen_CreateDid_WithEmptyRandom() public {
     _startPrank(user1);
 
-    vm.expectRevert();
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.createDid(Fixtures.EMPTY_DID_METHODS, Fixtures.EMPTY_RANDOM, bytes32(0));
 
     _stopPrank();
@@ -114,7 +114,7 @@ contract DidManagerUnitTest is TestBase {
     didManager.createDid(Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_0, bytes32(0));
 
     // Try to create the same DID again
-    vm.expectRevert();
+    vm.expectRevert(DidAlreadyExists.selector);
     didManager.createDid(Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_0, bytes32(0));
 
     _stopPrank();
@@ -166,7 +166,7 @@ contract DidManagerUnitTest is TestBase {
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
-    vm.expectRevert();
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.createVm(command);
 
     _stopPrank();
@@ -193,7 +193,7 @@ contract DidManagerUnitTest is TestBase {
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
-    vm.expectRevert();
+    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
     didManager.createVm(command);
 
     _stopPrank();
@@ -359,7 +359,7 @@ contract DidManagerUnitTest is TestBase {
       DidTestHelpers.createDid(vm, didManager, Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_1, bytes32(0));
 
     // Test: Try to update controller as user2 (not owner)
-    vm.expectRevert();
+    vm.expectRevert(NotAuthenticatedAsSenderId.selector);
     didManager.updateController(
       ownerDid.didInfo.methods,
       ownerDid.didInfo.id,
@@ -1809,6 +1809,138 @@ contract DidManagerUnitTest is TestBase {
       didManager.getControllerList(ownerDid.didInfo.methods, ownerDid.didInfo.id);
     assertEq(controllersAfter[0].id, controllerDid.didInfo.id, "Controller should be preserved after reactivation");
     assertEq(controllersAfter[0].vmId, controllersBefore[0].vmId, "Controller vmId should be preserved");
+
+    _stopPrank();
+  }
+
+  // =========================================================================
+  // VM RELATIONSHIP COMBINATION TESTS
+  // =========================================================================
+
+  function test_IsVmRelationship_Should_HandleAllRelationshipCombinations_When_MultipleSet() public {
+    _startPrank(user1);
+
+    // Setup: Create a DID
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create a VM with combined relationships (0x07 = auth + assertion + keyAgreement)
+    // 0x01 (authentication) | 0x02 (assertion) | 0x04 (keyAgreement) = 0x07
+    bytes1 combinedRelationships = bytes1(0x07);
+
+    CreateVmCommand memory vmCommand = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      type_: Fixtures.defaultVmType(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
+      blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
+      ethereumAddress: user1, // Use user1 as the ethereum address (already pranked)
+      relationships: combinedRelationships,
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
+    });
+
+    DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, vmCommand);
+
+    // Validate the VM so expiration is set to non-zero
+    didManager.validateVm(vmResult.vmCreatedPositionHash, 0);
+
+    // Test: Check each individual relationship flag in the combined relationships byte
+    // Even though multiple relationships are set, each individual flag should return true
+
+    // Check authentication (0x01)
+    bool authResult = didManager.isVmRelationship(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      Fixtures.VM_ID_CUSTOM,
+      Fixtures.VM_RELATIONSHIPS_AUTHENTICATION,
+      user1
+    );
+    assertTrue(authResult, "Authentication relationship should exist in combined relationships");
+
+    // Check assertion method (0x02)
+    bool assertionResult = didManager.isVmRelationship(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      Fixtures.VM_ID_CUSTOM,
+      Fixtures.VM_RELATIONSHIPS_ASSERTION_METHOD,
+      user1
+    );
+    assertTrue(assertionResult, "Assertion method relationship should exist in combined relationships");
+
+    // Check key agreement (0x04)
+    bool keyAgreementResult = didManager.isVmRelationship(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      Fixtures.VM_ID_CUSTOM,
+      Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT,
+      user1
+    );
+    assertTrue(keyAgreementResult, "Key agreement relationship should exist in combined relationships");
+
+    // Check that capability invocation (0x08) does NOT exist
+    bool capInvocationResult = didManager.isVmRelationship(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      Fixtures.VM_ID_CUSTOM,
+      Fixtures.VM_RELATIONSHIPS_CAPABILITY_INVOCATION,
+      user1
+    );
+    assertFalse(capInvocationResult, "Capability invocation should not exist in combined relationships");
+
+    // Check that capability delegation (0x10) does NOT exist
+    bool capDelegationResult = didManager.isVmRelationship(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      Fixtures.VM_ID_CUSTOM,
+      Fixtures.VM_RELATIONSHIPS_CAPABILITY_DELEGATION,
+      user1
+    );
+    assertFalse(capDelegationResult, "Capability delegation should not exist in combined relationships");
+
+    _stopPrank();
+  }
+
+  // =========================================================================
+  // SERVICE REMOVAL TESTS
+  // =========================================================================
+
+  function test_GetServiceListLength_Should_BeZero_When_AllServicesRemoved() public {
+    _startPrank(user1);
+
+    // Setup: Create a DID
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create a service
+    didManager.updateService(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      didResult.didInfo.id,
+      Fixtures.DEFAULT_SERVICE_ID,
+      Fixtures.DEFAULT_SERVICE_TYPE,
+      Fixtures.DEFAULT_SERVICE_ENDPOINT
+    );
+
+    // Verify the service was created
+    uint8 serviceCountAfterCreate = didManager.getServiceListLength(didResult.didInfo.methods, didResult.didInfo.id);
+    assertEq(serviceCountAfterCreate, 1, "Service count should be 1 after creating service");
+
+    // Remove the service by passing empty type_ and endpoint
+    didManager.updateService(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      didResult.didInfo.id,
+      Fixtures.DEFAULT_SERVICE_ID,
+      bytes(""), // Empty service type removes the service
+      bytes("") // Empty endpoint
+    );
+
+    // Verify the service was removed and list length is zero
+    uint8 serviceCountAfterRemove = didManager.getServiceListLength(didResult.didInfo.methods, didResult.didInfo.id);
+    assertEq(serviceCountAfterRemove, 0, "Service list length should be zero after removing all services");
 
     _stopPrank();
   }

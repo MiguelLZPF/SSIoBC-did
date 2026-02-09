@@ -15,6 +15,7 @@ on:
     paths:
       - 'src/**/*.sol'
       - 'test/**/*.sol'
+      - 'script/**/*.sol'
 
   workflow_dispatch:  # Allow manual triggering
 
@@ -31,15 +32,26 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly
+          version: v1.4.3
 
       - name: Run Forge Build
         run: forge build --force
         continue-on-error: false
 
+      - name: Check Contract Sizes
+        run: |
+          forge build --sizes 2>&1 | tee contract-sizes.txt
+          echo "## Contract Sizes" >> $GITHUB_STEP_SUMMARY
+          cat contract-sizes.txt >> $GITHUB_STEP_SUMMARY
+          # Check no contract exceeds 24KB (24576 bytes) EIP-170 limit
+          if awk '/\|/ && NR>2 {split($0,a,"|"); gsub(/[[:space:]]/,"",a[3]); if(a[3]+0 > 24.576) {print "FAIL: " a[2] " exceeds 24KB limit (" a[3] " KB)"; exit 1}}' contract-sizes.txt; then
+            echo "✅ All contracts within EIP-170 size limits"
+          fi
+        continue-on-error: false
+
       - name: Run Forge Tests
         run: forge test -vv
-        continue-on-error: true
+        continue-on-error: false
         id: tests
 
       - name: Generate Coverage Report
@@ -61,18 +73,31 @@ jobs:
           else
             echo "✅ Coverage $COVERAGE% meets 90% threshold"
           fi
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Run Forge Format Check
         run: forge fmt --check
-        continue-on-error: true
+        continue-on-error: false
         id: format
+
+      - name: Run Forge Lint
+        run: forge lint
+        continue-on-error: false
+        id: lint
 
       - name: Analyze Gas Costs
         run: |
           echo "## Gas Cost Analysis" >> $GITHUB_STEP_SUMMARY
           forge test --gas-report >> gas-report.txt
           cat gas-report.txt >> $GITHUB_STEP_SUMMARY
+        continue-on-error: true
+
+      - name: Run Slither Analysis
+        run: |
+          pip3 install slither-analyzer
+          echo "## Slither Static Analysis" >> $GITHUB_STEP_SUMMARY
+          slither . --filter-paths "lib/|test/|script/" --exclude-dependencies 2>&1 | tee slither-report.txt || true
+          cat slither-report.txt >> $GITHUB_STEP_SUMMARY
         continue-on-error: true
 
       - name: Security Scan Summary
@@ -84,7 +109,7 @@ jobs:
           echo "### Recommendations" >> $GITHUB_STEP_SUMMARY
           echo "- Review gas costs in gas-report.txt" >> $GITHUB_STEP_SUMMARY
           echo "- Verify test coverage meets >90% threshold" >> $GITHUB_STEP_SUMMARY
-          echo "- Check for security vulnerabilities using Slither or Mythril locally" >> $GITHUB_STEP_SUMMARY
+          echo "- Review Slither analysis for potential vulnerabilities" >> $GITHUB_STEP_SUMMARY
         continue-on-error: true
 
       - name: Upload Coverage Report

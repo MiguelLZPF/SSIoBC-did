@@ -185,7 +185,7 @@ contract VMStorageUnitTest is TestBase {
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
-    vm.expectRevert();
+    vm.expectRevert(IVMStorage.PubKeyBlockchainAccountORAddressRequired.selector);
     didManager.createVm(command);
 
     _stopPrank();
@@ -339,8 +339,8 @@ contract VMStorageUnitTest is TestBase {
     _stopPrank();
     _startPrank(user2);
 
-    // Test: Try to validate VM as different user
-    vm.expectRevert();
+    // Test: Try to validate VM as different user (VM already validated by createDefaultVm)
+    vm.expectRevert(IVMStorage.VmAlreadyValidated.selector);
     didManager.validateVm(vmResult.vmCreatedPositionHash, Fixtures.EMPTY_VM_EXPIRATION);
 
     _stopPrank();
@@ -586,7 +586,7 @@ contract VMStorageUnitTest is TestBase {
     );
 
     // Test: Try to expire already expired VM
-    vm.expectRevert();
+    vm.expectRevert(IVMStorage.VmAlreadyExpired.selector);
     didManager.expireVm(
       didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM
     );
@@ -826,7 +826,7 @@ contract VMStorageUnitTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
     // Request VM at invalid position (should trigger lines 165-166)
-    VerificationMethod memory vm_result = didManager.getVm(
+    VerificationMethod memory vmResult = didManager.getVm(
       didResult.didInfo.methods,
       didResult.didInfo.id,
       bytes32(0), // Get by position
@@ -834,7 +834,7 @@ contract VMStorageUnitTest is TestBase {
     );
 
     // Should return empty VM
-    assertEq(vm_result.id, bytes32(0), "Should return empty VM for invalid position");
+    assertEq(vmResult.id, bytes32(0), "Should return empty VM for invalid position");
 
     _stopPrank();
   }

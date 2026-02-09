@@ -46,10 +46,7 @@ library DidTestHelpersNative {
   /**
    * @notice Creates a DID with default parameters
    */
-  function createDefaultDid(Vm vm, IDidManagerNative didManager)
-    internal
-    returns (CreateDidResult memory result)
-  {
+  function createDefaultDid(Vm vm, IDidManagerNative didManager) internal returns (CreateDidResult memory result) {
     return createDid(vm, didManager, Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_0, bytes32(0));
   }
 

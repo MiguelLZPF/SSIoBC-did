@@ -125,6 +125,63 @@ contract SystemInvariantsTest is StdInvariant, TestBase {
       }
     }
   }
+
+  /**
+   * @notice Invariant: Expired DIDs should never authenticate successfully
+   * @dev Property: Any DID whose expiration time is in the past should fail authentication
+   * @dev This ensures the expiration mechanism is working correctly at all times
+   */
+  function invariant_ExpiredDidsShouldNeverAuthenticate() public {
+    bytes32[] memory createdDids = handler.getCreatedDids();
+
+    for (uint256 i = 0; i < createdDids.length; i++) {
+      bytes32 didId = createdDids[i];
+      uint256 expiration = didManager.getExpiration(DEFAULT_DID_METHODS, didId, bytes32(0));
+
+      // If expiration is 0, the DID is deactivated (special case, not expired)
+      if (expiration == 0) continue;
+
+      // Check if DID is expired
+      bool isExpired = block.timestamp >= expiration;
+
+      if (isExpired) {
+        // Property: Expired DID should NOT authenticate successfully
+        // Note: Authentication may revert instead of returning false, so we use try-catch
+        try didManager.authenticate(DEFAULT_DID_METHODS, didId, DEFAULT_VM_ID, address(this)) returns (bool result) {
+          assertFalse(result, "Expired DID should not authenticate");
+        } catch {
+          // Expected behavior: expired DIDs typically revert
+          // This is acceptable as it prevents expired DID operations
+        }
+      }
+    }
+  }
+
+  /**
+   * @notice Invariant: VM list length should match actual EnumerableSet count
+   * @dev Property: getVmListLength(methods, id) should always equal the actual VM count
+   * @dev This ensures internal storage consistency for VM management
+   */
+  function invariant_VmCountShouldMatchEnumerableSetLength() public {
+    bytes32[] memory createdDids = handler.getCreatedDids();
+
+    for (uint256 i = 0; i < createdDids.length; i++) {
+      bytes32 didId = createdDids[i];
+
+      // Get reported VM count
+      uint256 reportedVmCount = didManager.getVmListLength(DEFAULT_DID_METHODS, didId);
+
+      // Property: VM count should always be reasonable (0-100)
+      assertLe(reportedVmCount, Fixtures.MAX_REASONABLE_VM_COUNT, "VM count should not exceed reasonable limit");
+
+      // Property: If DID is not deactivated, should have at least 1 VM (the default one)
+      uint256 expiration = didManager.getExpiration(DEFAULT_DID_METHODS, didId, bytes32(0));
+      if (expiration != 0 && block.timestamp < expiration) {
+        // DID is not deactivated and not expired
+        assertGt(reportedVmCount, 0, "Active DID should have at least one VM");
+      }
+    }
+  }
 }
 
 /**

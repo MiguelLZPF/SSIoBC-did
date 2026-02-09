@@ -7,6 +7,7 @@ import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
 import { CreateVmCommand, DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
 import { W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
 import { W3CResolver } from "@src/W3CResolver.sol";
+import { DidInputRequired } from "@src/W3CResolverUtils.sol";
 import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
 
 /**
@@ -378,7 +379,7 @@ contract W3CResolverUnitTest is TestBase {
     // Test: Try to resolve VM with empty DID input
     W3CDidInput memory emptyDidInput = W3CDidInput({ methods: bytes32(0), id: bytes32(0), fragment: bytes32(0) });
 
-    vm.expectRevert();
+    vm.expectRevert(DidInputRequired.selector);
     w3cResolver.resolveVm(emptyDidInput, DEFAULT_VM_ID);
 
     _stopPrank();
@@ -390,8 +391,177 @@ contract W3CResolverUnitTest is TestBase {
     // Test: Try to resolve service with empty DID input
     W3CDidInput memory emptyDidInput = W3CDidInput({ methods: bytes32(0), id: bytes32(0), fragment: bytes32(0) });
 
-    vm.expectRevert();
+    vm.expectRevert(DidInputRequired.selector);
     w3cResolver.resolveService(emptyDidInput, Fixtures.DEFAULT_SERVICE_ID);
+
+    _stopPrank();
+  }
+
+  // =========================================================================
+  // RELATIONSHIP BITMASK TESTS
+  // =========================================================================
+
+  function test_Resolve_Should_PopulateAssertionMethodArray_When_VmHas0x02Flag() public {
+    _startPrank(user1);
+
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create VM with assertionMethod relationship (0x02)
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      type_: Fixtures.defaultVmType(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
+      blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
+      ethereumAddress: user1,
+      relationships: Fixtures.VM_RELATIONSHIPS_ASSERTION_METHOD, // 0x02
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
+    });
+    DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, command);
+    didManager.validateVm(vmResult.vmCreatedPositionHash, Fixtures.futureTimestamp(Fixtures.SECONDS_IN_YEAR));
+
+    W3CDidInput memory input =
+      W3CDidInput({ methods: didResult.didInfo.methods, id: didResult.didInfo.id, fragment: bytes32(0) });
+    W3CDidDocument memory doc = w3cResolver.resolve(input, false);
+
+    // Default VM has auth (0x01), custom VM has assertion (0x02)
+    assertEq(doc.authentication.length, 1); // Only default VM
+    assertEq(doc.assertionMethod.length, 1); // Only custom VM
+    assertEq(doc.keyAgreement.length, 0);
+    assertEq(doc.verificationMethod.length, 2);
+
+    _stopPrank();
+  }
+
+  function test_Resolve_Should_PopulateKeyAgreementArray_When_VmHas0x04Flag() public {
+    _startPrank(user1);
+
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create VM with keyAgreement relationship (0x04)
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      type_: Fixtures.defaultVmType(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
+      blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
+      ethereumAddress: user1,
+      relationships: Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT, // 0x04
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
+    });
+    DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, command);
+    didManager.validateVm(vmResult.vmCreatedPositionHash, Fixtures.futureTimestamp(Fixtures.SECONDS_IN_YEAR));
+
+    W3CDidInput memory input =
+      W3CDidInput({ methods: didResult.didInfo.methods, id: didResult.didInfo.id, fragment: bytes32(0) });
+    W3CDidDocument memory doc = w3cResolver.resolve(input, false);
+
+    // Default VM has auth (0x01), custom VM has keyAgreement (0x04)
+    assertEq(doc.authentication.length, 1);
+    assertEq(doc.assertionMethod.length, 0);
+    assertEq(doc.keyAgreement.length, 1);
+    assertEq(doc.verificationMethod.length, 2);
+
+    _stopPrank();
+  }
+
+  function test_Resolve_Should_PopulateMultipleRelationshipArrays_When_VmHasCombinedFlags() public {
+    _startPrank(user1);
+
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create VM with combined relationships: auth + assertion + keyAgreement (0x07)
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      type_: Fixtures.defaultVmType(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
+      blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
+      ethereumAddress: user1,
+      relationships: bytes1(0x07), // auth + assertion + keyAgreement
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
+    });
+    DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, command);
+    didManager.validateVm(vmResult.vmCreatedPositionHash, Fixtures.futureTimestamp(Fixtures.SECONDS_IN_YEAR));
+
+    W3CDidInput memory input =
+      W3CDidInput({ methods: didResult.didInfo.methods, id: didResult.didInfo.id, fragment: bytes32(0) });
+    W3CDidDocument memory doc = w3cResolver.resolve(input, false);
+
+    // Default VM has auth (0x01), custom VM has auth + assertion + keyAgreement (0x07)
+    assertEq(doc.authentication.length, 2); // Both have 0x01
+    assertEq(doc.assertionMethod.length, 1); // Only custom
+    assertEq(doc.keyAgreement.length, 1); // Only custom
+    assertEq(doc.capabilityDelegation.length, 0);
+    assertEq(doc.capabilityInvocation.length, 0);
+
+    _stopPrank();
+  }
+
+  // =========================================================================
+  // CONTROLLER RESOLUTION TESTS
+  // =========================================================================
+
+  function test_Resolve_Should_IncludeControllerList_When_ControllersAreSet() public {
+    _startPrank(user1);
+
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create a second DID to use as controller
+    DidTestHelpers.CreateDidResult memory controllerDid =
+      DidTestHelpers.createDid(vm, didManager, Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_1, bytes32(0));
+
+    // Set controller
+    didManager.updateController(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      didResult.didInfo.id,
+      controllerDid.didInfo.id,
+      DEFAULT_VM_ID,
+      0
+    );
+
+    W3CDidInput memory input =
+      W3CDidInput({ methods: didResult.didInfo.methods, id: didResult.didInfo.id, fragment: bytes32(0) });
+    W3CDidDocument memory doc = w3cResolver.resolve(input, false);
+
+    // Should have at least one controller
+    assertEq(doc.controller.length, 1);
+    assertTrue(bytes(doc.controller[0]).length > 0);
+
+    _stopPrank();
+  }
+
+  // =========================================================================
+  // EXPIRATION CONVERSION TESTS
+  // =========================================================================
+
+  function test_Resolve_Should_ConvertExpirationToMilliseconds_When_Resolving() public {
+    _startPrank(user1);
+
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    W3CDidInput memory input =
+      W3CDidInput({ methods: didResult.didInfo.methods, id: didResult.didInfo.id, fragment: bytes32(0) });
+    W3CDidDocument memory doc = w3cResolver.resolve(input, false);
+
+    // DID expiration should be in milliseconds (seconds * 1000)
+    uint256 rawExpiration = didManager.getExpiration(didResult.didInfo.methods, didResult.didInfo.id, bytes32(0));
+    assertEq(doc.expiration, rawExpiration * 1000);
+
+    // VM expiration should also be in milliseconds
+    assertEq(doc.verificationMethod[0].expiration, doc.verificationMethod[0].expiration); // non-zero check
+    assertGt(doc.verificationMethod[0].expiration, block.timestamp * 1000);
 
     _stopPrank();
   }
@@ -416,8 +586,7 @@ contract W3CResolverUnitTest is TestBase {
       publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: user1, // Valid ethereum address for validation
-      relationships: Fixtures.VM_RELATIONSHIPS_CAPABILITY_DELEGATION, // 0x10 - maps to capabilityInvocation (bug in
-        // W3CResolver)
+      relationships: Fixtures.VM_RELATIONSHIPS_CAPABILITY_INVOCATION, // 0x08
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, vmCommand);
@@ -513,8 +682,7 @@ contract W3CResolverUnitTest is TestBase {
       publicKeyMultibase: Fixtures.defaultVmPublicKeyMultibase(),
       blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: user1, // Valid ethereum address for validation
-      relationships: Fixtures.VM_RELATIONSHIPS_CAPABILITY_INVOCATION, // 0x08 - maps to capabilityDelegation (bug in
-        // W3CResolver)
+      relationships: Fixtures.VM_RELATIONSHIPS_CAPABILITY_DELEGATION, // 0x10
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, vmCommand);

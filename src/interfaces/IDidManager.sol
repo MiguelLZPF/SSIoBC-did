@@ -3,17 +3,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { VerificationMethod } from "@src/VMStorage.sol";
 import { Service } from "@src/interfaces/IServiceStorage.sol";
-import {
-  Controller,
-  DEFAULT_DID_METHODS,
-  EXPIRATION,
-  CONTROLLERS_MAX_LENGTH,
-  DidAlreadyExists,
-  DidExpired,
-  NotAuthenticatedAsSenderId,
-  NotAControllerforTargetId,
-  DidNotDeactivated
-} from "@src/DidManagerBase.sol";
+import { Controller, DEFAULT_DID_METHODS, EXPIRATION, CONTROLLERS_MAX_LENGTH } from "@src/DidManagerBase.sol";
 
 /**
  * @dev Command struct for creating a Verification Method via DidManager.
