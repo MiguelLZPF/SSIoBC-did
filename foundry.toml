@@ -50,6 +50,12 @@ fs_permissions = [
 [lint]
 exclude_lints = ["unsafe-typecast", "pascal-case-struct", "mixed-case-variable"]
 
+# CI profile - more thorough testing in continuous integration
+[profile.ci]
+fuzz = { runs = 1000 }       # 4x default (256) for better edge case coverage
+verbosity = 2                 # Moderate output (-vv)
+gas_reports = ["*"]           # Track gas for all contracts
+
 # Formatter configuration
 [fmt]
 # Indentation: 2 spaces instead of default 4

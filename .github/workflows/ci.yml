@@ -1,0 +1,279 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "src/**/*.sol"
+      - "test/**/*.sol"
+      - "script/**/*.sol"
+      - "foundry.toml"
+      - ".github/workflows/ci.yml"
+
+  push:
+    branches:
+      - main
+      - "feat/**"
+    paths:
+      - "src/**/*.sol"
+      - "test/**/*.sol"
+      - "script/**/*.sol"
+      - "foundry.toml"
+      - ".github/workflows/ci.yml"
+
+  workflow_dispatch:
+    inputs:
+      skip-security:
+        description: "Skip Slither security scan"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # ─── Job 1: Compile & Size Check ────────────────────────────────────
+  build:
+    name: Build & Size Check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.5.1
+
+      - name: Compile contracts
+        run: forge build --sizes 2>&1 | tee contract-sizes.txt
+
+      - name: Validate EIP-170 size limits
+        run: |
+          # Fail if any contract's runtime size exceeds 24576 bytes (24KB)
+          # Column 2 = Contract name, Column 3 = Runtime Size (B) with commas
+          awk -F '|' '/\|/ && NR>4 {
+            name=$2; size=$3;
+            gsub(/[[:space:],]/, "", name);
+            gsub(/[[:space:],]/, "", size);
+            if (size+0 > 24576) {
+              printf "FAIL: %s exceeds 24KB limit (%s bytes)\n", name, size;
+              fail=1
+            }
+          } END { if (fail) exit 1 }' contract-sizes.txt
+          echo "All contracts within EIP-170 size limits"
+
+      - name: Post size summary
+        run: |
+          echo "## Contract Sizes" >> "$GITHUB_STEP_SUMMARY"
+          cat contract-sizes.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cache build artifacts
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            out/
+            cache/
+          key: build-${{ github.sha }}
+
+  # ─── Job 2: Test Suite ──────────────────────────────────────────────
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+    env:
+      FOUNDRY_PROFILE: ci
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.5.1
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            out/
+            cache/
+          key: build-${{ github.sha }}
+
+      - name: Run tests
+        run: forge test -vv
+
+      - name: Generate gas snapshot
+        run: forge snapshot --snap .gas-snapshot
+
+      - name: Upload gas snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: gas-snapshot
+          path: .gas-snapshot
+          retention-days: 7
+
+  # ─── Job 3: Coverage Analysis ───────────────────────────────────────
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.5.1
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            out/
+            cache/
+          key: build-${{ github.sha }}
+
+      - name: Generate LCOV report
+        run: forge coverage --report lcov
+
+      - name: Filter coverage to source contracts
+        run: |
+          sudo apt-get install -y -qq lcov > /dev/null 2>&1
+          lcov --remove lcov.info \
+            'test/*' 'script/*' 'lib/*' \
+            --output-file lcov-filtered.info \
+            --rc lcov_branch_coverage=1
+
+      - name: Enforce 90% coverage threshold
+        run: |
+          COVERAGE=$(lcov --summary lcov-filtered.info 2>&1 | grep -oP 'lines\.*: \K[0-9.]+')
+          echo "Line coverage: ${COVERAGE}%"
+          echo "## Coverage: ${COVERAGE}%" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$(echo "$COVERAGE < 90" | bc -l)" -eq 1 ]; then
+            echo "Coverage ${COVERAGE}% is below 90% threshold"
+            exit 1
+          fi
+
+      - name: Post coverage to PR
+        if: github.event_name == 'pull_request'
+        uses: romeovs/lcov-reporter-action@v0.4.0
+        with:
+          lcov-file: lcov-filtered.info
+          filter-changed-files: true
+          delete-old-comments: true
+          title: "Coverage Report"
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: |
+            lcov.info
+            lcov-filtered.info
+          retention-days: 30
+
+  # ─── Job 4: Format & Lint ──────────────────────────────────────────
+  quality:
+    name: Format & Lint
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.5.1
+
+      - name: Check formatting
+        run: forge fmt --check
+
+      - name: Run linter
+        run: forge lint
+
+  # ─── Job 5: Slither Security Scan ──────────────────────────────────
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ !inputs.skip-security }}
+    continue-on-error: true
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Run Slither
+        uses: crytic/slither-action@v0.4.2
+        id: slither
+        with:
+          sarif: slither-results.sarif
+          fail-on: none
+          slither-args: --filter-paths "lib/|test/|script/" --exclude-dependencies
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: ${{ steps.slither.outputs.sarif }}
+
+  # ─── Job 6: Gas Comparison (PRs only) ──────────────────────────────
+  gas-diff:
+    name: Gas Diff
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.5.1
+
+      - name: Generate gas report
+        run: forge test --gas-report > gasreport.ansi
+        env:
+          FOUNDRY_FUZZ_SEED: "0x${{ github.event.pull_request.base.sha }}"
+
+      - name: Compare gas reports
+        uses: Rubilmax/foundry-gas-diff@v3.21
+        with:
+          summaryQuantile: 0.9
+          sortCriteria: avg,max
+          sortOrders: desc,asc
+        id: gas_diff
+
+      - name: Post gas diff comment
+        if: steps.gas_diff.outputs.markdown
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: gas-diff
+          delete: ${{ !steps.gas_diff.outputs.markdown }}
+          message: ${{ steps.gas_diff.outputs.markdown }}

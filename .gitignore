@@ -1,6 +1,7 @@
 # 🔧 Build & Compilation
 cache/
 out/
+.gas-snapshot
 
 # 📺 Development & Broadcasting
 !/broadcast
