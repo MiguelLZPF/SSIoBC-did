@@ -73,7 +73,7 @@ jobs:
           cat contract-sizes.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cache build artifacts
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: |
             out/
@@ -100,7 +100,7 @@ jobs:
           version: v1.5.1
 
       - name: Restore build cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             out/
@@ -139,7 +139,7 @@ jobs:
           version: v1.5.1
 
       - name: Restore build cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: |
             out/
