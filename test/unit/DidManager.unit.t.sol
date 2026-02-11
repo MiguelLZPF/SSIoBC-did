@@ -74,13 +74,13 @@ contract DidManagerUnitTest is TestBase {
     uint256 didExpiration = didManager.getExpiration(result.didInfo.methods, result.didInfo.id, bytes32(0));
     assertGt(didExpiration, block.timestamp);
     assertLt(didExpiration, block.timestamp + Fixtures.DID_MAX_EXPIRATION_PERIOD + Fixtures.TEST_EXPIRATION_BUFFER); // 4
-      // years + 1 day buffer
+    // years + 1 day buffer
 
     // Verify VM expiration is set correctly (1 year)
     uint256 vmExpiration = didManager.getExpiration(result.didInfo.methods, result.didInfo.id, DEFAULT_VM_ID);
     assertGt(vmExpiration, block.timestamp);
     assertLt(vmExpiration, block.timestamp + Fixtures.VM_DEFAULT_EXPIRATION_PERIOD + Fixtures.TEST_EXPIRATION_BUFFER); // 1
-      // year + 1 day buffer
+    // year + 1 day buffer
 
     _stopPrank();
   }

@@ -13,7 +13,7 @@ struct Deployment {
   bytes32 bytecodeHash; // Hash of the bytecode for the deployment.
   uint256 chainId; // Chain ID where the deployment will take place.
   address logicAddr; // Address of the logic contract.
-    // bytes32 logicDeployTxHash;
+  // bytes32 logicDeployTxHash;
   bytes32 name; // Name of the deployment.
   address proxyAddr; // Address of the proxy contract.
   bytes32 tag; // Tag associated with the deployment.
