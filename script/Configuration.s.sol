@@ -34,13 +34,13 @@ struct DeploymentStoreInfo {
 contract Configuration is Script, Helper {
   using stdJson for string;
 
-  uint256 PORT = vm.envUint("PORT");
-  uint256 CHAIN_ID = vm.envUint("CHAIN_ID");
-  string HARDFORK = vm.envString("HARDFORK");
-  uint256 ACCOUNT_NUMBER = vm.envUint("ACCOUNT_NUMBER");
-  string MNEMONIC = vm.envString("MNEMONIC");
-  string ANVIL_CONFIG_OUT = vm.envString("ANVIL_CONFIG_OUT");
-  string DEPLOYMENTS_PATH = vm.envString("DEPLOYMENTS_PATH");
+  uint256 PORT = vm.envOr("PORT", uint256(8545));
+  uint256 CHAIN_ID = vm.envOr("CHAIN_ID", uint256(31337));
+  string HARDFORK = vm.envOr("HARDFORK", string("prague"));
+  uint256 ACCOUNT_NUMBER = vm.envOr("ACCOUNT_NUMBER", uint256(10));
+  string MNEMONIC = vm.envOr("MNEMONIC", string("test test test test test test test test test test test junk"));
+  string ANVIL_CONFIG_OUT = vm.envOr("ANVIL_CONFIG_OUT", string(".last-anvil-config.json"));
+  string DEPLOYMENTS_PATH = vm.envOr("DEPLOYMENTS_PATH", string(".deployments.json"));
 
   constructor() { }
 

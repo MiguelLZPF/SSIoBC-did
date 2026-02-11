@@ -89,6 +89,12 @@ jobs:
       contents: read
     env:
       FOUNDRY_PROFILE: ci
+      PORT: ${{ vars.PORT }}
+      CHAIN_ID: ${{ vars.CHAIN_ID }}
+      HARDFORK: ${{ vars.HARDFORK }}
+      ACCOUNT_NUMBER: ${{ vars.ACCOUNT_NUMBER }}
+      ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
+      DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -128,6 +134,13 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    env:
+      PORT: ${{ vars.PORT }}
+      CHAIN_ID: ${{ vars.CHAIN_ID }}
+      HARDFORK: ${{ vars.HARDFORK }}
+      ACCOUNT_NUMBER: ${{ vars.ACCOUNT_NUMBER }}
+      ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
+      DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -247,6 +260,13 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    env:
+      PORT: ${{ vars.PORT }}
+      CHAIN_ID: ${{ vars.CHAIN_ID }}
+      HARDFORK: ${{ vars.HARDFORK }}
+      ACCOUNT_NUMBER: ${{ vars.ACCOUNT_NUMBER }}
+      ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
+      DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
       - uses: actions/checkout@v4
         with:
