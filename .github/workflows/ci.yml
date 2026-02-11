@@ -89,6 +89,12 @@ jobs:
       contents: read
     env:
       FOUNDRY_PROFILE: ci
+      PORT: ${{ vars.PORT }}
+      CHAIN_ID: ${{ vars.CHAIN_ID }}
+      HARDFORK: ${{ vars.HARDFORK }}
+      ACCOUNT_NUMBER: ${{ vars.ACCOUNT_NUMBER }}
+      ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
+      DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -128,6 +134,13 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    env:
+      PORT: ${{ vars.PORT }}
+      CHAIN_ID: ${{ vars.CHAIN_ID }}
+      HARDFORK: ${{ vars.HARDFORK }}
+      ACCOUNT_NUMBER: ${{ vars.ACCOUNT_NUMBER }}
+      ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
+      DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -155,7 +168,8 @@ jobs:
           lcov --remove lcov.info \
             'test/*' 'script/*' 'lib/*' \
             --output-file lcov-filtered.info \
-            --rc lcov_branch_coverage=1
+            --rc branch_coverage=1 \
+            --ignore-errors unused
 
       - name: Enforce 90% coverage threshold
         run: |
@@ -215,10 +229,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     if: ${{ !inputs.skip-security }}
-    continue-on-error: true
     permissions:
       contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -226,17 +238,18 @@ jobs:
 
       - name: Run Slither
         uses: crytic/slither-action@v0.4.2
-        id: slither
         with:
           sarif: slither-results.sarif
           fail-on: none
           slither-args: --filter-paths "lib/|test/|script/" --exclude-dependencies
 
-      - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload Slither report
+        uses: actions/upload-artifact@v4
         if: always()
         with:
-          sarif_file: ${{ steps.slither.outputs.sarif }}
+          name: slither-sarif
+          path: slither-results.sarif
+          retention-days: 30
 
   # ─── Job 6: Gas Comparison (PRs only) ──────────────────────────────
   gas-diff:
@@ -247,6 +260,13 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    env:
+      PORT: ${{ vars.PORT }}
+      CHAIN_ID: ${{ vars.CHAIN_ID }}
+      HARDFORK: ${{ vars.HARDFORK }}
+      ACCOUNT_NUMBER: ${{ vars.ACCOUNT_NUMBER }}
+      ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
+      DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
       - uses: actions/checkout@v4
         with:

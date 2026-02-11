@@ -121,7 +121,7 @@ abstract contract VMStorage is IVMStorage {
     if (vm.id == bytes32(0)) revert VmNotFound();
     if (vm.expiration != 0) revert VmAlreadyValidated(); // This means that the VM is already validated
     if (vm.ethereumAddress != sender) revert InvalidSignature(); // This means that the Tx Signer is not the VM's
-      // Ethereum Address or actual signature validation
+    // Ethereum Address or actual signature validation
     vm.expiration = uint88(expiration);
     //Event
     emit VmValidated(vm.id);
