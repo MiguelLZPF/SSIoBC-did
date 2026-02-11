@@ -40,7 +40,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -96,7 +96,7 @@ jobs:
       ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
       DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -142,7 +142,7 @@ jobs:
       ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
       DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -208,7 +208,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -232,7 +232,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
@@ -268,7 +268,7 @@ jobs:
       ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
       DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: recursive
 
