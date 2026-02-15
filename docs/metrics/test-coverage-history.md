@@ -51,7 +51,7 @@ The project has maintained comprehensive test coverage throughout development, w
 | v1.0.1  | >90%            | High          | Complete          | Strong          | ServiceStorage dynamic bytes |
 | v1.0.2 | 98.35% | 119/121 | 100% | 93.55% | reactivateDid() + 12 new tests |
 | **v1.1.0** | **98.36%** | **120/122** | **100%** | **93.10%** | **Bytecode optimization + HashUtils library (100% coverage)** |
-| **v1.2.0** | **>98%** | **See below** | **100%** | **>90%** | **Dual-variant: 237 total tests, DidManagerNative 99%, VMStorageNative 100%, W3CResolverNative 99%** |
+| **v1.2.0** | **>98%** | **See below** | **100%** | **>90%** | **Dual-variant: 268 total tests, DidManagerNative 99%, VMStorageNative 100%, W3CResolverNative 99%** |
 
 ## Quality Metrics
 
@@ -121,19 +121,25 @@ The project has maintained comprehensive test coverage throughout development, w
   - State preservation verification (VMs, Services, Controllers preserved)
 
 #### DidManagerNative Contract (v1.2.0)
-- **64 unit tests** covering all DID lifecycle operations
+- **72 unit tests** covering all DID lifecycle operations
 - **Coverage**: 99.03% lines, 95.65% branches, 100% functions
 - **VMStorageNative**: 100% coverage across all metrics
 - **Controller delegation**: Full controller lifecycle with native VMs
-- **Error branches**: EthereumAddressRequired, VmAlreadyExists, VmNotFound, VmAlreadyValidated, VmAlreadyExpired
-- **Edge cases**: Self-reactivation with wrong VM, relationship bitmask validation
+- **Error branches**: EthereumAddressRequired, VmAlreadyExists, VmNotFound, VmAlreadyValidated, VmAlreadyExpired, PublicKeyMultibaseRequiredForKeyAgreement, PublicKeyMultibaseNotAllowedWithoutKeyAgreement, InvalidMultibasePrefix, PublicKeyTooLarge
+- **Edge cases**: Self-reactivation with wrong VM, relationship bitmask validation, publicKeyMultibase enforcement for keyAgreement VMs
 
 #### W3CResolverNative Contract (v1.2.0)
-- **21 unit tests** covering resolution-time field derivation
+- **27 unit tests** covering resolution-time field derivation
 - **Coverage**: 98.71% lines, 90.91% branches, 100% functions
 - **Relationship bitmasks**: All 5 types tested (0x01-0x10)
 - **Service parsing**: Multi-value delimiter, trailing delimiter trimming, delimiter-only input
-- **Field derivation**: CAIP-10 blockchainAccountId, type\_ constant, empty publicKeyMultibase
+- **Field derivation**: CAIP-10 blockchainAccountId, type\_ constant, publicKeyMultibase from storage (keyAgreement) or empty (others)
+
+#### KeyAgreementE2E Integration Test (v1.2.0)
+- **3 integration tests** demonstrating real ECDH key exchange via DID keyAgreement
+- **EC math validation**: secp256k1 scalar multiplication verified against Foundry's libsecp256k1
+- **Full E2E flow**: Store public key on-chain → resolve DID → extract key → ECDH shared secret → encrypt/decrypt
+- **Compress/decompress round-trip**: Key serialization integrity verification
 
 #### VMStorage Contract
 - **Hash-Based Lists**: EnumerableSet operations
@@ -233,4 +239,4 @@ Coverage data supports PhD thesis claims about:
 
 ---
 
-*Last Updated: v1.2.0 - 237 total tests (+85 for native variant), VMStorageNative 100% coverage, all source contracts >90%*
+*Last Updated: v1.2.0 - 268 total tests (+116 for native variant including E2E), VMStorageNative 100% coverage, all source contracts >90%*

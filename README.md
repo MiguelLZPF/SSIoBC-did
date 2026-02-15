@@ -69,7 +69,7 @@ DidManagerNative = VMStorageNative + DidManagerBase + ServiceStorage
 # Build contracts
 forge build
 
-# Run all tests (237 tests, >90% coverage)
+# Run all tests (268 tests, >90% coverage)
 forge test
 
 # Run tests with coverage report

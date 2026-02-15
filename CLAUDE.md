@@ -353,7 +353,7 @@ The agent will perform:
 
 ---
 
-**Last Updated**: 2026-02-05
+**Last Updated**: 2026-02-15
 **Purpose**: Claude Code project-specific context and routing overrides
 **Architecture**: Simplified 2-file system (CLAUDE.md + PROJECT.md)
 **Routing**: Inherits global rules from ~/.claude/CLAUDE.md with project-specific overrides

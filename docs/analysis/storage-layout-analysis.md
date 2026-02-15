@@ -13,6 +13,7 @@
   - [Controller Struct](#controller-struct)
   - [VerificationMethod Struct](#verificationmethod-struct)
   - [Service Struct](#service-struct)
+- [VMStorageNative Layout](#vmstoragenative-layout)
 - [Optimization History](#optimization-history)
 
 ---
@@ -25,7 +26,7 @@ This document provides comprehensive storage layout analysis for the SSIoBC-did 
 - Future upgrade planning
 - Academic documentation
 
-**Contract Version:** v1.1.0
+**Contract Version:** v1.2.0
 **Last Updated:** February 2026
 
 ---
@@ -365,6 +366,43 @@ Storage slots are allocated in inheritance order:
 
 ---
 
+## VMStorageNative Layout
+
+The Ethereum-native variant uses a similar structure to VMStorage but with 1-slot VMs and an overflow mapping for `publicKeyMultibase`.
+
+```
+╔═══════════════════════════════════════════════════════════════════════════════════════╗
+║                     VMStorageNative Storage Detail (6 base slots)                      ║
+╠═══════════════════════════════════════════════════════════════════════════════════════╣
+║                                                                                        ║
+║  Slots 0-4: Same structure as VMStorage (EnumerableSet, VM data, position hashes)     ║
+║                                                                                        ║
+║  Per-VM Storage (1 slot - VerificationMethod struct):                                  ║
+║  ┌────────────────────────────────────────────────────────────────────────────────┐   ║
+║  │  |ethereumAddress(20B)|relationships(1B)|expiration(11B)| = 1 SLOT            │   ║
+║  └────────────────────────────────────────────────────────────────────────────────┘   ║
+║                                                                                        ║
+║  Slot 5: _publicKeyMultibase (overflow storage, keyAgreement VMs only)                ║
+║  ┌────────────────────────────────────────────────────────────────────────────────┐   ║
+║  │  Type: mapping(bytes32 didHash => mapping(bytes32 vmId => bytes))              │   ║
+║  │                                                                                │   ║
+║  │  Stored: Only when relationships & 0x04 (keyAgreement) is set                 │   ║
+║  │  Format: Pre-encoded multibase string (must start with 'z')                   │   ║
+║  │  Max Size: 1500 bytes (MAX_PUBLIC_KEY_MULTIBASE_LENGTH_NATIVE)                │   ║
+║  │  Cleanup: Cleared in _removeAllVms() when DID is deactivated                  │   ║
+║  │                                                                                │   ║
+║  │  Enforcement at creation:                                                      │   ║
+║  │  • keyAgreement set → publicKeyMultibase REQUIRED (non-empty, 'z' prefix)     │   ║
+║  │  • keyAgreement not set → publicKeyMultibase FORBIDDEN (must be empty)        │   ║
+║  └────────────────────────────────────────────────────────────────────────────────┘   ║
+║                                                                                        ║
+║  TOTAL BASE SLOTS: 6 (vs 5 for VMStorage)                                             ║
+║                                                                                        ║
+╚═══════════════════════════════════════════════════════════════════════════════════════╝
+```
+
+---
+
 ## Optimization History
 
 | Version | Component | Change | Impact |
@@ -373,7 +411,9 @@ Storage slots are allocated in inheritance order:
 | v1.0 | VMStorage | Pre-encoded multibase (removed Base58 library) | ~98% resolution gas savings |
 | v1.0.1 | ServiceStorage | Dynamic bytes for type_/serviceEndpoint | 96% storage reduction |
 | v1.0.1 | DidManager | Controller removal via bytes32(0) | Complete controller lifecycle |
+| v1.2.0 | VMStorageNative | Added `_publicKeyMultibase` overflow mapping | keyAgreement VMs store public keys |
+| v1.2.0 | VMStorageNative | Strict keyAgreement ↔ publicKeyMultibase enforcement | Security invariant at creation time |
 
 ---
 
-*Document generated for SSIoBC-did v1.0.1 - February 2026*
+*Document generated for SSIoBC-did v1.2.0 - February 2026*

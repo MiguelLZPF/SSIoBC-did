@@ -36,7 +36,7 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | v1.0.1  | 13.9 kB    | 12.8 kB     | —                | —                 | ServiceStorage optimization (dynamic bytes) |
 | v1.0.2  | 15.2 kB    | 12.8 kB     | —                | —                 | reactivateDid() + _isVmOwner() helper |
 | **v1.1.0** | **12.1 kB** | **12.8 kB** | **—** | **—** | **Bytecode optimization: custom errors, SLOAD caching, HashUtils, optimizer_runs=200** |
-| **v1.2.0** | **12.1 kB** | **11.3 kB** | **9.8 kB** | **11.6 kB** | **Dual-variant architecture with shared DidManagerBase** |
+| **v1.2.0** | **12.1 kB** | **11.2 kB** | **10.5 kB** | **11.7 kB** | **Dual-variant architecture with shared DidManagerBase + publicKeyMultibase for keyAgreement** |
 
 ### Visual Documentation
 
@@ -233,26 +233,27 @@ The v1.2.0 release introduces the Ethereum-native variant alongside the existing
 ```
 | Contract             | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
 |----------------------|------------------|-------------------|--------------------|--------------------|
-| DidManager           | 12,102           | 12,130            | 12,474             | 37,022             |
-| DidManagerNative     | 9,755            | 9,783             | 14,821             | 39,369             |
-| W3CResolver          | 11,295           | 12,046            | 13,281             | 37,106             |
-| W3CResolverNative    | 11,638           | 12,389            | 12,938             | 36,763             |
+| DidManager           | 12,138           | 12,166            | 12,438             | 36,986              |
+| DidManagerNative     | 10,533           | 10,561            | 14,043             | 38,591              |
+| W3CResolver          | 11,169           | 11,920            | 13,407             | 37,232              |
+| W3CResolverNative    | 11,709           | 12,460            | 12,867             | 36,692              |
 ```
 
 **Key Changes:**
 1. **DidManagerBase**: Shared abstract base extracted from DidManager (expiration, controllers)
-2. **VMStorageNative**: 1-slot per VM (address + relationships + expiration = 32 bytes)
-3. **DidManagerNative**: 19.4% smaller than DidManager (9,755 vs 12,102 bytes)
-4. **W3CResolverNative**: Derives W3C fields at resolution time instead of storing them
+2. **VMStorageNative**: 1-slot per VM (address + relationships + expiration = 32 bytes) + overflow `_publicKeyMultibase` mapping for keyAgreement VMs
+3. **DidManagerNative**: 13.2% smaller than DidManager (10,533 vs 12,138 bytes)
+4. **W3CResolverNative**: Derives W3C fields at resolution time; reads publicKeyMultibase from storage for keyAgreement VMs
 5. **Inheritance Fix**: VMStorage/VMStorageNative no longer inherit DidManagerBase (correct dependency direction)
+6. **publicKeyMultibase support**: Native VMs with keyAgreement (0x04) must store a public key; enforced at creation time
 
 **Variant Comparison:**
 | Metric | Full W3C (DidManager) | Native (DidManagerNative) | Difference |
 |--------|----------------------|--------------------------|------------|
-| Runtime Size | 12,102 B | 9,755 B | -19.4% |
-| VM Storage | Multi-slot per VM | 1 slot per VM | ~80% less |
+| Runtime Size | 12,138 B | 10,533 B | -13.2% |
+| VM Storage | Multi-slot per VM | 1 slot + overflow for keyAgreement | ~80% less |
 | Key Types | Any (RSA, Ed25519, secp256k1) | Ethereum secp256k1 only | Trade-off |
-| W3C Fields | Stored per VM | Derived at resolution | Trade-off |
+| W3C Fields | Stored per VM | Derived at resolution (except publicKeyMultibase for keyAgreement) | Trade-off |
 
 #### Trade-off Analysis
 
@@ -323,4 +324,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v1.2.0 - Dual-variant architecture: DidManagerNative (9,755 B, -19.4% vs DidManager) + W3CResolverNative (11,638 B)*
+*Last Updated: v1.2.0 - Dual-variant architecture: DidManagerNative (10,533 B, -13.2% vs DidManager) + W3CResolverNative (11,709 B) + publicKeyMultibase support for keyAgreement*

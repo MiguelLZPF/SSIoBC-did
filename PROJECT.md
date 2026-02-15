@@ -431,7 +431,7 @@ flowchart TB
         mapping(hash => mapping(id => uint8))"]
     end
 
-    subgraph VMStoreNative["VMStorageNative (5 base slots, 1-slot VMs)"]
+    subgraph VMStoreNative["VMStorageNative (6 base slots, 1-slot VMs)"]
         VN1["Slot 0: _vmIds
         mapping(didHash => EnumerableSet)"]
 
@@ -441,6 +441,10 @@ flowchart TB
 
         VN3["Slots 2-4: Position hash mappings
         (same structure as VMStorage)"]
+
+        VN4["Slot 5: _publicKeyMultibase
+        mapping(didHash => mapping(vmId => bytes))
+        Overflow storage for keyAgreement VMs only"]
     end
 
     subgraph DidBaseStore["DidManagerBase Storage (shared)"]
@@ -537,8 +541,8 @@ classDiagram
     ethereumAddress (20B) + relationships (1B) + expiration (11B) packed in last slot"
 
     note for VerificationMethodNative "Native: 1 slot total = 32 bytes
-    type_, publicKeyMultibase, blockchainAccountId
-    derived at resolution time"
+    type_, blockchainAccountId derived at resolution time
+    publicKeyMultibase stored in overflow mapping (keyAgreement only)"
 
     note for Service "Dynamic bytes with '\\x00' delimiter
     96% storage reduction vs v1.0"
@@ -738,15 +742,15 @@ The system provides two variants sharing a common base, each optimized for diffe
 
 | Variant | VM Storage | Contract Size | Use Case |
 |---------|-----------|--------------|----------|
-| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,102 B | General-purpose DID with any key type |
-| **Ethereum-Native** (DidManagerNative) | 1-slot per VM (ethereumAddress + relationships + expiration = 32 bytes) | 9,755 B | Ethereum-only DIDs, 19% smaller bytecode |
+| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,138 B | General-purpose DID with any key type |
+| **Ethereum-Native** (DidManagerNative) | 1-slot per VM + overflow publicKeyMultibase for keyAgreement (ethereumAddress + relationships + expiration = 32 bytes) | 10,533 B | Ethereum-only DIDs, 13% smaller bytecode |
 
 Both variants share:
 - **DidManagerBase**: Expiration management, controller logic (`_isExpired`, `_isControllerFor`, `updateExpiration`)
 - **ServiceStorage**: Service endpoint storage (dynamic bytes with `\x00` delimiter)
 - **HashUtils**: Shared hash helper library (`calculateIdHash`, `calculatePositionHash`)
 
-The native variant derives W3C fields (type\_, publicKeyMultibase, blockchainAccountId) at resolution time in W3CResolverNative, rather than storing them per VM.
+The native variant derives W3C fields (type\_, blockchainAccountId) at resolution time in W3CResolverNative. For `publicKeyMultibase`, keyAgreement VMs store it in an overflow mapping and W3CResolverNative reads it from storage; non-keyAgreement VMs return empty.
 
 ### Contract Details
 
@@ -911,7 +915,7 @@ struct Service {
 
 **Inheritance**: Inherits from VMStorageNative, DidManagerBase, and ServiceStorage
 
-**Key Difference**: VMs store only `ethereumAddress` (20B) + `relationships` (1B) + `expiration` (11B) = 1 slot per VM. W3C fields are derived at resolution time.
+**Key Difference**: VMs store `ethereumAddress` (20B) + `relationships` (1B) + `expiration` (11B) = 1 slot per VM. An overflow mapping stores `publicKeyMultibase` for keyAgreement VMs only. Other W3C fields are derived at resolution time.
 
 #### 7. VMStorageNative.sol
 
@@ -937,10 +941,10 @@ struct VerificationMethod {
 
 **Key Derivations at Resolution Time**:
 - `type_`: Always `"EcdsaSecp256k1VerificationKey2019"` (Ethereum-native)
-- `publicKeyMultibase`: Always empty (not applicable for native VMs)
+- `publicKeyMultibase`: Read from overflow storage for keyAgreement VMs, empty for others
 - `blockchainAccountId`: Derived as CAIP-10 from `ethereumAddress` + `block.chainid`
 
-**Contract Size**: 11,638 B runtime
+**Contract Size**: 11,709 B runtime
 
 ### Key Design Patterns
 
@@ -1364,13 +1368,14 @@ src/
 test/
 ├── unit/                          # Unit tests (isolated contract testing)
 │   ├── DidManager.unit.t.sol
-│   ├── DidManagerNative.unit.t.sol # 64 tests for native variant
+│   ├── DidManagerNative.unit.t.sol # 72 tests for native variant
 │   ├── VMStorage.unit.t.sol
 │   ├── ServiceStorage.unit.t.sol
 │   ├── W3CResolver.unit.t.sol
-│   └── W3CResolverNative.unit.t.sol # 21 tests for native resolver
+│   └── W3CResolverNative.unit.t.sol # 27 tests for native resolver
 ├── integration/                    # Integration tests (multi-contract flows)
-│   └── DidLifecycle.integration.t.sol
+│   ├── DidLifecycle.integration.t.sol
+│   └── KeyAgreementE2E.t.sol      # ECDH key exchange E2E test (3 tests)
 ├── fuzz/                          # Fuzz tests (property-based testing)
 │   └── DidManager.fuzz.t.sol
 ├── invariant/                     # Invariant tests (stateful fuzzing)
@@ -1427,7 +1432,7 @@ script/
 
 ---
 
-**Last Updated**: 2026-02-08
+**Last Updated**: 2026-02-15
 **Version**: v1.2.0
 **Purpose**: Single source of truth for SSIoBC-did project knowledge
 **Referenced By**: CLAUDE.md, docs/README.md
