@@ -7,8 +7,9 @@ import { Controller, CONTROLLERS_MAX_LENGTH } from "@src/DidManagerBase.sol";
 
 /**
  * @dev Command struct for creating a native Verification Method via DidManagerNative.
- * Simplified: only 7 fields (vs 11 in the full variant).
- * No type_, publicKeyMultibase, blockchainAccountId, or expiration.
+ * Simplified: only 8 fields (vs 11 in the full variant).
+ * No type_, blockchainAccountId, or expiration.
+ * publicKeyMultibase is REQUIRED when keyAgreement (0x04) is set, and FORBIDDEN otherwise.
  */
 struct CreateVmCommand {
   bytes32 methods; // The DID methods
@@ -18,6 +19,7 @@ struct CreateVmCommand {
   bytes32 vmId; // The ID of the verification method
   address ethereumAddress; // MANDATORY - the Ethereum address
   bytes1 relationships; // The relationships of the VM
+  bytes publicKeyMultibase; // Required IFF keyAgreement (0x04) is set; pre-encoded multibase (must start with 'z')
 }
 
 /**
@@ -77,6 +79,11 @@ interface IDidManagerNative {
     returns (VerificationMethod memory vm);
 
   function getVmListLength(bytes32 methods, bytes32 id) external view returns (uint8);
+
+  /**
+   * @dev Returns the publicKeyMultibase for a native VM. Empty for non-keyAgreement VMs.
+   */
+  function getVmPublicKeyMultibase(bytes32 methods, bytes32 id, bytes32 vmId) external view returns (bytes memory);
 
   /**
    * @dev Returns the VM ID at a given position. Used by W3CResolverNative for document construction.

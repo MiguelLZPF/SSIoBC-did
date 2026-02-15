@@ -8,6 +8,9 @@ pragma solidity >=0.8.0 <0.9.0;
 bytes32 constant DEFAULT_VM_ID_NATIVE = bytes32("vm-0");
 uint256 constant DEFAULT_VM_EXPIRATION_NATIVE = 365 days;
 
+// Max length for publicKeyMultibase in native VMs (same as full variant)
+uint256 constant MAX_PUBLIC_KEY_MULTIBASE_LENGTH_NATIVE = 1500;
+
 // =========================================================================
 // Structs
 // =========================================================================
@@ -25,13 +28,15 @@ struct VerificationMethod {
 
 /**
  * @dev Command struct for creating a native Verification Method.
- * Simplified: no type_, publicKeyMultibase, blockchainAccountId, or expiration fields.
+ * Simplified: no type_, blockchainAccountId, or expiration fields.
+ * publicKeyMultibase is REQUIRED when keyAgreement (0x04) is set, and FORBIDDEN otherwise.
  */
 struct CreateVmCommand {
   bytes32 didHash; // The hash of the decentralized identifier (DID)
   bytes32 id; // The identifier of the verification method (VM)
   address ethereumAddress; // MANDATORY - the Ethereum address for this VM
   bytes1 relationships; // The relationships associated with the VM
+  bytes publicKeyMultibase; // Required IFF keyAgreement (0x04) is set; pre-encoded multibase (must start with 'z')
 }
 
 interface IVMStorageNative {
@@ -51,4 +56,9 @@ interface IVMStorageNative {
   error InvalidSignature();
 
   error TooManyVerificationMethods();
+
+  error PublicKeyMultibaseRequiredForKeyAgreement();
+  error PublicKeyMultibaseNotAllowedWithoutKeyAgreement();
+  error InvalidMultibasePrefix();
+  error PublicKeyTooLarge();
 }

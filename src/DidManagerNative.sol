@@ -47,7 +47,8 @@ contract DidManagerNative is IDidManagerNative, VMStorageNative, DidManagerBase,
         didHash: idHash,
         id: vmId,
         ethereumAddress: tx.origin,
-        relationships: bytes1(0x01) // Authentication
+        relationships: bytes1(0x01), // Authentication
+        publicKeyMultibase: "" // No keyAgreement on default VM
       })
     );
     _validateVm(positionHash, 0, tx.origin);
@@ -70,7 +71,8 @@ contract DidManagerNative is IDidManagerNative, VMStorageNative, DidManagerBase,
         didHash: targetIdHash,
         id: command.vmId,
         ethereumAddress: command.ethereumAddress,
-        relationships: command.relationships
+        relationships: command.relationships,
+        publicKeyMultibase: command.publicKeyMultibase
       })
     );
     updateExpiration({ idHash: targetIdHash, forceExpire: false });
@@ -232,6 +234,10 @@ contract DidManagerNative is IDidManagerNative, VMStorageNative, DidManagerBase,
 
   function getVmListLength(bytes32 methods, bytes32 id) external view returns (uint8) {
     return _getVmListLength(HashUtils.calculateIdHash(methods, id));
+  }
+
+  function getVmPublicKeyMultibase(bytes32 methods, bytes32 id, bytes32 vmId) external view returns (bytes memory) {
+    return _getPublicKeyMultibase(HashUtils.calculateIdHash(methods, id), vmId);
   }
 
   function getVmIdAtPosition(bytes32 methods, bytes32 id, uint8 position) external view returns (bytes32) {

@@ -98,7 +98,8 @@ library DidTestHelpersNative {
       targetId: didInfo.id,
       vmId: vmId,
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: "" // No keyAgreement on default VM
     });
 
     CreateVmResult memory vmResult = createVm(vm, didManager, command);

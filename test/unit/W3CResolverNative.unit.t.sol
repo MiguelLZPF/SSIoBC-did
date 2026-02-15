@@ -153,7 +153,8 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_TEST_1,
       ethereumAddress: user2,
-      relationships: Fixtures.VM_RELATIONSHIPS_AUTH_AND_ASSERTION
+      relationships: Fixtures.VM_RELATIONSHIPS_AUTH_AND_ASSERTION,
+      publicKeyMultibase: "" // No keyAgreement
     });
 
     vm.recordLogs();
@@ -350,7 +351,8 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_TEST_1,
       ethereumAddress: user2,
-      relationships: Fixtures.VM_RELATIONSHIPS_ALL
+      relationships: Fixtures.VM_RELATIONSHIPS_ALL,
+      publicKeyMultibase: Fixtures.TEST_SECP256K1_MULTIBASE // Required for keyAgreement (0x04)
     });
 
     vm.recordLogs();
@@ -373,6 +375,9 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
     assertEq(doc.keyAgreement.length, 1); // Only TEST_1 has 0x04
     assertEq(doc.capabilityDelegation.length, 1); // Only TEST_1 has 0x08
     assertEq(doc.capabilityInvocation.length, 1); // Only TEST_1 has 0x10
+
+    // Verify publicKeyMultibase appears in resolved document for keyAgreement VM
+    assertEq(doc.verificationMethod[1].publicKeyMultibase, string(Fixtures.TEST_SECP256K1_MULTIBASE));
   }
 
   // =========================================================================
@@ -393,7 +398,8 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_TEST_1,
       ethereumAddress: user2,
-      relationships: Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT // 0x04
+      relationships: Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT, // 0x04
+      publicKeyMultibase: Fixtures.TEST_SECP256K1_MULTIBASE // Required for keyAgreement
     });
 
     vm.recordLogs();
@@ -415,6 +421,9 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
     assertEq(doc.assertionMethod.length, 0);
     assertEq(doc.keyAgreement.length, 1); // Only TEST_1
     assertEq(doc.verificationMethod.length, 2);
+
+    // Verify publicKeyMultibase appears in resolved document for keyAgreement VM
+    assertEq(doc.verificationMethod[1].publicKeyMultibase, string(Fixtures.TEST_SECP256K1_MULTIBASE));
   }
 
   // =========================================================================
@@ -622,5 +631,101 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
 
     // Only-delimiter input should return empty array (all strings empty → trimmed to 0)
     assertEq(doc.service[0].type_.length, 0);
+  }
+
+  // =========================================================================
+  // PUBLIC KEY MULTIBASE RESOLUTION TESTS
+  // =========================================================================
+
+  function test_Resolve_Should_ReturnEmptyPublicKeyMultibase_When_NonKeyAgreementVm() public {
+    _startPrank(user1);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    _stopPrank();
+
+    W3CDidDocument memory doc = w3cResolverNative.resolve(
+      W3CDidInput({ methods: didResult.didInfo.methods, id: didResult.didInfo.id, fragment: bytes32(0) }), false
+    );
+
+    // Default VM has only auth (0x01), no keyAgreement → publicKeyMultibase should be empty
+    assertEq(bytes(doc.verificationMethod[0].publicKeyMultibase).length, 0);
+  }
+
+  function test_Resolve_Should_ReturnPublicKeyMultibase_When_KeyAgreementVm() public {
+    _startPrank(user1);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDid(
+      vm, didManagerNative, Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_0, Fixtures.VM_ID_CUSTOM
+    );
+
+    // Create VM with auth + keyAgreement and publicKeyMultibase
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: Fixtures.VM_ID_CUSTOM,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_TEST_1,
+      ethereumAddress: user2,
+      relationships: Fixtures.VM_RELATIONSHIPS_AUTH_AND_KEY_AGREEMENT,
+      publicKeyMultibase: Fixtures.TEST_SECP256K1_MULTIBASE
+    });
+
+    vm.recordLogs();
+    didManagerNative.createVm(command);
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bytes32 positionHash = bytes32(entries[0].data);
+    _stopPrank();
+
+    _startPrank(user2);
+    didManagerNative.validateVm(positionHash, 0);
+    _stopPrank();
+
+    W3CDidDocument memory doc = w3cResolverNative.resolve(
+      W3CDidInput({ methods: didResult.didInfo.methods, id: didResult.didInfo.id, fragment: bytes32(0) }), false
+    );
+
+    // First VM (custom) has auth only → empty publicKeyMultibase
+    assertEq(bytes(doc.verificationMethod[0].publicKeyMultibase).length, 0);
+
+    // Second VM (TEST_1) has keyAgreement → publicKeyMultibase should match stored value
+    assertEq(doc.verificationMethod[1].publicKeyMultibase, string(Fixtures.TEST_SECP256K1_MULTIBASE));
+
+    // Verify keyAgreement array is populated
+    assertEq(doc.keyAgreement.length, 1);
+  }
+
+  function test_ResolveVm_Should_ReturnPublicKeyMultibase_When_KeyAgreementVm() public {
+    _startPrank(user1);
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDid(
+      vm, didManagerNative, Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_0, Fixtures.VM_ID_CUSTOM
+    );
+
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: Fixtures.VM_ID_CUSTOM,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_TEST_1,
+      ethereumAddress: user2,
+      relationships: Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT,
+      publicKeyMultibase: Fixtures.TEST_ED25519_MULTIBASE
+    });
+
+    vm.recordLogs();
+    didManagerNative.createVm(command);
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bytes32 positionHash = bytes32(entries[0].data);
+    _stopPrank();
+
+    _startPrank(user2);
+    didManagerNative.validateVm(positionHash, 0);
+    _stopPrank();
+
+    // Resolve single VM
+    W3CVerificationMethod memory w3cVm = w3cResolverNative.resolveVm(
+      W3CDidInput({ methods: didResult.didInfo.methods, id: didResult.didInfo.id, fragment: bytes32(0) }),
+      Fixtures.VM_ID_TEST_1
+    );
+
+    assertEq(w3cVm.publicKeyMultibase, string(Fixtures.TEST_ED25519_MULTIBASE));
+    assertEq(w3cVm.type_, "EcdsaSecp256k1VerificationKey2019");
   }
 }

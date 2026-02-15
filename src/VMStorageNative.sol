@@ -5,6 +5,7 @@ import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableS
 import {
   DEFAULT_VM_ID_NATIVE,
   DEFAULT_VM_EXPIRATION_NATIVE,
+  MAX_PUBLIC_KEY_MULTIBASE_LENGTH_NATIVE,
   CreateVmCommand,
   VerificationMethod,
   IVMStorageNative
@@ -25,6 +26,8 @@ abstract contract VMStorageNative is IVMStorageNative {
   mapping(bytes32 => bytes32) private _didHashByPositionHash;
   // DID hash => VM ID => positionHash (for cleanup)
   mapping(bytes32 => mapping(bytes32 => bytes32)) private _positionHashByDidAndId;
+  // DID hash => VM ID => publicKeyMultibase (overflow storage, only for keyAgreement VMs)
+  mapping(bytes32 => mapping(bytes32 => bytes)) private _publicKeyMultibase;
 
   /**
    * @dev Creates a new native verification method (1 slot).
@@ -33,6 +36,16 @@ abstract contract VMStorageNative is IVMStorageNative {
   function _createVm(CreateVmCommand memory command) internal returns (bytes32 idHash, bytes32 positionHash) {
     //* Params validation
     if (command.ethereumAddress == address(0)) revert EthereumAddressRequired();
+
+    // publicKeyMultibase <=> keyAgreement enforcement
+    bool hasKeyAgreement = (command.relationships & 0x04) == 0x04;
+    if (hasKeyAgreement) {
+      if (command.publicKeyMultibase.length == 0) revert PublicKeyMultibaseRequiredForKeyAgreement();
+      if (command.publicKeyMultibase[0] != "z") revert InvalidMultibasePrefix();
+      if (command.publicKeyMultibase.length > MAX_PUBLIC_KEY_MULTIBASE_LENGTH_NATIVE) revert PublicKeyTooLarge();
+    } else {
+      if (command.publicKeyMultibase.length != 0) revert PublicKeyMultibaseNotAllowedWithoutKeyAgreement();
+    }
 
     // Optional defaults
     if (command.id == bytes32(0)) {
@@ -57,6 +70,11 @@ abstract contract VMStorageNative is IVMStorageNative {
       relationships: command.relationships,
       expiration: 0 // Needs validation via _validateVm
     });
+
+    // Store publicKeyMultibase in overflow mapping (only for keyAgreement VMs)
+    if (hasKeyAgreement) {
+      _publicKeyMultibase[command.didHash][command.id] = command.publicKeyMultibase;
+    }
 
     // Map position hash to ID and DID for validateVm lookup and cleanup
     _vmIdByPositionHash[positionHash] = command.id;
@@ -106,6 +124,8 @@ abstract contract VMStorageNative is IVMStorageNative {
     uint256 len = _vmIds[didHash].length();
     while (len > 0) {
       bytes32 lastId = _vmIds[didHash].at(len - 1);
+      // Delete publicKeyMultibase overflow (no-op for non-keyAgreement VMs)
+      delete _publicKeyMultibase[didHash][lastId];
       // Delete VM payload
       delete _vmByNsAndId[didHash][lastId];
       // Delete positionHash mappings
@@ -179,6 +199,13 @@ abstract contract VMStorageNative is IVMStorageNative {
     VerificationMethod memory vm = _vmByNsAndId[didHash][vmId];
     if (vm.ethereumAddress == address(0)) return false;
     return (vm.ethereumAddress == sender && (vm.relationships & bytes1(0x01)) == bytes1(0x01));
+  }
+
+  /**
+   * @dev Returns the publicKeyMultibase for a native VM. Empty for non-keyAgreement VMs.
+   */
+  function _getPublicKeyMultibase(bytes32 didHash, bytes32 vmId) internal view returns (bytes memory) {
+    return _publicKeyMultibase[didHash][vmId];
   }
 
   /**

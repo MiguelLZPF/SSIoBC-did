@@ -170,7 +170,7 @@ contract W3CResolverNative is IW3CResolver {
   /**
    * @dev Converts a native VerificationMethod to W3C format by deriving fields at resolution time.
    * - type_: Always "EcdsaSecp256k1VerificationKey2019" (Ethereum-native)
-   * - publicKeyMultibase: Empty (not stored for native VMs)
+   * - publicKeyMultibase: Read from storage for keyAgreement VMs, empty otherwise
    * - blockchainAccountId: Derived as CAIP-10 from ethereumAddress and block.chainid
    * @param nativeVm The native VerificationMethod (1 slot).
    * @param vmId The VM identifier (retrieved separately since native struct doesn't store it).
@@ -193,7 +193,7 @@ contract W3CResolverNative is IW3CResolver {
       id: string(W3CResolverUtils.trimBytes(abi.encodePacked(vmId))),
       type_: NATIVE_VM_TYPE,
       controller: W3CResolverUtils.formatDidString(didInput),
-      publicKeyMultibase: "", // Not stored in native VMs
+      publicKeyMultibase: string(_didManager.getVmPublicKeyMultibase(didInput.methods, didInput.id, vmId)),
       blockchainAccountId: blockchainAccountId,
       ethereumAddress: Strings.toHexString(nativeVm.ethereumAddress),
       expiration: uint256(nativeVm.expiration) * 1000 // expiration in ms (cast from uint88)

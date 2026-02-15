@@ -121,6 +121,7 @@ library Fixtures {
   // Combined relationships for testing
   bytes1 internal constant VM_RELATIONSHIPS_AUTH_AND_DELEGATION = bytes1(0x11); // 0x01 | 0x10
   bytes1 internal constant VM_RELATIONSHIPS_AUTH_AND_ASSERTION = bytes1(0x03); // 0x01 | 0x02
+  bytes1 internal constant VM_RELATIONSHIPS_AUTH_AND_KEY_AGREEMENT = bytes1(0x05); // 0x01 | 0x04
   bytes1 internal constant VM_RELATIONSHIPS_INVALID = bytes1(0x20); // > 0x1F (invalid)
 
   // =========================================================================

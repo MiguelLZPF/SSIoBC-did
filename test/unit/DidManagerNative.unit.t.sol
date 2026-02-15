@@ -147,7 +147,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: ""
     });
 
     vm.expectRevert(DidExpired.selector);
@@ -173,7 +174,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: ""
     });
 
     vm.expectRevert(NotAuthenticatedAsSenderId.selector);
@@ -194,7 +196,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: ""
     });
 
     vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
@@ -215,7 +218,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
-      relationships: bytes1(0)
+      relationships: bytes1(0),
+      publicKeyMultibase: ""
     });
 
     vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
@@ -243,7 +247,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_TEST_1,
       ethereumAddress: user2,
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: ""
     });
 
     vm.recordLogs();
@@ -278,7 +283,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_TEST_1,
       ethereumAddress: user2,
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: ""
     });
 
     vm.recordLogs();
@@ -825,7 +831,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: ownerDid.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       ethereumAddress: user3,
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: ""
     });
 
     didManagerNative.createVm(command);
@@ -857,7 +864,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: ownerDid.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       ethereumAddress: user3,
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: ""
     });
 
     vm.expectRevert(NotAControllerforTargetId.selector);
@@ -1043,7 +1051,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       ethereumAddress: address(0),
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: ""
     });
 
     vm.expectRevert(IVMStorageNative.EthereumAddressRequired.selector);
@@ -1070,7 +1079,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       ethereumAddress: user2,
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: ""
     });
 
     vm.expectRevert(IVMStorageNative.VmAlreadyExists.selector);
@@ -1101,7 +1111,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: didResult.didInfo.id,
       vmId: Fixtures.VM_ID_TEST_1,
       ethereumAddress: user2,
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: ""
     });
 
     vm.recordLogs();
@@ -1374,12 +1385,245 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       targetId: otherDid.didInfo.id,
       vmId: Fixtures.VM_ID_CUSTOM,
       ethereumAddress: user3,
-      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: ""
     });
 
     vm.expectRevert(DidExpired.selector);
     didManagerNative.createVm(command);
 
     _stopPrank();
+  }
+
+  // =========================================================================
+  // PUBLIC KEY MULTIBASE TESTS (keyAgreement enforcement)
+  // =========================================================================
+
+  function test_CreateVm_Should_StorePublicKeyMultibase_When_KeyAgreementWithValidKey() public {
+    _startPrank(user1);
+
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      ethereumAddress: user2,
+      relationships: Fixtures.VM_RELATIONSHIPS_AUTH_AND_KEY_AGREEMENT,
+      publicKeyMultibase: Fixtures.TEST_SECP256K1_MULTIBASE
+    });
+
+    vm.recordLogs();
+    didManagerNative.createVm(command);
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bytes32 positionHash = bytes32(entries[0].data);
+    _stopPrank();
+
+    // Validate the VM
+    _startPrank(user2);
+    didManagerNative.validateVm(positionHash, 0);
+    _stopPrank();
+
+    // Verify getter returns correct key
+    bytes memory storedKey =
+      didManagerNative.getVmPublicKeyMultibase(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM);
+    assertEq(storedKey, Fixtures.TEST_SECP256K1_MULTIBASE);
+  }
+
+  function test_CreateVm_Should_RevertWithPublicKeyRequired_When_KeyAgreementWithoutKey() public {
+    _startPrank(user1);
+
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      ethereumAddress: user2,
+      relationships: Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT,
+      publicKeyMultibase: ""
+    });
+
+    vm.expectRevert(IVMStorageNative.PublicKeyMultibaseRequiredForKeyAgreement.selector);
+    didManagerNative.createVm(command);
+
+    _stopPrank();
+  }
+
+  function test_CreateVm_Should_RevertWithNotAllowed_When_PublicKeyWithoutKeyAgreement() public {
+    _startPrank(user1);
+
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      ethereumAddress: user2,
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      publicKeyMultibase: Fixtures.TEST_SECP256K1_MULTIBASE
+    });
+
+    vm.expectRevert(IVMStorageNative.PublicKeyMultibaseNotAllowedWithoutKeyAgreement.selector);
+    didManagerNative.createVm(command);
+
+    _stopPrank();
+  }
+
+  function test_CreateVm_Should_RevertWithInvalidPrefix_When_KeyDoesNotStartWithZ() public {
+    _startPrank(user1);
+
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      ethereumAddress: user2,
+      relationships: Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT,
+      publicKeyMultibase: "fInvalidPrefix123"
+    });
+
+    vm.expectRevert(IVMStorageNative.InvalidMultibasePrefix.selector);
+    didManagerNative.createVm(command);
+
+    _stopPrank();
+  }
+
+  function test_CreateVm_Should_RevertWithPublicKeyTooLarge_When_KeyExceedsMaxLength() public {
+    _startPrank(user1);
+
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+
+    // Build a key that exceeds MAX_PUBLIC_KEY_MULTIBASE_LENGTH_NATIVE (1500)
+    bytes memory oversizedKey = new bytes(1501);
+    oversizedKey[0] = "z"; // Valid prefix
+    for (uint256 i = 1; i < 1501; i++) {
+      oversizedKey[i] = "a";
+    }
+
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      ethereumAddress: user2,
+      relationships: Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT,
+      publicKeyMultibase: oversizedKey
+    });
+
+    vm.expectRevert(IVMStorageNative.PublicKeyTooLarge.selector);
+    didManagerNative.createVm(command);
+
+    _stopPrank();
+  }
+
+  function test_GetVmPublicKeyMultibase_Should_ReturnEmpty_When_NonKeyAgreementVm() public {
+    _startPrank(user1);
+
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+
+    // Default VM has only authentication, no keyAgreement
+    bytes memory storedKey = didManagerNative.getVmPublicKeyMultibase(
+      didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE
+    );
+    assertEq(storedKey.length, 0);
+
+    _stopPrank();
+  }
+
+  function test_CreateDid_Should_CleanupPublicKeyMultibase_When_ReCreatingDid() public {
+    _startPrank(user1);
+
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+
+    // Create a VM with keyAgreement + publicKeyMultibase
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      ethereumAddress: user2,
+      relationships: Fixtures.VM_RELATIONSHIPS_AUTH_AND_KEY_AGREEMENT,
+      publicKeyMultibase: Fixtures.TEST_SECP256K1_MULTIBASE
+    });
+
+    vm.recordLogs();
+    didManagerNative.createVm(command);
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bytes32 positionHash = bytes32(entries[0].data);
+    _stopPrank();
+
+    _startPrank(user2);
+    didManagerNative.validateVm(positionHash, 0);
+    _stopPrank();
+
+    // Verify key was stored
+    bytes memory storedKey =
+      didManagerNative.getVmPublicKeyMultibase(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM);
+    assertEq(storedKey, Fixtures.TEST_SECP256K1_MULTIBASE);
+
+    // Warp past expiration so the DID can be recreated
+    _startPrank(user1);
+    DidTestHelpersNative.warpToFuture(vm, Fixtures.WARP_TO_EXPIRE_DID);
+
+    // Re-create DID (triggers _removeAllVms which should delete publicKeyMultibase)
+    didManagerNative.createDid(Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_0, bytes32(0));
+
+    // Verify publicKeyMultibase was cleaned up
+    bytes memory cleanedKey =
+      didManagerNative.getVmPublicKeyMultibase(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM);
+    assertEq(cleanedKey.length, 0);
+
+    _stopPrank();
+  }
+
+  function test_CreateVm_Should_AcceptKeyAgreementOnly_When_NoAuthRelationship() public {
+    _startPrank(user1);
+
+    DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+
+    // Create a VM with keyAgreement only (0x04, no auth)
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      ethereumAddress: user2,
+      relationships: Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT,
+      publicKeyMultibase: Fixtures.TEST_SECP256K1_MULTIBASE
+    });
+
+    vm.recordLogs();
+    didManagerNative.createVm(command);
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bytes32 positionHash = bytes32(entries[0].data);
+    _stopPrank();
+
+    _startPrank(user2);
+    didManagerNative.validateVm(positionHash, 0);
+    _stopPrank();
+
+    // Verify the VM was created with correct data
+    VerificationMethod memory createdVm =
+      didManagerNative.getVm(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM, 0);
+    assertEq(createdVm.ethereumAddress, user2);
+    assertEq(createdVm.relationships, Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT);
+
+    // Verify key was stored
+    bytes memory storedKey =
+      didManagerNative.getVmPublicKeyMultibase(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM);
+    assertEq(storedKey, Fixtures.TEST_SECP256K1_MULTIBASE);
   }
 }
