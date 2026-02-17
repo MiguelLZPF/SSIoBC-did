@@ -1,5 +1,11 @@
 # Self-Sovereign Identity Over BlockChain [SSIoBC-DID]
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.33-363636.svg)](https://soliditylang.org/)
+[![Tests](https://img.shields.io/badge/Tests-268_passing-brightgreen.svg)](#quick-start)
+[![Coverage](https://img.shields.io/badge/Coverage->90%25-brightgreen.svg)](#quick-start)
+[![W3C DID Core](https://img.shields.io/badge/W3C-DID_Core_v1.0-005A9C.svg)](https://www.w3.org/TR/did-core/)
+
 W3C-compliant fully on-chain DID management system built with Solidity and the Foundry framework. This is the first complete on-chain DID document storage implementation, as opposed to event-based reconstruction approaches used by existing solutions.
 
 ## Table of Contents
@@ -11,6 +17,9 @@ W3C-compliant fully on-chain DID management system built with Solidity and the F
 - [Creating a New DID](#creating-a-new-did)
 - [Deployment](#deployment)
 - [Advantages](#advantages)
+- [Citation](#citation)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## Project Overview
 
@@ -134,3 +143,45 @@ did:method0:method1:method2:id
 6. **Immutable Architecture**: No proxies or upgradability, reducing attack surface
 
 For detailed architecture documentation, see [PROJECT.md](./PROJECT.md).
+
+## Citation
+
+If you use this software in your research, please cite it using the metadata in [CITATION.cff](./CITATION.cff).
+
+### Software Citation (BibTeX)
+
+```bibtex
+@software{lopezfernandez2026ssiobc_did,
+  author       = {Lopez Fernandez, Miguel Angel},
+  title        = {{SSIoBC-DID}: Self-Sovereign Identity Over BlockChain -- Decentralized Identifiers},
+  year         = {2026},
+  url          = {https://github.com/MiguelLZPF/SSIoBC-did},
+  license      = {Apache-2.0}
+}
+```
+
+### Research Paper Citation
+
+```bibtex
+@article{gomezcarpena2026ssiobc,
+  author  = {G\'{o}mez Carpena, Miguel},
+  title   = {[USER_TO_PROVIDE: Paper Title]},
+  journal = {[USER_TO_PROVIDE: Journal Name]},
+  year    = {2026},
+  doi     = {[USER_TO_PROVIDE]}
+}
+```
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to contribute, including coding standards, testing requirements, and the pull request process.
+
+For security vulnerabilities, please see [SECURITY.md](./SECURITY.md).
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](./LICENSE) file for details.
+
+**Dependencies:**
+- [OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts) - MIT License
+- [Forge Std](https://github.com/foundry-rs/forge-std) - MIT/Apache-2.0 License

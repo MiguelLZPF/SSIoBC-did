@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "src/interfaces/IDidManager.sol";
@@ -18,6 +18,9 @@ import { ServiceStorage } from "src/ServiceStorage.sol";
 import { Service } from "src/interfaces/IServiceStorage.sol";
 import { HashUtils } from "src/HashUtils.sol";
 
+/// @title DidManager
+/// @author Miguel Gómez Carpena
+/// @notice Full W3C DID lifecycle with multi-type VMs
 contract DidManager is IDidManager, VMStorage, DidManagerBase, ServiceStorage {
   /**
    * @dev Creates a new Decentralized Identifier (DID) using the specified method identifiers and a random value.

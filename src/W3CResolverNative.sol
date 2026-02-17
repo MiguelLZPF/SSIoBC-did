@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 import {
@@ -16,6 +16,7 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 // ! This Contract is NOT necessary, only adds ONchain DID resolution
 /**
  * @title W3CResolverNative
+ * @author Miguel Gómez Carpena
  * @dev Resolves Ethereum-native DIDs into W3C-compliant DID documents.
  * Derives W3C fields (type_, publicKeyMultibase, blockchainAccountId) at resolution time
  * from the 1-slot native VerificationMethod storage.

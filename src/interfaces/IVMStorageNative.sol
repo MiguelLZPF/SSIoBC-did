@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 // =========================================================================
@@ -39,6 +39,9 @@ struct CreateVmCommand {
   bytes publicKeyMultibase; // Required IFF keyAgreement (0x04) is set; pre-encoded multibase (must start with 'z')
 }
 
+/// @title IVMStorageNative
+/// @author Miguel Gómez Carpena
+/// @notice Interface for native VM storage
 interface IVMStorageNative {
   //* Events
   event VmCreated(bytes32 indexed didIdHash, bytes32 indexed id, bytes32 indexed idHash, bytes32 positionHash);

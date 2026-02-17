@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -20,6 +20,9 @@ import { HashUtils } from "src/HashUtils.sol";
 //   }]
 // }
 
+/// @title ServiceStorage
+/// @author Miguel Gómez Carpena
+/// @notice W3C DID service endpoints storage
 abstract contract ServiceStorage is IServiceStorage {
   using EnumerableSet for EnumerableSet.Bytes32Set;
 

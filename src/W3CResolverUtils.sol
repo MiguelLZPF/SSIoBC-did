@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 import { W3CService, W3CDidInput } from "./interfaces/IW3CResolver.sol";
@@ -9,6 +9,7 @@ error DidInputRequired();
 
 /**
  * @title W3CResolverUtils
+ * @author Miguel Gómez Carpena
  * @dev Shared utility library for W3C DID document resolution.
  * Contains common functions used by both W3CResolver and W3CResolverNative.
  */

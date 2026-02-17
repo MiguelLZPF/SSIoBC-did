@@ -1,0 +1,43 @@
+name: Question
+description: Ask a question about SSIoBC-DID
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before asking, please check:
+        - [README.md](../../README.md) for project overview and usage
+        - [PROJECT.md](../../PROJECT.md) for architecture details
+        - [CONTRIBUTING.md](../../CONTRIBUTING.md) for development setup
+
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Topic
+      description: What area does your question relate to?
+      options:
+        - Architecture / Design
+        - DID Operations (create, update, deactivate)
+        - Verification Methods
+        - W3C DID Document Resolution
+        - Deployment / Integration
+        - Testing
+        - W3C Specification Compliance
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Describe your question in detail.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Any relevant context, code snippets, or references.

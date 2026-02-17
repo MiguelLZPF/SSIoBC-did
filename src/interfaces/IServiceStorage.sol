@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 // =========================================================================
@@ -29,6 +29,9 @@ struct Service {
   bytes serviceEndpoint; // Packed endpoints with '\x00' delimiter
 }
 
+/// @title IServiceStorage
+/// @author Miguel Gómez Carpena
+/// @notice Interface for service endpoint storage
 interface IServiceStorage {
   // =========================================================================
   // Events

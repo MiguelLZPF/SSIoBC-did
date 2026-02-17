@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -15,6 +15,9 @@ import {
 } from "./interfaces/IVMStorage.sol";
 import { HashUtils } from "./HashUtils.sol";
 
+/// @title VMStorage
+/// @author Miguel Gómez Carpena
+/// @notice Multi-slot VM storage (arbitrary key types)
 abstract contract VMStorage is IVMStorage {
   using EnumerableSet for EnumerableSet.Bytes32Set;
 

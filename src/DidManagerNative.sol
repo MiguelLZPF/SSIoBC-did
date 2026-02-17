@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 import { IDidManagerNative, CreateVmCommand as NativeCreateVmCommand } from "src/interfaces/IDidManagerNative.sol";
@@ -20,6 +20,7 @@ import {
 
 /**
  * @title DidManagerNative
+ * @author Miguel Gómez Carpena
  * @dev Ethereum-native DID manager with 1-slot VM storage.
  * Stores only ethereumAddress + relationships + expiration per VM.
  * W3C fields (type_, publicKeyMultibase, blockchainAccountId) are derived at resolution time.

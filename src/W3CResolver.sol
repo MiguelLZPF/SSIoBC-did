@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 import {
@@ -13,7 +13,9 @@ import { VerificationMethod } from "@src/VMStorage.sol";
 import { W3CResolverUtils } from "@src/W3CResolverUtils.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
-// ! This Contract is NOT necessary, only adds ONchain DID resolution
+/// @title W3CResolver
+/// @author Miguel Gómez Carpena
+/// @notice W3C DID document resolver (full variant)
 contract W3CResolver is IW3CResolver {
   string[] private DEFAULT_CONTEXT = ["https://www.w3.org/ns/did/v1"];
   // * The DID Manager contract

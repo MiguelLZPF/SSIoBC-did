@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
@@ -12,6 +12,9 @@ import {
 } from "./interfaces/IVMStorageNative.sol";
 import { HashUtils } from "./HashUtils.sol";
 
+/// @title VMStorageNative
+/// @author Miguel Gómez Carpena
+/// @notice Single-slot VM storage (Ethereum addresses)
 abstract contract VMStorageNative is IVMStorageNative {
   using EnumerableSet for EnumerableSet.Bytes32Set;
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 struct W3CDidDocument {
@@ -40,6 +40,7 @@ struct W3CDidInput {
 // ! This Contract is NOT necessary, only adds ONchain DID resolution
 /**
  * @title IW3CResolver
+ * @author Miguel Gómez Carpena
  * @dev Interface for resolving W3C Decentralized Identifiers (DIDs).
  */
 interface IW3CResolver {

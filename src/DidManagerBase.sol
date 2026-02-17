@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 /**
@@ -23,6 +23,7 @@ error DidNotDeactivated();
 
 /**
  * @title DidManagerBase
+ * @author Miguel Gómez Carpena
  * @dev Abstract base contract for shared DID lifecycle logic.
  * Provides expiration management and controller management.
  * Both DidManager (full W3C) and DidManagerNative (Ethereum-native) inherit from this.

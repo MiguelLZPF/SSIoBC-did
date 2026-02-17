@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 import { VerificationMethod } from "@src/VMStorageNative.sol";
@@ -24,6 +24,7 @@ struct CreateVmCommand {
 
 /**
  * @title IDidManagerNative
+ * @author Miguel Gómez Carpena
  * @dev Interface for managing Ethereum-native DIDs with 1-slot VM storage.
  * Produces identical W3C output via resolution-time derivation.
  */

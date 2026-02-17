@@ -1,0 +1,71 @@
+name: Bug Report
+description: Report a bug in SSIoBC-DID smart contracts
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Please fill out the sections below.
+        For security vulnerabilities, please see [SECURITY.md](../../SECURITY.md) instead.
+
+  - type: dropdown
+    id: affected-contract
+    attributes:
+      label: Affected Contract
+      description: Which contract is affected?
+      options:
+        - DidManager
+        - DidManagerNative
+        - DidManagerBase
+        - VMStorage
+        - VMStorageNative
+        - ServiceStorage
+        - W3CResolver
+        - W3CResolverNative
+        - W3CResolverUtils
+        - HashUtils
+        - Other / Unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of the bug.
+      placeholder: What happened? What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Minimal steps or Foundry test to reproduce the issue.
+      placeholder: |
+        1. Deploy DidManager with ...
+        2. Call createDid(...) with ...
+        3. Observe ...
+      render: solidity
+    validations:
+      required: true
+
+  - type: input
+    id: foundry-version
+    attributes:
+      label: Foundry Version
+      description: Output of `forge --version`
+      placeholder: "forge 1.5.1"
+
+  - type: input
+    id: solidity-version
+    attributes:
+      label: Solidity Version
+      placeholder: "0.8.33"
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, logs, or screenshots.

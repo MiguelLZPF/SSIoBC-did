@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+title: "SSIoBC-DID: Self-Sovereign Identity Over BlockChain - Decentralized Identifiers"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - given-names: Miguel
+    family-names: "Gómez Carpena"
+    email: mgcdreamer@gmail.com
+    orcid: "[USER_TO_PROVIDE]"
+    affiliation: "[USER_TO_PROVIDE]"
+repository-code: "https://github.com/MiguelLZPF/SSIoBC-did"
+license: Apache-2.0
+keywords:
+  - decentralized-identity
+  - DID
+  - W3C-DID-Core
+  - blockchain
+  - self-sovereign-identity
+  - Solidity
+  - Ethereum
+  - smart-contracts
+  - on-chain-storage
+  - verifiable-credentials
+abstract: >-
+  W3C-compliant fully on-chain Decentralized Identifier (DID) management system.
+  First complete on-chain DID document storage implementation using a dual-variant
+  architecture (Full W3C and Ethereum-Native) built with Solidity and the Foundry
+  framework. Stores complete DID documents on-chain for direct resolution without
+  off-chain indexing.
+version: "1.2.0"
+date-released: "2026-02-15"
+preferred-citation:
+  type: article
+  title: "[USER_TO_PROVIDE: Paper Title]"
+  authors:
+    - given-names: Miguel
+      family-names: "Gómez Carpena"
+      email: mgcdreamer@gmail.com
+      orcid: "[USER_TO_PROVIDE]"
+      affiliation: "[USER_TO_PROVIDE]"
+  journal: "[USER_TO_PROVIDE: Journal Name]"
+  year: 2026
+  doi: "[USER_TO_PROVIDE]"
+  abstract: "[USER_TO_PROVIDE: Paper Abstract]"

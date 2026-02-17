@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 import { VerificationMethod } from "@src/VMStorage.sol";
@@ -25,6 +25,7 @@ struct CreateVmCommand {
 
 /**
  * @title IDidManager
+ * @author Miguel Gómez Carpena
  * @dev Interface for managing Decentralized Identifiers (DIDs).
  */
 interface IDidManager {

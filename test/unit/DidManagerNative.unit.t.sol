@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 import { TestBaseNative } from "../helpers/TestBaseNative.sol";
@@ -1533,9 +1533,8 @@ contract DidManagerNativeUnitTest is TestBaseNative {
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     // Default VM has only authentication, no keyAgreement
-    bytes memory storedKey = didManagerNative.getVmPublicKeyMultibase(
-      didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE
-    );
+    bytes memory storedKey =
+      didManagerNative.getVmPublicKeyMultibase(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE);
     assertEq(storedKey.length, 0);
 
     _stopPrank();

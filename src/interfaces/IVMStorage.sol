@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
 // * How Verification Method Relationships are represented in the Storage
@@ -63,6 +63,9 @@ struct CreateVmCommand {
   uint88 expiration; // The expiration timestamp of the verification method (VM)
 }
 
+/// @title IVMStorage
+/// @author Miguel Gómez Carpena
+/// @notice Interface for multi-type VM storage
 interface IVMStorage {
   //* Events
   /**
