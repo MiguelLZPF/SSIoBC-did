@@ -37,6 +37,7 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | v1.0.2  | 15.2 kB    | 12.8 kB     | —                | —                 | reactivateDid() + _isVmOwner() helper |
 | **v1.1.0** | **12.1 kB** | **12.8 kB** | **—** | **—** | **Bytecode optimization: custom errors, SLOAD caching, HashUtils, optimizer_runs=200** |
 | **v1.2.0** | **12.1 kB** | **11.2 kB** | **10.5 kB** | **11.7 kB** | **Dual-variant architecture with shared DidManagerBase + publicKeyMultibase for keyAgreement** |
+| **v1.2.1** | **12.6 kB** | **11.2 kB** | **10.9 kB** | **11.7 kB** | **Added isAuthorized() cross-DID authorization, removed redundant authenticate()** |
 
 ### Visual Documentation
 
@@ -255,6 +256,35 @@ The v1.2.0 release introduces the Ethereum-native variant alongside the existing
 | Key Types | Any (RSA, Ed25519, secp256k1) | Ethereum secp256k1 only | Trade-off |
 | W3C Fields | Stored per VM | Derived at resolution (except publicKeyMultibase for keyAgreement) | Trade-off |
 
+### v1.2.1 isAuthorized() Addition (February 2026)
+
+The v1.2.1 release adds the public `isAuthorized()` function for cross-DID controller-aware authorization and removes the redundant `authenticate()` function.
+
+#### v1.2.1 Contract Sizes
+```
+| Contract             | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|----------------------|------------------|-------------------|--------------------|--------------------|
+| DidManager           | 12,550           | 12,578            | 12,026             | 36,574              |
+| DidManagerNative     | 10,944           | 10,972            | 13,632             | 38,180              |
+| W3CResolver          | 11,169           | 11,920            | 13,407             | 37,232              |
+| W3CResolverNative    | 11,709           | 12,460            | 12,867             | 36,692              |
+```
+
+**Key Changes:**
+1. **isAuthorized()**: New public view function for cross-DID controller-aware authorization (returns bool instead of reverting)
+2. **authenticate() removed**: Was redundant wrapper around `isVmRelationship(0x01)`, replaced by direct `isVmRelationship()` calls
+3. **28 new unit tests**: 14 per variant (happy paths, failure paths, input validation)
+
+**Size Impact (v1.2.0 → v1.2.1):**
+| Contract | v1.2.0 (B) | v1.2.1 (B) | Change | % Change |
+|----------|-----------|-----------|--------|----------|
+| DidManager | 12,138 | 12,550 | +412 | +3.4% |
+| DidManagerNative | 10,533 | 10,944 | +411 | +3.9% |
+| W3CResolver | 11,169 | 11,169 | 0 | 0% |
+| W3CResolverNative | 11,709 | 11,709 | 0 | 0% |
+
+**Net size change**: +412/+411 bytes for `isAuthorized()` minus ~30 bytes saved from removing `authenticate()`. The addition provides cross-DID controller-aware authorization that was previously only available internally via `_validateSenderAndTarget()`.
+
 #### Trade-off Analysis
 
 The v1.0 architecture provides:
@@ -324,4 +354,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v1.2.0 - Dual-variant architecture: DidManagerNative (10,533 B, -13.2% vs DidManager) + W3CResolverNative (11,709 B) + publicKeyMultibase support for keyAgreement*
+*Last Updated: v1.2.1 - Added isAuthorized() cross-DID authorization (+412/+411 B), removed redundant authenticate()*

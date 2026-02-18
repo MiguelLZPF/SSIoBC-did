@@ -114,15 +114,6 @@ interface IDidManager {
   function getExpiration(bytes32 methods, bytes32 id, bytes32 vmId) external view returns (uint256 exp);
 
   /**
-   * @dev Authenticates a DID or VM.
-   * @param methods The methods used for authentication.
-   * @param id The ID.
-   * @param vmId (optional) The VM ID.
-   * @return true if the authentication is successful, false otherwise.
-   */
-  function authenticate(bytes32 methods, bytes32 id, bytes32 vmId, address sender) external view returns (bool);
-
-  /**
    * @dev Checks if there is a VM relationship.
    * @param methods The methods used to check the VM relationship.
    * @param id The ID.
@@ -134,6 +125,31 @@ interface IDidManager {
     external
     view
     returns (bool);
+
+  /**
+   * @notice Checks if sender is authorized to act on targetId with the given VM relationship.
+   * @dev Public equivalent of the internal _validateSenderAndTarget() but:
+   *      - Takes sender address (not tx.origin) for cross-contract use
+   *      - Returns false for auth failures instead of reverting
+   *      - Accepts any VM relationship (not hardcoded to 0x01)
+   *      Combines: (1) both DIDs active, (2) sender's VM has relationship,
+   *      (3) sender is controller of target (or IS target for self-controlled DIDs).
+   * @param methods The DID methods namespace.
+   * @param senderId The sender's DID ID.
+   * @param senderVmId The sender's VM ID being used for authorization.
+   * @param targetId The target DID ID the sender wants to act on.
+   * @param relationship The required VM relationship bitmask (e.g., 0x02 for assertionMethod).
+   * @param sender The caller's Ethereum address (msg.sender from the calling contract).
+   * @return authorized True if authorized, false otherwise.
+   */
+  function isAuthorized(
+    bytes32 methods,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes1 relationship,
+    address sender
+  ) external view returns (bool authorized);
 
   /**
    * @dev Updates the controller of the DID manager. This function can be used to:

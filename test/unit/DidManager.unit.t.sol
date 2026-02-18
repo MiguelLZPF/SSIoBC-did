@@ -209,8 +209,9 @@ contract DidManagerUnitTest is TestBase {
     // Setup: Create a DID
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
-    // Test: Authenticate with the default VM
-    bool result = didManager.authenticate(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, user1);
+    // Test: Authenticate with the default VM (authenticate was removed; use isVmRelationship with 0x01)
+    bool result =
+      didManager.isVmRelationship(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), user1);
 
     // Verify: Authentication successful
     assertTrue(result);
@@ -226,7 +227,9 @@ contract DidManagerUnitTest is TestBase {
 
     // Test: Authenticate with non-existent VM (should revert because expiration == 0 means invalid)
     vm.expectRevert(IVMStorage.VmAlreadyExpired.selector);
-    didManager.authenticate(didResult.didInfo.methods, didResult.didInfo.id, bytes32("non-existent-vm"), user1);
+    didManager.isVmRelationship(
+      didResult.didInfo.methods, didResult.didInfo.id, bytes32("non-existent-vm"), bytes1(0x01), user1
+    );
 
     _stopPrank();
   }
@@ -901,7 +904,7 @@ contract DidManagerUnitTest is TestBase {
 
     // Verify authentication works before deactivation
     bool canAuthenticateBefore =
-      didManager.authenticate(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, user1);
+      didManager.isVmRelationship(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), user1);
     assertTrue(canAuthenticateBefore, "Should authenticate before deactivation");
 
     // Deactivate the DID
@@ -909,7 +912,7 @@ contract DidManagerUnitTest is TestBase {
 
     // Try to authenticate after deactivation - should revert with DidExpired
     vm.expectRevert(DidExpired.selector);
-    didManager.authenticate(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, user1);
+    didManager.isVmRelationship(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), user1);
 
     _stopPrank();
   }

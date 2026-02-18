@@ -384,7 +384,9 @@ contract DidManagerNativeUnitTest is TestBaseNative {
 
     // Authentication should fail after deactivation
     vm.expectRevert(DidExpired.selector);
-    didManagerNative.authenticate(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, user1);
+    didManagerNative.isVmRelationship(
+      didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, bytes1(0x01), user1
+    );
 
     _stopPrank();
   }
@@ -605,8 +607,9 @@ contract DidManagerNativeUnitTest is TestBaseNative {
 
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
-    bool isAuth =
-      didManagerNative.authenticate(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, user1);
+    bool isAuth = didManagerNative.isVmRelationship(
+      didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, bytes1(0x01), user1
+    );
     assertTrue(isAuth);
 
     _stopPrank();
@@ -618,7 +621,9 @@ contract DidManagerNativeUnitTest is TestBaseNative {
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     vm.expectRevert(IVMStorageNative.VmAlreadyExpired.selector);
-    didManagerNative.authenticate(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM, user1);
+    didManagerNative.isVmRelationship(
+      didResult.didInfo.methods, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM, bytes1(0x01), user1
+    );
 
     _stopPrank();
   }

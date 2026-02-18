@@ -212,11 +212,14 @@ contract DidManagerFuzzTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
     // Property: Authentication should return same result across multiple calls
-    bool firstResult = didManager.authenticate(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, user1);
+    bool firstResult =
+      didManager.isVmRelationship(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), user1);
 
     // Test: Call authentication multiple times
     for (uint8 i = 0; i < callCount; i++) {
-      bool result = didManager.authenticate(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, user1);
+      bool result = didManager.isVmRelationship(
+        didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), user1
+      );
 
       // Property: Result should always be consistent
       assertEq(result, firstResult);
@@ -417,7 +420,7 @@ contract DidManagerFuzzTest is TestBase {
     }
 
     // Property: Authentication should succeed while DID is not expired
-    bool canAuthenticate = didManager.authenticate(methods, didId, DEFAULT_VM_ID, user1);
+    bool canAuthenticate = didManager.isVmRelationship(methods, didId, DEFAULT_VM_ID, bytes1(0x01), user1);
     assertTrue(canAuthenticate, "Non-expired DID should authenticate");
 
     // Property: DID identity must remain unchanged

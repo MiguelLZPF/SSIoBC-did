@@ -211,8 +211,9 @@ contract StressTest is TestBase {
     // Verify all controllers are set and authenticated correctly
     for (uint256 i = 0; i < controllerCount; i++) {
       // Verify user1 can authenticate as each controller DID
-      bool canAuthenticate =
-        didManager.authenticate(controllerDids[i].didInfo.methods, controllerDids[i].didInfo.id, DEFAULT_VM_ID, user1);
+      bool canAuthenticate = didManager.isVmRelationship(
+        controllerDids[i].didInfo.methods, controllerDids[i].didInfo.id, DEFAULT_VM_ID, bytes1(0x01), user1
+      );
       console.log("User1 can authenticate as controller", i, ":", canAuthenticate);
       assertTrue(canAuthenticate, "User1 should be able to authenticate as controller");
     }
@@ -468,8 +469,14 @@ contract StressTest is TestBase {
     console.log("Successful operations after errors:", successfulOperations);
 
     // System should remain fully functional
-    assertTrue(didManager.authenticate(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, user1));
-    assertTrue(didManager.authenticate(didResult.didInfo.methods, didResult.didInfo.id, validVmCommand.vmId, user2));
+    assertTrue(
+      didManager.isVmRelationship(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), user1)
+    );
+    assertTrue(
+      didManager.isVmRelationship(
+        didResult.didInfo.methods, didResult.didInfo.id, validVmCommand.vmId, bytes1(0x01), user2
+      )
+    );
 
     _stopPrank();
   }

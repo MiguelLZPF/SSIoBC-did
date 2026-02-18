@@ -248,10 +248,6 @@ contract DidManager is IDidManager, VMStorage, DidManagerBase, ServiceStorage {
     }
   }
 
-  function authenticate(bytes32 methods, bytes32 id, bytes32 vmId, address sender) external view returns (bool) {
-    return isVmRelationship(methods, id, vmId, 0x01, sender);
-  }
-
   function isVmRelationship(bytes32 methods, bytes32 id, bytes32 vmId, bytes1 relationship, address sender)
     public
     view
@@ -266,6 +262,41 @@ contract DidManager is IDidManager, VMStorage, DidManagerBase, ServiceStorage {
       revert DidExpired();
     }
     return _isVmRelationship(idHash, vmId, relationship, sender);
+  }
+
+  /// @inheritdoc IDidManager
+  function isAuthorized(
+    bytes32 methods,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes1 relationship,
+    address sender
+  ) external view returns (bool) {
+    // Revert on invalid inputs only
+    if (
+      methods == bytes32(0) || senderId == bytes32(0) || senderVmId == bytes32(0) || targetId == bytes32(0)
+        || relationship == bytes1(0) || sender == address(0)
+    ) {
+      revert MissingRequiredParameter();
+    }
+    if (relationship > bytes1(0x1F)) revert VmRelationshipOutOfRange();
+
+    bytes32 senderIdHash = HashUtils.calculateIdHash(methods, senderId);
+    bytes32 targetIdHash = HashUtils.calculateIdHash(methods, targetId);
+
+    // 1. Both DIDs must be active
+    if (_isExpired(senderIdHash) || _isExpired(targetIdHash)) return false;
+
+    // 2. Sender's VM has the required relationship (non-reverting via _getVm)
+    VerificationMethod memory senderVm = _getVm(senderIdHash, senderVmId, 0);
+    if (senderVm.expiration == 0 || senderVm.expiration <= block.timestamp) return false;
+    if (senderVm.ethereumAddress != sender || (senderVm.relationships & relationship) != relationship) return false;
+
+    // 3. Sender is controller of target (or IS target for self-controlled)
+    if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) return false;
+
+    return true;
   }
 
   function getControllerList(bytes32 methods, bytes32 id)

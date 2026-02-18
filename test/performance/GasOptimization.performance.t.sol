@@ -242,7 +242,8 @@ contract GasOptimizationPerformanceTest is TestBase {
       bytes32 vmId = authVmIds[i]; // Use stored VM ID
       address testAddress = i == 0 ? user1 : address(uint160(uint160(user1) + i));
 
-      bool authenticated = didManager.authenticate(didResult.didInfo.methods, didResult.didInfo.id, vmId, testAddress);
+      bool authenticated =
+        didManager.isVmRelationship(didResult.didInfo.methods, didResult.didInfo.id, vmId, bytes1(0x01), testAddress);
 
       uint256 gasUsed = gasStart - gasleft();
       console.log("Auth VM", i, "gas used:", gasUsed);
@@ -380,7 +381,8 @@ contract GasOptimizationPerformanceTest is TestBase {
 
     // 4. Authentication Operations
     gasStart = gasleft();
-    bool auth1 = didManager.authenticate(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, user1);
+    bool auth1 =
+      didManager.isVmRelationship(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), user1);
     gasUsed = gasStart - gasleft();
     console.log("Authentication gas used:", gasUsed);
     console.log("Authentication result:", auth1);

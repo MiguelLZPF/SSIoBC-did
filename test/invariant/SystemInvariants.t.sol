@@ -147,7 +147,11 @@ contract SystemInvariantsTest is StdInvariant, TestBase {
       if (isExpired) {
         // Property: Expired DID should NOT authenticate successfully
         // Note: Authentication may revert instead of returning false, so we use try-catch
-        try didManager.authenticate(DEFAULT_DID_METHODS, didId, DEFAULT_VM_ID, address(this)) returns (bool result) {
+        try didManager.isVmRelationship(
+          DEFAULT_DID_METHODS, didId, DEFAULT_VM_ID, bytes1(0x01), address(this)
+        ) returns (
+          bool result
+        ) {
           assertFalse(result, "Expired DID should not authenticate");
         } catch {
           // Expected behavior: expired DIDs typically revert

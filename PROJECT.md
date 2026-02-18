@@ -84,6 +84,7 @@ classDiagram
         +createVm()
         +validateVm()
         +updateService()
+        +isAuthorized()
     }
 
     class IVMStorage {
@@ -130,6 +131,7 @@ classDiagram
         +validateVm()
         +expireVm()
         +updateService()
+        +isAuthorized()
     }
 
     class W3CResolver {
@@ -162,6 +164,7 @@ classDiagram
         +createVm()
         +validateVm()
         +updateService()
+        +isAuthorized()
     }
 
     class IVMStorageNative {
@@ -193,6 +196,7 @@ classDiagram
         +validateVm()
         +expireVm()
         +updateService()
+        +isAuthorized()
     }
 
     class W3CResolverNative {
@@ -742,8 +746,8 @@ The system provides two variants sharing a common base, each optimized for diffe
 
 | Variant | VM Storage | Contract Size | Use Case |
 |---------|-----------|--------------|----------|
-| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,138 B | General-purpose DID with any key type |
-| **Ethereum-Native** (DidManagerNative) | 1-slot per VM + overflow publicKeyMultibase for keyAgreement (ethereumAddress + relationships + expiration = 32 bytes) | 10,533 B | Ethereum-only DIDs, 13% smaller bytecode |
+| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,550 B | General-purpose DID with any key type |
+| **Ethereum-Native** (DidManagerNative) | 1-slot per VM + overflow publicKeyMultibase for keyAgreement (ethereumAddress + relationships + expiration = 32 bytes) | 10,944 B | Ethereum-only DIDs, ~13% smaller bytecode |
 
 Both variants share:
 - **DidManagerBase**: Expiration management, controller logic (`_isExpired`, `_isControllerFor`, `updateExpiration`)
@@ -774,6 +778,7 @@ The system consists of the following contracts:
 - `deactivateDid(bytes32 didHash)` - W3C-compliant deactivation
 - `updateDidOwner(bytes32 didHash, address newOwner)` - Transfer ownership
 - `updateDidControllers(bytes32 didHash, Controller[] memory newControllers)` - Manage delegation
+- `isAuthorized(methods, senderId, senderVmId, targetId, relationship, sender)` - Cross-DID controller-aware authorization check (returns bool)
 
 #### 2. VMStorage.sol
 
@@ -1367,6 +1372,7 @@ src/
 ```
 test/
 ├── unit/                          # Unit tests (isolated contract testing)
+│   ├── Authorize.unit.t.sol       # 28 tests for isAuthorized() (14 per variant)
 │   ├── DidManager.unit.t.sol
 │   ├── DidManagerNative.unit.t.sol # 72 tests for native variant
 │   ├── VMStorage.unit.t.sol
@@ -1432,7 +1438,7 @@ script/
 
 ---
 
-**Last Updated**: 2026-02-15
-**Version**: v1.2.0
+**Last Updated**: 2026-02-18
+**Version**: v1.2.1
 **Purpose**: Single source of truth for SSIoBC-did project knowledge
 **Referenced By**: CLAUDE.md, docs/README.md

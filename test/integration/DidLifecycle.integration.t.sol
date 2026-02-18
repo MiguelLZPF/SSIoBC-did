@@ -222,14 +222,22 @@ contract DidLifecycleIntegrationTest is TestBase {
     // Test authentication with different VMs and users
 
     // Alice can authenticate with her original VM
-    assertTrue(didManager.authenticate(aliceDid.didInfo.methods, aliceDid.didInfo.id, DEFAULT_VM_ID, alice));
+    assertTrue(
+      didManager.isVmRelationship(aliceDid.didInfo.methods, aliceDid.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), alice)
+    );
 
     // Carol can authenticate with the key agreement VM
-    assertTrue(didManager.authenticate(aliceDid.didInfo.methods, aliceDid.didInfo.id, bytes32("key-agreement"), carol));
+    assertTrue(
+      didManager.isVmRelationship(
+        aliceDid.didInfo.methods, aliceDid.didInfo.id, bytes32("key-agreement"), bytes1(0x01), carol
+      )
+    );
 
     // Bob can authenticate with the VM he created
     assertTrue(
-      didManager.authenticate(aliceDid.didInfo.methods, aliceDid.didInfo.id, bytes32("bob-controlled-vm"), bob)
+      didManager.isVmRelationship(
+        aliceDid.didInfo.methods, aliceDid.didInfo.id, bytes32("bob-controlled-vm"), bytes1(0x01), bob
+      )
     );
 
     // === Phase 9: Relationship Testing ===
@@ -378,10 +386,18 @@ contract DidLifecycleIntegrationTest is TestBase {
     assertEq(finalVmCount, 3); // Original + Bob's + Carol's
 
     // All should be able to authenticate with their respective VMs
-    assertTrue(didManager.authenticate(aliceDid.didInfo.methods, aliceDid.didInfo.id, DEFAULT_VM_ID, alice));
-    assertTrue(didManager.authenticate(aliceDid.didInfo.methods, aliceDid.didInfo.id, bytes32("bob-managed-vm"), bob));
     assertTrue(
-      didManager.authenticate(aliceDid.didInfo.methods, aliceDid.didInfo.id, bytes32("carol-managed-vm"), carol)
+      didManager.isVmRelationship(aliceDid.didInfo.methods, aliceDid.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), alice)
+    );
+    assertTrue(
+      didManager.isVmRelationship(
+        aliceDid.didInfo.methods, aliceDid.didInfo.id, bytes32("bob-managed-vm"), bytes1(0x01), bob
+      )
+    );
+    assertTrue(
+      didManager.isVmRelationship(
+        aliceDid.didInfo.methods, aliceDid.didInfo.id, bytes32("carol-managed-vm"), bytes1(0x01), carol
+      )
     );
   }
 
@@ -438,7 +454,9 @@ contract DidLifecycleIntegrationTest is TestBase {
     _stopPrank();
 
     // Verify the original DID is still intact and functional
-    assertTrue(didManager.authenticate(aliceDid.didInfo.methods, aliceDid.didInfo.id, DEFAULT_VM_ID, alice));
+    assertTrue(
+      didManager.isVmRelationship(aliceDid.didInfo.methods, aliceDid.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), alice)
+    );
 
     uint256 vmCount = didManager.getVmListLength(aliceDid.didInfo.methods, aliceDid.didInfo.id);
     assertEq(vmCount, 1); // Only the original VM should exist
@@ -565,9 +583,13 @@ contract DidLifecycleIntegrationTest is TestBase {
     assertTrue(w3cDoc2.service.length > 0);
 
     // === Phase 8: Verify all operations are functional ===
-    assertTrue(didManager.authenticate(aliceDid.didInfo.methods, aliceDid.didInfo.id, DEFAULT_VM_ID, alice));
     assertTrue(
-      didManager.authenticate(aliceDid.didInfo.methods, aliceDid.didInfo.id, bytes32("vm-authentication"), alice)
+      didManager.isVmRelationship(aliceDid.didInfo.methods, aliceDid.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), alice)
+    );
+    assertTrue(
+      didManager.isVmRelationship(
+        aliceDid.didInfo.methods, aliceDid.didInfo.id, bytes32("vm-authentication"), bytes1(0x01), alice
+      )
     );
     // Verify VM relationships are correct
     assertTrue(
