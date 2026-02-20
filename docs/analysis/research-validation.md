@@ -126,12 +126,12 @@ See `docs/metrics/gas-consumption-history.md` for version-by-version tracking.
 
 | Category | Count | Purpose |
 |----------|-------|---------|
-| Unit tests | ~180 | Individual function behavior |
-| Integration tests | ~10 | Cross-contract workflows |
-| Fuzz tests | ~5 | Property-based edge cases |
-| Invariant tests | ~5 | System-wide properties |
-| Stress tests | ~5 | Performance under load |
-| Performance tests | ~5 | Gas benchmarking |
+| Unit tests | 258 | Individual function behavior |
+| Fuzz tests | 21 | Property-based edge cases |
+| Invariant tests | 15 | System-wide properties |
+| Integration tests | 9 | Cross-contract workflows |
+| Performance tests | 8 | Gas benchmarking |
+| Stress tests | 6 | Performance under load |
 
 ### Coverage as Evidence
 

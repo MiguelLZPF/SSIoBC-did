@@ -424,6 +424,8 @@ CreateDID:
 
 ---
 
+**Note:** This document captures the v1.1.0 gas analysis snapshot. For v1.2.x changes (dual-variant architecture, isAuthorized()), see [gas-consumption-history.md](./gas-consumption-history.md) and [contract-size-history.md](./contract-size-history.md). The v1.2.x additions are view functions and architecture changes that do not materially affect per-operation gas costs documented here.
+
 **Document Maintenance:**
 - Next update: When significant gas cost changes occur or new features are added
 - Version history: Track in git commits

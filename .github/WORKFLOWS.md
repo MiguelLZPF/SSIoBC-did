@@ -112,8 +112,8 @@ The path filters ensure CI only runs when relevant files change, saving runner m
 
 - Uses the official `crytic/slither-action` (no pip install overhead)
 - Filters out `lib/`, `test/`, `script/` paths
-- Outputs SARIF format and uploads to GitHub Security tab via `codeql-action/upload-sarif`
-- **Non-blocking**: `continue-on-error: true` and `fail-on: none`
+- Outputs SARIF format and uploads to GitHub Security tab via `github/codeql-action/upload-sarif@v3`
+- **Non-blocking**: `fail-on: none` ensures the Slither action exits 0 regardless of findings
 - Can be skipped via `workflow_dispatch` with `skip-security: true`
 
 **Required status check**: No (advisory only)

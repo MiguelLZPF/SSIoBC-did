@@ -52,7 +52,7 @@ The project has maintained comprehensive test coverage throughout development, w
 | v1.0.2 | 98.35% | 119/121 | 100% | 93.55% | reactivateDid() + 12 new tests |
 | **v1.1.0** | **98.36%** | **120/122** | **100%** | **93.10%** | **Bytecode optimization + HashUtils library (100% coverage)** |
 | **v1.2.0** | **>98%** | **See below** | **100%** | **>90%** | **Dual-variant: 268 total tests, DidManagerNative 99%, VMStorageNative 100%, W3CResolverNative 99%** |
-| **v1.2.1** | **>98%** | **See below** | **100%** | **>90%** | **296 total tests (+28 isAuthorized unit tests), removed redundant authenticate()** |
+| **v1.2.1** | **>98%** | **See below** | **100%** | **>90%** | **317 total tests (+28 isAuthorized, +11 native fuzz, +8 native invariant, +2 expireVm), removed redundant authenticate()** |
 
 ## Quality Metrics
 
@@ -240,4 +240,4 @@ Coverage data supports PhD thesis claims about:
 
 ---
 
-*Last Updated: v1.2.1 - 296 total tests (+28 isAuthorized unit tests), removed redundant authenticate(), all source contracts >90%*
+*Last Updated: v1.2.2 - 317 total tests (258 unit, 21 fuzz, 15 invariant, 9 integration, 8 performance, 6 stress), all source contracts >90%*

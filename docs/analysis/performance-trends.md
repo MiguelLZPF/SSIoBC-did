@@ -13,7 +13,7 @@
 
 ## Overview
 
-This document provides comprehensive cross-metric analysis of SSIoBC-did performance evolution, examining relationships between contract size, gas consumption, and test coverage across versions v0.1.0 through v0.8.0. The analysis supports PhD research validation and identifies key performance trends.
+This document provides comprehensive cross-metric analysis of SSIoBC-did performance evolution, examining relationships between contract size, gas consumption, and test coverage across versions v0.1.0 through v1.2.1. The analysis supports PhD research validation and identifies key performance trends.
 
 ## Cross-Metric Correlations
 
@@ -174,38 +174,77 @@ The cross-metric analysis validates key research claims:
 - **Performance Benchmarks**: Real-world cost and efficiency data
 - **Quality Standards**: Academic-rigor testing methodology
 
+## Production Phase Analysis (v1.0.x - v1.2.x)
+
+### Phase 4: Production Optimization (v1.0.x)
+
+#### Metrics Profile
+- **Storage Revolution**: 96% reduction in ServiceStorage (fixed arrays → dynamic bytes)
+- **Gas Efficiency**: 93% reduction in service operations
+- **Feature Additions**: deactivateDid, reactivateDid, controller removal
+
+#### Key Developments
+- EnumerableSet migration (replacing HashBasedList)
+- Dynamic bytes storage for services and VMs
+- Pre-encoded multibase (Base58 library removed)
+- Custom errors replacing require statements
+- Method parameters consolidated to single bytes32
+
+### Phase 5: Bytecode Optimization (v1.1.0)
+
+#### Metrics Profile
+- **Size Reduction**: DidManager -20.2% (15,159 → 12,102 bytes)
+- **Gas Improvement**: Write operations -4% to -18%
+- **Code Quality**: Dead code removal, SLOAD caching, direct storage reads
+
+#### Key Achievements
+- optimizer_runs reduced from 20,000 to 200 (-2,615 bytes, <0.3% gas increase)
+- HashUtils library extraction for shared hash helpers
+- EIP-170 margin increased from 9,417 to 12,474 bytes
+
+### Phase 6: Dual-Variant Architecture (v1.2.x)
+
+#### Metrics Profile
+- **Architecture Split**: Full W3C + Ethereum-Native variants with shared base
+- **Native Efficiency**: DidManagerNative 13.2% smaller than DidManager
+- **Test Expansion**: 317 total tests (unit, fuzz, invariant, integration, performance, stress)
+- **Coverage**: >90% on all source contracts, 7/10 at 100%
+
+#### Key Developments
+- DidManagerBase shared abstract (expiration, controllers)
+- VMStorageNative: 1-slot per VM with overflow for keyAgreement publicKeyMultibase
+- W3CResolverUtils shared library (~140 lines deduped)
+- W3CResolverNative: resolution-time field derivation (zero extra storage)
+- isAuthorized() cross-DID controller-aware authorization
+- E2E ECDH key exchange integration test
+
+#### Performance Characteristics
+- **Size Control**: All 4 contracts well within EIP-170 limits (max 52% utilization)
+- **Gas Predictability**: O(1) for all DID operations
+- **Storage Trade-offs**: Native variant ~80% less storage per VM vs Full W3C
+
 ## Predictive Analysis
+
+### Validated Predictions from v0.8.0
+- **Size Plateau**: Confirmed — v1.2.1 core contracts remain in ~11-12.5 kB range
+- **Gas Optimization**: Achieved — systematic improvements across v1.0-v1.1
+- **Coverage Maintenance**: Confirmed — >90% sustained through major architecture changes
+- **L2 Potential**: Not yet explored but architecture is compatible
 
 ### Future Performance Projections
 
 #### Size Trends
-- **Plateau Reached**: Current size range likely stable
-- **Feature Additions**: New functionality will require optimization trade-offs
-- **EIP-170 Safety**: Significant margin for future enhancements
+- **Dual-variant stable**: Both variants well within EIP-170 with >12kB margins
+- **Feature Additions**: Room for batch operations, privacy features without size pressure
 
 #### Gas Evolution
-- **Optimization Potential**: Further efficiency improvements possible
-- **Network Changes**: Ethereum upgrades may affect costs
-- **Scaling Solutions**: L2 deployment could reduce costs significantly
+- **Native Advantage**: Per-VM storage cost significantly lower for Ethereum-only use cases
+- **L2 Deployment**: Would reduce costs by 10-100x depending on rollup
 
 #### Coverage Maintenance
-- **Standard Established**: >90% likely sustainable
-- **Automation Benefits**: Continued testing sophistication
-- **Regression Protection**: Mature test suite enables confident changes
-
-### Research Extension Opportunities
-
-#### Technical Enhancements
-1. **Batch Operations**: Multi-DID operations optimization
-2. **L2 Optimization**: Layer 2 specific implementations
-3. **Advanced Features**: Privacy enhancements, delegation extensions
-4. **Performance Monitoring**: Real-time metrics collection
-
-#### Academic Research
-1. **Comparative Studies**: Benchmark against other implementations
-2. **Economic Analysis**: Total cost of ownership studies
-3. **Scalability Research**: Network-level impact analysis
-4. **Security Analysis**: Formal verification applications
+- **Standard Established**: >90% sustained across 317 tests
+- **Automation Benefits**: CI enforces 90% threshold on every PR
+- **Dual-variant Testing**: Both variants maintain independent test suites
 
 ## Academic Implications
 
@@ -243,7 +282,7 @@ The cross-metric analysis validates key research claims:
 ### Supporting Evidence
 - [Screenshot Archives](../assets/screenshots/) - Visual performance documentation
 - [Size Data Files](../assets/data/) - Numerical comparison data
-- Version tracking: Git tags v0.1.0 through v0.8.0
+- Version tracking: Git tags v0.1.0 through v1.2.1
 
 ### Academic Context
 - PhD thesis: "SSIoBC – Decentralized Identifiers [X.XX].md"
@@ -252,4 +291,4 @@ The cross-metric analysis validates key research claims:
 
 ---
 
-*Analysis based on complete performance dataset spanning SSIoBC-did development from v0.1.0 through v0.8.0, supporting comprehensive PhD research validation*
+*Analysis based on complete performance dataset spanning SSIoBC-did development from v0.1.0 through v1.2.2, supporting comprehensive PhD research validation*

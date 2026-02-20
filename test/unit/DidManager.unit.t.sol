@@ -9,7 +9,8 @@ import {
   CreateVmCommand,
   Controller,
   CONTROLLERS_MAX_LENGTH,
-  EXPIRATION
+  EXPIRATION,
+  VerificationMethod
 } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
 import {
@@ -434,6 +435,108 @@ contract DidManagerUnitTest is TestBase {
       bytes32(0), // targetId = 0 (should trigger uncovered branch)
       DEFAULT_VM_ID
     );
+    _stopPrank();
+  }
+
+  function test_ExpireVm_Should_ExpireSuccessfully_When_OwnerExpiresOwnVm() public {
+    // Use the hardcoded DEFAULT_VM_ETHEREUM_ADDRESS as the user
+    _startPrank(Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS);
+
+    // Create a DID with default VM (VM will be owned by DEFAULT_VM_ETHEREUM_ADDRESS)
+    DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
+
+    // Create an additional VM manually with the same ethereum address
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: didResult.didInfo.methods,
+      senderId: didResult.didInfo.id,
+      senderVmId: DEFAULT_VM_ID,
+      targetId: didResult.didInfo.id,
+      vmId: Fixtures.VM_ID_CUSTOM,
+      type_: Fixtures.defaultVmType(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
+      blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
+      ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
+      relationships: Fixtures.DEFAULT_VM_RELATIONSHIPS,
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
+    });
+
+    vm.recordLogs();
+    didManager.createVm(command);
+    Vm.Log[] memory entries = vm.getRecordedLogs();
+    bytes32 positionHash = bytes32(entries[0].data);
+
+    // Validate the VM
+    didManager.validateVm(positionHash, 0);
+
+    // Verify VM exists and is not expired
+    VerificationMethod memory vmBefore =
+      didManager.getVm(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM, 0);
+    assertGt(vmBefore.expiration, 0);
+    assertGt(vmBefore.expiration, block.timestamp);
+
+    // Owner expires their own VM
+    didManager.expireVm(
+      didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM
+    );
+
+    // Verify VM is now expired
+    VerificationMethod memory vmAfter =
+      didManager.getVm(didResult.didInfo.methods, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM, 0);
+    assertEq(vmAfter.expiration, uint88(block.timestamp));
+
+    // Verify isVmRelationship reverts for the expired VM
+    vm.expectRevert(IVMStorage.VmAlreadyExpired.selector);
+    didManager.isVmRelationship(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      Fixtures.VM_ID_CUSTOM,
+      bytes1(0x01),
+      Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS
+    );
+
+    _stopPrank();
+  }
+
+  function test_ExpireVm_Should_Succeed_When_ControllerExpiresTargetVm() public {
+    // Create owner DID (user1)
+    _startPrank(user1);
+    DidTestHelpers.CreateDidResult memory ownerDid = DidTestHelpers.createDefaultDid(vm, didManager);
+    _stopPrank();
+
+    // Create controller DID (user2)
+    _startPrank(user2);
+    DidTestHelpers.CreateDidResult memory controllerDid =
+      DidTestHelpers.createDid(vm, didManager, Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_1, bytes32(0));
+    _stopPrank();
+
+    // Owner sets controller on their DID
+    _startPrank(user1);
+    didManager.updateController(
+      ownerDid.didInfo.methods,
+      ownerDid.didInfo.id,
+      DEFAULT_VM_ID,
+      ownerDid.didInfo.id,
+      controllerDid.didInfo.id,
+      bytes32(0),
+      0
+    );
+    _stopPrank();
+
+    // Controller expires owner's default VM
+    _startPrank(user2);
+    didManager.expireVm(
+      ownerDid.didInfo.methods, controllerDid.didInfo.id, DEFAULT_VM_ID, ownerDid.didInfo.id, DEFAULT_VM_ID
+    );
+
+    // Verify VM is expired
+    VerificationMethod memory vmAfter =
+      didManager.getVm(ownerDid.didInfo.methods, ownerDid.didInfo.id, DEFAULT_VM_ID, 0);
+    assertEq(vmAfter.expiration, uint88(block.timestamp));
+
+    // Verify isVmRelationship reverts for the expired VM
+    vm.expectRevert(IVMStorage.VmAlreadyExpired.selector);
+    didManager.isVmRelationship(ownerDid.didInfo.methods, ownerDid.didInfo.id, DEFAULT_VM_ID, bytes1(0x01), user1);
+
     _stopPrank();
   }
 

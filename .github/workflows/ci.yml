@@ -89,12 +89,6 @@ jobs:
       contents: read
     env:
       FOUNDRY_PROFILE: ci
-      PORT: ${{ vars.PORT }}
-      CHAIN_ID: ${{ vars.CHAIN_ID }}
-      HARDFORK: ${{ vars.HARDFORK }}
-      ACCOUNT_NUMBER: ${{ vars.ACCOUNT_NUMBER }}
-      ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
-      DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -134,13 +128,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    env:
-      PORT: ${{ vars.PORT }}
-      CHAIN_ID: ${{ vars.CHAIN_ID }}
-      HARDFORK: ${{ vars.HARDFORK }}
-      ACCOUNT_NUMBER: ${{ vars.ACCOUNT_NUMBER }}
-      ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
-      DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -231,6 +218,7 @@ jobs:
     if: ${{ !inputs.skip-security }}
     permissions:
       contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -243,8 +231,14 @@ jobs:
           fail-on: none
           slither-args: --filter-paths "lib/|test/|script/" --exclude-dependencies
 
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: slither-results.sarif
+
       - name: Upload Slither report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         if: always()
         with:
           name: slither-sarif
@@ -260,13 +254,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    env:
-      PORT: ${{ vars.PORT }}
-      CHAIN_ID: ${{ vars.CHAIN_ID }}
-      HARDFORK: ${{ vars.HARDFORK }}
-      ACCOUNT_NUMBER: ${{ vars.ACCOUNT_NUMBER }}
-      ANVIL_CONFIG_OUT: ${{ vars.ANVIL_CONFIG_OUT }}
-      DEPLOYMENTS_PATH: ${{ vars.DEPLOYMENTS_PATH }}
     steps:
       - uses: actions/checkout@v6
         with:

@@ -132,6 +132,7 @@ Traditional DID systems (ERC-1056) require event reconstruction, making historic
 - **v0.7.0-v0.8.0**: Final optimizations and W3C resolver completion
 - **v1.1.0**: Bytecode optimization (custom errors, dead code removal, SLOAD caching, HashUtils library, direct storage reads, optimizer_runs=200)
 - **v1.2.0**: Dual-variant architecture (DidManagerNative with 1-slot VMs reduces per-operation gas for Ethereum-only DIDs)
+- **v1.2.1**: Added isAuthorized() view function (+412/+411 bytes), removed redundant authenticate(). Net gas impact: negligible (view-only addition)
 
 ## Research Validation
 
@@ -198,4 +199,4 @@ Performance data referenced in:
 
 ---
 
-*Last Updated: v1.2.0 - Dual-variant architecture adds DidManagerNative with lower per-VM storage costs*
+*Last Updated: v1.2.1 - Added isAuthorized() cross-DID authorization view function, removed redundant authenticate()*

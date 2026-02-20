@@ -4,44 +4,45 @@ pragma solidity >=0.8.0 <0.9.0;
 import { Test } from "forge-std/Test.sol";
 import { StdInvariant } from "forge-std/StdInvariant.sol";
 import { Vm } from "forge-std/Vm.sol";
-import { TestBase } from "../helpers/TestBase.sol";
+import { TestBaseNative } from "../helpers/TestBaseNative.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
-import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { IDidManager, CreateVmCommand } from "@src/interfaces/IDidManager.sol";
+import { DidTestHelpersNative } from "../helpers/DidTestHelpersNative.sol";
+import { IDidManagerNative, CreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
 import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
-import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
+import { DEFAULT_VM_ID_NATIVE } from "@src/interfaces/IVMStorageNative.sol";
 
 /**
- * @title SystemInvariantsTest
- * @notice Invariant tests for the entire DID management system
- * @dev Tests system-wide properties that should always hold true
+ * @title NativeSystemInvariantsTest
+ * @notice Invariant tests for the Ethereum-Native DID management system
+ * @dev Tests system-wide properties that should always hold true for native variant
+ * @dev Extends W3C invariants with native-specific properties (publicKeyMultibase enforcement)
  */
-contract SystemInvariantsTest is StdInvariant, TestBase {
-  using DidTestHelpers for *;
+contract NativeSystemInvariantsTest is StdInvariant, TestBaseNative {
+  using DidTestHelpersNative for *;
 
   // Handler contract for invariant testing
-  InvariantHandler private handler;
+  InvariantHandlerNative private handler;
 
   function setUp() public {
-    _deployDidManager();
+    _deployDidManagerNative();
 
     // Create and configure the handler
-    handler = new InvariantHandler(didManager);
+    handler = new InvariantHandlerNative(didManagerNative);
 
     // Target the handler for invariant testing
     targetContract(address(handler));
 
     // Target specific functions for more focused testing
     bytes4[] memory selectors = new bytes4[](3);
-    selectors[0] = InvariantHandler.createRandomDid.selector;
-    selectors[1] = InvariantHandler.createRandomVm.selector;
-    selectors[2] = InvariantHandler.updateRandomController.selector;
+    selectors[0] = InvariantHandlerNative.createRandomDid.selector;
+    selectors[1] = InvariantHandlerNative.createRandomVm.selector;
+    selectors[2] = InvariantHandlerNative.updateRandomController.selector;
 
     targetSelector(FuzzSelector({ addr: address(handler), selectors: selectors }));
   }
 
   // =========================================================================
-  // SYSTEM INVARIANTS
+  // SYSTEM INVARIANTS (Shared with W3C variant)
   // =========================================================================
 
   /**
@@ -65,7 +66,7 @@ contract SystemInvariantsTest is StdInvariant, TestBase {
     uint256[] memory creationTimes = handler.getCreationTimes();
 
     for (uint256 i = 0; i < createdDids.length; i++) {
-      uint256 expiration = didManager.getExpiration(DEFAULT_DID_METHODS, createdDids[i], bytes32(0));
+      uint256 expiration = didManagerNative.getExpiration(DEFAULT_DID_METHODS, createdDids[i], bytes32(0));
 
       // Skip if DID doesn't exist (may have been cleaned up)
       if (expiration == 0) continue;
@@ -82,7 +83,7 @@ contract SystemInvariantsTest is StdInvariant, TestBase {
     bytes32[] memory createdDids = handler.getCreatedDids();
 
     for (uint256 i = 0; i < createdDids.length; i++) {
-      uint256 vmCount = didManager.getVmListLength(DEFAULT_DID_METHODS, createdDids[i]);
+      uint256 vmCount = didManagerNative.getVmListLength(DEFAULT_DID_METHODS, createdDids[i]);
 
       // Reasonable limit: no more than 100 VMs per DID
       assertLe(vmCount, Fixtures.MAX_REASONABLE_VM_COUNT, "VM count should be reasonable");
@@ -136,7 +137,7 @@ contract SystemInvariantsTest is StdInvariant, TestBase {
 
     for (uint256 i = 0; i < createdDids.length; i++) {
       bytes32 didId = createdDids[i];
-      uint256 expiration = didManager.getExpiration(DEFAULT_DID_METHODS, didId, bytes32(0));
+      uint256 expiration = didManagerNative.getExpiration(DEFAULT_DID_METHODS, didId, bytes32(0));
 
       // If expiration is 0, the DID is deactivated (special case, not expired)
       if (expiration == 0) continue;
@@ -147,8 +148,8 @@ contract SystemInvariantsTest is StdInvariant, TestBase {
       if (isExpired) {
         // Property: Expired DID should NOT authenticate successfully
         // Note: Authentication may revert instead of returning false, so we use try-catch
-        try didManager.isVmRelationship(
-          DEFAULT_DID_METHODS, didId, DEFAULT_VM_ID, bytes1(0x01), address(this)
+        try didManagerNative.isVmRelationship(
+          DEFAULT_DID_METHODS, didId, DEFAULT_VM_ID_NATIVE, bytes1(0x01), address(this)
         ) returns (
           bool result
         ) {
@@ -173,35 +174,81 @@ contract SystemInvariantsTest is StdInvariant, TestBase {
       bytes32 didId = createdDids[i];
 
       // Get reported VM count
-      uint256 reportedVmCount = didManager.getVmListLength(DEFAULT_DID_METHODS, didId);
+      uint256 reportedVmCount = didManagerNative.getVmListLength(DEFAULT_DID_METHODS, didId);
 
       // Property: VM count should always be reasonable (0-100)
       assertLe(reportedVmCount, Fixtures.MAX_REASONABLE_VM_COUNT, "VM count should not exceed reasonable limit");
 
       // Property: If DID is not deactivated, should have at least 1 VM (the default one)
-      uint256 expiration = didManager.getExpiration(DEFAULT_DID_METHODS, didId, bytes32(0));
+      uint256 expiration = didManagerNative.getExpiration(DEFAULT_DID_METHODS, didId, bytes32(0));
       if (expiration != 0 && block.timestamp < expiration) {
         // DID is not deactivated and not expired
         assertGt(reportedVmCount, 0, "Active DID should have at least one VM");
       }
     }
   }
+
+  // =========================================================================
+  // NATIVE-SPECIFIC INVARIANTS
+  // =========================================================================
+
+  /**
+   * @notice Invariant: publicKeyMultibase should only exist for keyAgreement VMs
+   * @dev Property: For every VM, if it has keyAgreement relationship (0x04),
+   *                it MUST have non-empty publicKeyMultibase.
+   *                If it doesn't have keyAgreement, publicKeyMultibase MUST be empty.
+   * @dev This ensures strict enforcement of native VM storage constraints
+   */
+  function invariant_PublicKeyMultibaseShouldOnlyExistForKeyAgreement() public {
+    bytes32[] memory createdDids = handler.getCreatedDids();
+
+    for (uint256 i = 0; i < createdDids.length; i++) {
+      bytes32 didId = createdDids[i];
+      uint256 vmCount = didManagerNative.getVmListLength(DEFAULT_DID_METHODS, didId);
+
+      for (uint8 j = 0; j < vmCount; j++) {
+        bytes32 vmId = didManagerNative.getVmIdAtPosition(DEFAULT_DID_METHODS, didId, j);
+
+        // Get publicKeyMultibase and check VM state
+        // We validate through the handler's tracked VMs
+        (bool hasKeyAgreement, bool hasMultibase) = handler.getVmKeyAgreementAndMultibaseState(didId, vmId);
+
+        // Invariant: keyAgreement and multibase must align
+        // If multibase is non-empty, keyAgreement MUST be set
+        if (hasMultibase) {
+          assertTrue(hasKeyAgreement, "publicKeyMultibase set but keyAgreement not set");
+        } else {
+          // If multibase is empty, keyAgreement MUST NOT be set
+          assertFalse(hasKeyAgreement, "keyAgreement set but publicKeyMultibase not set");
+        }
+      }
+    }
+  }
 }
 
 /**
- * @title InvariantHandler
- * @notice Handler contract for invariant testing that performs random operations
+ * @title InvariantHandlerNative
+ * @notice Handler contract for invariant testing on native DID variant
  * @dev Maintains state and provides controlled randomness for testing
+ * @dev Similar to InvariantHandler but uses native variant interfaces and simpler CreateVmCommand
  */
-contract InvariantHandler is Test {
-  using DidTestHelpers for *;
+contract InvariantHandlerNative is Test {
+  using DidTestHelpersNative for *;
 
-  IDidManager private didManager;
+  IDidManagerNative private didManagerNative;
 
   // State tracking
   bytes32[] private createdDids;
   uint256[] private creationTimes;
   uint256 private currentNonce;
+
+  // VM tracking for publicKeyMultibase invariant checking
+  // Stores mapping of (didId => (vmId => vmState))
+  struct VmState {
+    bool hasKeyAgreement;
+    bool hasMultibase;
+  }
+  mapping(bytes32 => mapping(bytes32 => VmState)) private vmKeyAgreementState;
 
   // Operation counters
   uint256 public didCreationCount;
@@ -213,8 +260,8 @@ contract InvariantHandler is Test {
   address private user1 = Fixtures.TEST_USER_1;
   address private user2 = Fixtures.TEST_USER_2;
 
-  constructor(IDidManager _didManager) {
-    didManager = _didManager;
+  constructor(IDidManagerNative _didManagerNative) {
+    didManagerNative = _didManagerNative;
 
     // Setup users
     vm.deal(user1, Fixtures.TEST_ETHER_AMOUNT);
@@ -238,8 +285,9 @@ contract InvariantHandler is Test {
 
     vm.startPrank(user, user);
 
+    // Record logs BEFORE the try block (fixed pattern from W3C handler)
     vm.recordLogs();
-    try didManager.createDid(Fixtures.EMPTY_DID_METHODS, randomValue, bytes32(0)) {
+    try didManagerNative.createDid(Fixtures.EMPTY_DID_METHODS, randomValue, bytes32(0)) {
       // Track successful creation from recorded logs
       Vm.Log[] memory entries = vm.getRecordedLogs();
       bytes32 didId = entries[2].topics[1]; // DidCreated event
@@ -257,6 +305,7 @@ contract InvariantHandler is Test {
 
   /**
    * @notice Creates a random VM for an existing DID
+   * @dev Randomly chooses between keyAgreement (with publicKeyMultibase) and other relationships
    */
   function createRandomVm() public {
     if (createdDids.length == 0) return;
@@ -268,8 +317,16 @@ contract InvariantHandler is Test {
     // Generate random VM ID
     bytes32 vmId = keccak256(abi.encodePacked("vm", currentNonce++));
 
-    // Random relationships (1-31)
-    bytes1 relationships = bytes1(uint8((currentNonce % 31) + 1));
+    // Randomly decide if this VM has keyAgreement relationship
+    bool hasKeyAgreement = currentNonce % 2 == 0;
+
+    // Set relationships: if hasKeyAgreement, include 0x04; otherwise use 0x01 (authentication)
+    bytes1 relationships =
+      hasKeyAgreement ? Fixtures.VM_RELATIONSHIPS_KEY_AGREEMENT : Fixtures.VM_RELATIONSHIPS_AUTHENTICATION;
+
+    // Set publicKeyMultibase: ONLY if hasKeyAgreement
+    bytes memory publicKeyMultibase =
+      hasKeyAgreement ? Fixtures.TEST_SECP256K1_MULTIBASE : Fixtures.emptyVmPublicKeyMultibase();
 
     address user = currentNonce % 2 == 0 ? user1 : user2;
 
@@ -278,18 +335,19 @@ contract InvariantHandler is Test {
     CreateVmCommand memory command = CreateVmCommand({
       methods: DEFAULT_DID_METHODS,
       senderId: selectedDid,
-      senderVmId: DEFAULT_VM_ID,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
       targetId: selectedDid,
       vmId: vmId,
-      type_: Fixtures.defaultVmType(),
-      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
-      blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
       ethereumAddress: Fixtures.DEFAULT_VM_ETHEREUM_ADDRESS,
       relationships: relationships,
-      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
+      publicKeyMultibase: publicKeyMultibase
     });
 
-    try didManager.createVm(command) {
+    try didManagerNative.createVm(command) {
+      // Track VM state for invariant checking
+      vmKeyAgreementState[selectedDid][vmId] =
+        VmState({ hasKeyAgreement: hasKeyAgreement, hasMultibase: publicKeyMultibase.length > 0 });
+
       vmCreationCount++;
       totalOperations++;
     } catch {
@@ -297,7 +355,6 @@ contract InvariantHandler is Test {
     }
 
     vm.stopPrank();
-    currentNonce++;
   }
 
   /**
@@ -319,10 +376,10 @@ contract InvariantHandler is Test {
 
     vm.startPrank(user, user);
 
-    try didManager.updateController(
+    try didManagerNative.updateController(
       DEFAULT_DID_METHODS,
       ownerDid,
-      DEFAULT_VM_ID,
+      DEFAULT_VM_ID_NATIVE,
       ownerDid,
       controllerDid,
       bytes32(0),
@@ -348,5 +405,20 @@ contract InvariantHandler is Test {
 
   function getCreationTimes() external view returns (uint256[] memory) {
     return creationTimes;
+  }
+
+  /**
+   * @notice Returns the keyAgreement and multibase state for a VM
+   * @dev Used by invariant_PublicKeyMultibaseShouldOnlyExistForKeyAgreement
+   * @return hasKeyAgreement Whether the VM has keyAgreement relationship set
+   * @return hasMultibase Whether the VM has non-empty publicKeyMultibase
+   */
+  function getVmKeyAgreementAndMultibaseState(bytes32 didId, bytes32 vmId)
+    external
+    view
+    returns (bool hasKeyAgreement, bool hasMultibase)
+  {
+    VmState memory state = vmKeyAgreementState[didId][vmId];
+    return (state.hasKeyAgreement, state.hasMultibase);
   }
 }

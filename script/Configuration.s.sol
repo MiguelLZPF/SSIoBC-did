@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-pragma solidity ^0.8.24;
+pragma solidity 0.8.33;
 
 import { Script } from "forge-std/Script.sol";
 import { stdJson } from "forge-std/StdJson.sol";
@@ -36,7 +36,7 @@ contract Configuration is Script, Helper {
 
   uint256 PORT = vm.envOr("PORT", uint256(8545));
   uint256 CHAIN_ID = vm.envOr("CHAIN_ID", uint256(31337));
-  string HARDFORK = vm.envOr("HARDFORK", string("prague"));
+  string HARDFORK = vm.envOr("HARDFORK", string("osaka"));
   uint256 ACCOUNT_NUMBER = vm.envOr("ACCOUNT_NUMBER", uint256(10));
   string MNEMONIC = vm.envOr("MNEMONIC", string("test test test test test test test test test test test junk"));
   string ANVIL_CONFIG_OUT = vm.envOr("ANVIL_CONFIG_OUT", string(".last-anvil-config.json"));

@@ -70,8 +70,26 @@ forge script script/DidManager.s.sol:DidManagerScript \
 
 #### Ethereum-Native Variant
 ```bash
-forge script script/DidManager.s.sol:DidManagerScript \
+forge script script/DidManagerNative.s.sol:DidManagerNativeScript \
   --sig "deploy(bool,string,bool)" true "DidManagerNative_Deploy" true \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast
+```
+
+#### W3C Resolver (Full W3C)
+```bash
+forge script script/W3CResolver.s.sol:W3CResolverScript \
+  --sig "deploy(bool,string,bool,address)" true "W3CResolver_Deploy" true <DIDMANAGER_ADDRESS> \
+  --rpc-url $RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --broadcast
+```
+
+#### W3C Resolver (Ethereum-Native)
+```bash
+forge script script/W3CResolverNative.s.sol:W3CResolverNativeScript \
+  --sig "deploy(bool,string,bool,address)" true "W3CResolverNative_Deploy" true <DIDMANAGER_NATIVE_ADDRESS> \
   --rpc-url $RPC_URL \
   --private-key $PRIVATE_KEY \
   --broadcast

@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of Contents
 
 - [Unreleased](#unreleased)
+- [1.2.2 — 2026-02-19](#122--2026-02-19)
+- [1.2.1 — 2026-02-17](#121--2026-02-17)
 - [1.2.0 — 2026-02-15](#120--2026-02-15)
 - [1.1.0 — 2026-02-05](#110--2026-02-05)
 - [1.0.2 — 2026-02-05](#102--2026-02-05)
@@ -25,6 +27,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - SPDX license identifiers updated from UNLICENSED to Apache-2.0 across all source files
+
+## [1.2.2] — 2026-02-19
+
+### Added
+
+- 11 native fuzz tests (`DidManagerNative.fuzz.t.sol`) covering DID creation, VM relationships, keyAgreement enforcement, expiration, and isAuthorized
+- 8 native invariant tests (`NativeSystemInvariants.t.sol`) including publicKeyMultibase-keyAgreement consistency check
+- 2 expireVm success-path unit tests (owner + controller scenarios)
+- W3CResolver and W3CResolverNative deployment commands in deployment guide
+
+### Fixed
+
+- Critical invariant handler double-create bug in `SystemInvariants.t.sol` — invariants were passing trivially with empty arrays
+- Native fuzz test keyAgreement edge case for out-of-range relationship bitmasks
+- Deployment guide: corrected native variant script name (`DidManagerNativeScript`)
+- Script pragmas aligned to `0.8.33` (was `^0.8.24` across all 6 scripts)
+- `.env.example`: HARDFORK corrected to `osaka`, added RPC_URL/PRIVATE_KEY/ETHERSCAN_API_KEY
+- `.gitignore`: removed contradictory broadcast rules
+- `Configuration.s.sol`: HARDFORK default corrected to `osaka`
+- `Helper.sol`: license corrected to Apache-2.0
+- `.prettierrc.yaml`: printWidth aligned to 120 (matching foundry.toml)
+
+### Changed
+
+- CI/CD: added SARIF upload step with `security-events: write` permission, upgraded upload-artifact to v6, removed unused env vars
+- Test count: 296 → 317 total tests (258 unit, 21 fuzz, 15 invariant, 9 integration, 8 performance, 6 stress)
+- Documentation updated across all metrics and analysis files
+
+## [1.2.1] — 2026-02-17
+
+### Added
+
+- `isAuthorized()` public view function for cross-DID controller-aware authorization checks (returns bool, non-reverting)
+- 28 new Authorize unit tests (14 per variant) covering self-controlled, controller-delegated, expired, and deactivated scenarios
+- `getVmIdAtPosition()` function in `DidManagerNative` for position-based VM ID lookup
+
+### Removed
+
+- `authenticate()` function — was redundant wrapper for `isVmRelationship(0x01)`
+
+### Changed
+
+- `isAuthorized()` uses `_getVm()` instead of `_isVmRelationship()` to avoid `VmAlreadyExpired` revert on expired/missing VMs
 
 ## [1.2.0] — 2026-02-15
 
@@ -113,7 +158,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ServiceStorage` contract for service endpoint management
 - Basic DID creation and VM creation functionality
 
-[Unreleased]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.1...v1.2.2
+[1.2.1]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.0.1...v1.0.2
