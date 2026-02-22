@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManagerNative, CreateVmCommand as NativeCreateVmCommand } from "src/interfaces/IDidManagerNative.sol";
-import { VMStorageNative, VerificationMethod, CreateVmCommand } from "src/VMStorageNative.sol";
-import { ServiceStorage } from "src/ServiceStorage.sol";
-import { Service } from "src/interfaces/IServiceStorage.sol";
-import { HashUtils } from "src/HashUtils.sol";
+import { IDidManagerNative, CreateVmCommand as NativeCreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
+import { VMStorageNative, VerificationMethod, CreateVmCommand } from "@src/VMStorageNative.sol";
+import { ServiceStorage } from "@src/ServiceStorage.sol";
+import { Service } from "@src/interfaces/IServiceStorage.sol";
+import { HashUtils } from "@src/HashUtils.sol";
 import {
   DidManagerBase,
   Controller,
@@ -16,7 +16,7 @@ import {
   NotAuthenticatedAsSenderId,
   NotAControllerforTargetId,
   DidNotDeactivated
-} from "src/DidManagerBase.sol";
+} from "@src/DidManagerBase.sol";
 
 /**
  * @title DidManagerNative

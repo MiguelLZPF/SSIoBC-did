@@ -8,8 +8,8 @@ import {
   SERVICE_NAMESPACE,
   MAX_SERVICE_TYPE_LENGTH,
   MAX_SERVICE_ENDPOINT_LENGTH
-} from "src/interfaces/IServiceStorage.sol";
-import { HashUtils } from "src/HashUtils.sol";
+} from "@src/interfaces/IServiceStorage.sol";
+import { HashUtils } from "@src/HashUtils.sol";
 
 // Example of a service:
 // {

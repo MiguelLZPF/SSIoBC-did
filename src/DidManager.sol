@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "src/interfaces/IDidManager.sol";
+import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfaces/IDidManager.sol";
 import {
   DidManagerBase,
   Controller,
@@ -12,11 +12,11 @@ import {
   NotAuthenticatedAsSenderId,
   NotAControllerforTargetId,
   DidNotDeactivated
-} from "src/DidManagerBase.sol";
-import { VMStorage, VerificationMethod, CreateVmCommand } from "src/VMStorage.sol";
-import { ServiceStorage } from "src/ServiceStorage.sol";
-import { Service } from "src/interfaces/IServiceStorage.sol";
-import { HashUtils } from "src/HashUtils.sol";
+} from "@src/DidManagerBase.sol";
+import { VMStorage, VerificationMethod, CreateVmCommand } from "@src/VMStorage.sol";
+import { ServiceStorage } from "@src/ServiceStorage.sol";
+import { Service } from "@src/interfaces/IServiceStorage.sol";
+import { HashUtils } from "@src/HashUtils.sol";
 
 /// @title DidManager
 /// @author Miguel Gómez Carpena
