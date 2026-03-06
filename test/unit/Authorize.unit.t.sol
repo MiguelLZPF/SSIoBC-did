@@ -10,7 +10,7 @@ import { IDidManager, CreateVmCommand } from "@src/interfaces/IDidManager.sol";
 import { IDidManagerNative, CreateVmCommand as NativeCreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
 import { DEFAULT_VM_ID, IVMStorage } from "@src/interfaces/IVMStorage.sol";
 import { DEFAULT_VM_ID_NATIVE, IVMStorageNative } from "@src/interfaces/IVMStorageNative.sol";
-import "@src/DidManagerBase.sol";
+import "@interfaces/IDidManagerBase.sol";
 
 // =========================================================================
 // Full W3C Variant Tests
@@ -486,35 +486,35 @@ contract AuthorizeUnitTest is TestBase {
     _stopPrank();
 
     // Zero methods
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.isAuthorized(bytes32(0), didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id, bytes1(0x01), user1);
 
     // Zero senderId
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.isAuthorized(
       didResult.didInfo.methods, bytes32(0), DEFAULT_VM_ID, didResult.didInfo.id, bytes1(0x01), user1
     );
 
     // Zero senderVmId
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.isAuthorized(
       didResult.didInfo.methods, didResult.didInfo.id, bytes32(0), didResult.didInfo.id, bytes1(0x01), user1
     );
 
     // Zero targetId
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.isAuthorized(
       didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, bytes32(0), bytes1(0x01), user1
     );
 
     // Zero relationship
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.isAuthorized(
       didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id, bytes1(0), user1
     );
 
     // Zero address
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.isAuthorized(
       didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id, bytes1(0x01), address(0)
     );
@@ -989,37 +989,37 @@ contract AuthorizeNativeUnitTest is TestBaseNative {
     _stopPrank();
 
     // Zero methods
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.isAuthorized(
       bytes32(0), didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, didResult.didInfo.id, bytes1(0x01), user1
     );
 
     // Zero senderId
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.isAuthorized(
       didResult.didInfo.methods, bytes32(0), DEFAULT_VM_ID_NATIVE, didResult.didInfo.id, bytes1(0x01), user1
     );
 
     // Zero senderVmId
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.isAuthorized(
       didResult.didInfo.methods, didResult.didInfo.id, bytes32(0), didResult.didInfo.id, bytes1(0x01), user1
     );
 
     // Zero targetId
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.isAuthorized(
       didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, bytes32(0), bytes1(0x01), user1
     );
 
     // Zero relationship
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.isAuthorized(
       didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, didResult.didInfo.id, bytes1(0), user1
     );
 
     // Zero address
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.isAuthorized(
       didResult.didInfo.methods,
       didResult.didInfo.id,

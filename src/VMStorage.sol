@@ -13,6 +13,7 @@ import {
   VerificationMethod,
   IVMStorage
 } from "./interfaces/IVMStorage.sol";
+import { MissingRequiredParameter } from "./interfaces/IDidManagerBase.sol";
 import { HashUtils } from "./HashUtils.sol";
 
 /// @title VMStorage

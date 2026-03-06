@@ -5,9 +5,8 @@ import { TestBaseNative } from "../helpers/TestBaseNative.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpersNative } from "../helpers/DidTestHelpersNative.sol";
 import { CreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
-import { DEFAULT_DID_METHODS } from "@src/DidManagerBase.sol";
+import { DEFAULT_DID_METHODS, DidAlreadyExists } from "@interfaces/IDidManagerBase.sol";
 import { DEFAULT_VM_ID_NATIVE } from "@src/interfaces/IVMStorageNative.sol";
-import { DidAlreadyExists } from "@src/DidManagerBase.sol";
 
 /**
  * @title DidManagerNativeFuzzTest

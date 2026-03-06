@@ -3,16 +3,17 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { IDidManager, CreateVmCommand as DidCreateVmCommand } from "@src/interfaces/IDidManager.sol";
 import {
-  DidManagerBase,
   Controller,
   DEFAULT_DID_METHODS,
   CONTROLLERS_MAX_LENGTH,
+  MissingRequiredParameter,
   DidAlreadyExists,
   DidExpired,
   NotAuthenticatedAsSenderId,
   NotAControllerforTargetId,
   DidNotDeactivated
-} from "@src/DidManagerBase.sol";
+} from "@interfaces/IDidManagerBase.sol";
+import { DidManagerBase } from "@src/DidManagerBase.sol";
 import { VMStorage, VerificationMethod, CreateVmCommand } from "@src/VMStorage.sol";
 import { ServiceStorage } from "@src/ServiceStorage.sol";
 import { Service } from "@src/interfaces/IServiceStorage.sol";
@@ -76,12 +77,8 @@ contract DidManager is IDidManager, VMStorage, DidManagerBase, ServiceStorage {
   function createVm(DidCreateVmCommand memory command) external {
     //* Params validation
     // Required
-    if (
-      command.methods == bytes32(0) || command.senderId == bytes32(0) || command.targetId == bytes32(0)
-        || command.relationships == bytes1(0)
-    ) {
-      revert MissingRequiredParameter();
-    }
+    _validateTripleParams(command.methods, command.senderId, command.targetId);
+    if (command.relationships == bytes1(0)) revert MissingRequiredParameter();
     //* Implementation
     (, bytes32 targetIdHash) = _validateSenderAndTarget({
       methods: command.methods, senderId: command.senderId, senderVmId: command.senderVmId, targetId: command.targetId
@@ -108,9 +105,7 @@ contract DidManager is IDidManager, VMStorage, DidManagerBase, ServiceStorage {
   function expireVm(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId, bytes32 vmId) external {
     //* Params validation
     // Required
-    if (methods == bytes32(0) || senderId == bytes32(0) || targetId == bytes32(0)) {
-      revert MissingRequiredParameter();
-    }
+    _validateTripleParams(methods, senderId, targetId);
     //* Implementation
     (, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);
     _expireVm(targetIdHash, vmId);
@@ -120,9 +115,7 @@ contract DidManager is IDidManager, VMStorage, DidManagerBase, ServiceStorage {
   function deactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external {
     //* Params validation
     // Required
-    if (methods == bytes32(0) || senderId == bytes32(0) || targetId == bytes32(0)) {
-      revert MissingRequiredParameter();
-    }
+    _validateTripleParams(methods, senderId, targetId);
     //* Implementation
     (, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);
     emit DidDeactivated(targetIdHash);
@@ -132,9 +125,7 @@ contract DidManager is IDidManager, VMStorage, DidManagerBase, ServiceStorage {
   function reactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external {
     //* Params validation
     // Required
-    if (methods == bytes32(0) || senderId == bytes32(0) || targetId == bytes32(0)) {
-      revert MissingRequiredParameter();
-    }
+    _validateTripleParams(methods, senderId, targetId);
     //* Implementation
     bytes32 senderIdHash = HashUtils.calculateIdHash(methods, senderId);
     bytes32 targetIdHash = HashUtils.calculateIdHash(methods, targetId);
@@ -185,9 +176,7 @@ contract DidManager is IDidManager, VMStorage, DidManagerBase, ServiceStorage {
   ) external {
     //* Params validation
     // Required (controllerId can be bytes32(0) for removal)
-    if (methods == bytes32(0) || senderId == bytes32(0) || targetId == bytes32(0)) {
-      revert MissingRequiredParameter();
-    }
+    _validateTripleParams(methods, senderId, targetId);
     //* Implementation
     (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);
     // Sender can make changes to this DID
@@ -253,9 +242,7 @@ contract DidManager is IDidManager, VMStorage, DidManagerBase, ServiceStorage {
     view
     returns (bool)
   {
-    if (methods == bytes32(0) || id == bytes32(0) || sender == address(0)) {
-      revert MissingRequiredParameter();
-    }
+    _validateViewParams(methods, id, sender);
     bytes32 idHash = HashUtils.calculateIdHash(methods, id);
     // Check if DID is expired/deactivated before checking VM relationship
     if (_isExpired(idHash)) {
@@ -274,12 +261,7 @@ contract DidManager is IDidManager, VMStorage, DidManagerBase, ServiceStorage {
     address sender
   ) external view returns (bool) {
     // Revert on invalid inputs only
-    if (
-      methods == bytes32(0) || senderId == bytes32(0) || senderVmId == bytes32(0) || targetId == bytes32(0)
-        || relationship == bytes1(0) || sender == address(0)
-    ) {
-      revert MissingRequiredParameter();
-    }
+    _validateAuthorizedParams(methods, senderId, senderVmId, targetId, relationship, sender);
     if (relationship > bytes1(0x1F)) revert VmRelationshipOutOfRange();
 
     bytes32 senderIdHash = HashUtils.calculateIdHash(methods, senderId);

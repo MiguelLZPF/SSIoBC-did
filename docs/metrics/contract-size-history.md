@@ -38,6 +38,9 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | **v1.1.0** | **12.1 kB** | **12.8 kB** | **—** | **—** | **Bytecode optimization: custom errors, SLOAD caching, HashUtils, optimizer_runs=200** |
 | **v1.2.0** | **12.1 kB** | **11.2 kB** | **10.5 kB** | **11.7 kB** | **Dual-variant architecture with shared DidManagerBase + publicKeyMultibase for keyAgreement** |
 | **v1.2.1** | **12.6 kB** | **11.2 kB** | **10.9 kB** | **11.7 kB** | **Added isAuthorized() cross-DID authorization, removed redundant authenticate()** |
+| v1.2.2 | 12.6 kB | 11.2 kB | 10.9 kB | 11.7 kB | Test hardening and config fixes (no source changes) |
+| v1.2.3 | 12.6 kB | 11.2 kB | 10.9 kB | 11.7 kB | Import standardization and CI pinning (no logic changes) |
+| **v1.2.4** | **12.5 kB** | **11.2 kB** | **10.8 kB** | **11.7 kB** | **Centralized parameter validation in DidManagerBase (-100 B each)** |
 
 ### Visual Documentation
 
@@ -285,6 +288,44 @@ The v1.2.1 release adds the public `isAuthorized()` function for cross-DID contr
 
 **Net size change**: +412/+411 bytes for `isAuthorized()` minus ~30 bytes saved from removing `authenticate()`. The addition provides cross-DID controller-aware authorization that was previously only available internally via `_validateSenderAndTarget()`.
 
+### v1.2.4 Centralized Parameter Validation (March 2026)
+
+The v1.2.4 release extracts 14 duplicated inline parameter validation blocks into 3 reusable `internal pure` functions in `DidManagerBase.sol`.
+
+#### v1.2.4 Contract Sizes
+```
+| Contract             | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|----------------------|------------------|-------------------|--------------------|--------------------|
+| DidManager           | 12,450           | 12,478            | 12,126             | 36,674              |
+| DidManagerNative     | 10,844           | 10,872            | 13,732             | 38,280              |
+| W3CResolver          | 11,169           | 11,920            | 13,407             | 37,232              |
+| W3CResolverNative    | 11,709           | 12,460            | 12,867             | 36,692              |
+```
+
+**Key Changes:**
+1. **`_validateTripleParams()`**: Validates methods, senderId, targetId (replaces 8 inline blocks)
+2. **`_validateAuthorizedParams()`**: Validates all 6 isAuthorized parameters (replaces 2 inline blocks)
+3. **`_validateViewParams()`**: Validates methods, id, sender for view functions (replaces 2 inline blocks)
+4. **File-level `MissingRequiredParameter` error**: Added to DidManagerBase.sol for validation helpers
+
+**Size Impact (v1.2.1 → v1.2.4):**
+| Contract | v1.2.1 (B) | v1.2.4 (B) | Change | % Change |
+|----------|-----------|-----------|--------|----------|
+| DidManager | 12,550 | 12,450 | -100 | -0.8% |
+| DidManagerNative | 10,944 | 10,844 | -100 | -0.9% |
+| W3CResolver | 11,169 | 11,169 | 0 | 0% |
+| W3CResolverNative | 11,709 | 11,709 | 0 | 0% |
+
+**Deduplication Summary:**
+| Pattern | Before | After | Eliminated |
+|---------|--------|-------|-----------|
+| Triple-bytes32 (methods+senderId+targetId) | 8 inline blocks | 1 function + 8 calls | 8 blocks |
+| Quad (createVm: triple + relationships) | 2 large blocks | 2 calls + 2 residual lines | 2 blocks reduced |
+| Six-param (isAuthorized) | 2 large blocks | 1 function + 2 calls | 2 blocks |
+| View triple (methods+id+sender) | 2 inline blocks | 1 function + 2 calls | 2 blocks |
+
+**Note:** 4 instances in VMStorage/VMStorageNative left as-is (no shared base between them). All 3 helpers are `internal pure` — zero storage impact, optimizer inlines at `optimizer_runs=200`.
+
 #### Trade-off Analysis
 
 The v1.0 architecture provides:
@@ -354,4 +395,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v1.2.1 - Added isAuthorized() cross-DID authorization (+412/+411 B), removed redundant authenticate()*
+*Last Updated: v1.2.4 - Centralized parameter validation in DidManagerBase (-100 B each variant)*

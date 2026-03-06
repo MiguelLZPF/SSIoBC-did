@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { W3CService, W3CDidInput } from "./interfaces/IW3CResolver.sol";
-import { Controller, CONTROLLERS_MAX_LENGTH, DEFAULT_DID_METHODS } from "./DidManagerBase.sol";
+import { Controller, CONTROLLERS_MAX_LENGTH, DEFAULT_DID_METHODS } from "./interfaces/IDidManagerBase.sol";
 import { Service } from "@src/interfaces/IServiceStorage.sol";
 
 error DidInputRequired();

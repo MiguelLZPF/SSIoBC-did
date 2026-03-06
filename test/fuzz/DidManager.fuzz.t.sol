@@ -6,7 +6,7 @@ import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
 import { CreateVmCommand } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
-import { DidAlreadyExists } from "@src/DidManagerBase.sol";
+import { DidAlreadyExists } from "@interfaces/IDidManagerBase.sol";
 import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
 
 /**

@@ -1,25 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
-/**
- * @dev Struct representing a controller of a DID.
- */
-struct Controller {
-  bytes32 id; // The unique identifier of the controller's DID.
-  bytes32 vmId; // (optional) The unique identifier of the controller's VM.
-}
-
-bytes32 constant DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;"); // ";" is the null or escape
-// character
-uint256 constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
-uint8 constant CONTROLLERS_MAX_LENGTH = 5;
-
-// File-level error declarations shared by DidManager and DidManagerNative
-error DidAlreadyExists();
-error DidExpired();
-error NotAuthenticatedAsSenderId();
-error NotAControllerforTargetId();
-error DidNotDeactivated();
+import {
+  Controller,
+  DEFAULT_DID_METHODS,
+  EXPIRATION,
+  CONTROLLERS_MAX_LENGTH,
+  DidAlreadyExists,
+  DidExpired,
+  MissingRequiredParameter,
+  NotAuthenticatedAsSenderId,
+  NotAControllerforTargetId,
+  DidNotDeactivated
+} from "./interfaces/IDidManagerBase.sol";
 
 /**
  * @title DidManagerBase
@@ -82,5 +75,40 @@ abstract contract DidManagerBase {
       return true;
     }
     return false;
+  }
+
+  // =========================================================================
+  // Parameter Validation Helpers
+  // =========================================================================
+
+  /// @dev Validates that methods, senderId, and targetId are non-zero.
+  function _validateTripleParams(bytes32 methods, bytes32 senderId, bytes32 targetId) internal pure {
+    if (methods == bytes32(0) || senderId == bytes32(0) || targetId == bytes32(0)) {
+      revert MissingRequiredParameter();
+    }
+  }
+
+  /// @dev Validates all six parameters for isAuthorized view.
+  function _validateAuthorizedParams(
+    bytes32 methods,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes1 relationship,
+    address sender
+  ) internal pure {
+    if (
+      methods == bytes32(0) || senderId == bytes32(0) || senderVmId == bytes32(0) || targetId == bytes32(0)
+        || relationship == bytes1(0) || sender == address(0)
+    ) {
+      revert MissingRequiredParameter();
+    }
+  }
+
+  /// @dev Validates methods, id, and sender for view functions.
+  function _validateViewParams(bytes32 methods, bytes32 id, address sender) internal pure {
+    if (methods == bytes32(0) || id == bytes32(0) || sender == address(0)) {
+      revert MissingRequiredParameter();
+    }
   }
 }

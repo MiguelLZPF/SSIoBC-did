@@ -14,12 +14,13 @@ import {
 } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
 import {
+  MissingRequiredParameter,
   DidAlreadyExists,
   DidExpired,
   NotAuthenticatedAsSenderId,
   NotAControllerforTargetId,
   DidNotDeactivated
-} from "@src/DidManagerBase.sol";
+} from "@interfaces/IDidManagerBase.sol";
 import { DEFAULT_VM_ID, IVMStorage } from "@src/interfaces/IVMStorage.sol";
 import { Vm } from "forge-std/Vm.sol";
 
@@ -102,7 +103,7 @@ contract DidManagerUnitTest is TestBase {
   function test_RevertWhen_CreateDid_WithEmptyRandom() public {
     _startPrank(user1);
 
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.createDid(Fixtures.EMPTY_DID_METHODS, Fixtures.EMPTY_RANDOM, bytes32(0));
 
     _stopPrank();
@@ -167,7 +168,7 @@ contract DidManagerUnitTest is TestBase {
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.createVm(command);
 
     _stopPrank();
@@ -194,7 +195,7 @@ contract DidManagerUnitTest is TestBase {
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.createVm(command);
 
     _stopPrank();
@@ -389,7 +390,7 @@ contract DidManagerUnitTest is TestBase {
 
     // Try to expire VM with empty methods - should hit uncovered branch
     _startPrank(user1);
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.expireVm(
       bytes32(0), // methods = 0 (should trigger uncovered branch)
       didResult.didInfo.id,
@@ -408,7 +409,7 @@ contract DidManagerUnitTest is TestBase {
 
     // Try to expire VM with empty senderId - should hit uncovered branch
     _startPrank(user1);
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.expireVm(
       DEFAULT_DID_METHODS,
       bytes32(0), // senderId = 0 (should trigger uncovered branch)
@@ -427,7 +428,7 @@ contract DidManagerUnitTest is TestBase {
 
     // Try to expire VM with empty targetId - should hit uncovered branch
     _startPrank(user1);
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.expireVm(
       DEFAULT_DID_METHODS,
       didResult.didInfo.id,
@@ -797,7 +798,7 @@ contract DidManagerUnitTest is TestBase {
 
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.deactivateDid(
       bytes32(0), // Empty methods
       didResult.didInfo.id,
@@ -813,7 +814,7 @@ contract DidManagerUnitTest is TestBase {
 
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.deactivateDid(
       didResult.didInfo.methods,
       bytes32(0), // Empty senderId
@@ -829,7 +830,7 @@ contract DidManagerUnitTest is TestBase {
 
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.deactivateDid(
       didResult.didInfo.methods,
       didResult.didInfo.id,
@@ -1733,7 +1734,7 @@ contract DidManagerUnitTest is TestBase {
     // Deactivate first
     didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
 
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.reactivateDid(
       bytes32(0), // Empty methods
       didResult.didInfo.id,
@@ -1752,7 +1753,7 @@ contract DidManagerUnitTest is TestBase {
     // Deactivate first
     didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
 
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.reactivateDid(
       didResult.didInfo.methods,
       bytes32(0), // Empty senderId
@@ -1771,7 +1772,7 @@ contract DidManagerUnitTest is TestBase {
     // Deactivate first
     didManager.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID, didResult.didInfo.id);
 
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.reactivateDid(
       didResult.didInfo.methods,
       didResult.didInfo.id,

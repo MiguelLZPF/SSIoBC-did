@@ -9,12 +9,13 @@ import {
   Controller,
   DEFAULT_DID_METHODS,
   CONTROLLERS_MAX_LENGTH,
+  MissingRequiredParameter,
   DidAlreadyExists,
   DidExpired,
   NotAuthenticatedAsSenderId,
   NotAControllerforTargetId,
   DidNotDeactivated
-} from "@src/DidManagerBase.sol";
+} from "@interfaces/IDidManagerBase.sol";
 import { DEFAULT_VM_ID_NATIVE, IVMStorageNative, VerificationMethod } from "@src/interfaces/IVMStorageNative.sol";
 import { Vm } from "forge-std/Vm.sol";
 
@@ -90,7 +91,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
 
   function test_RevertWhen_CreateDid_WithEmptyRandom() public {
     _startPrank(user1);
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.createDid(bytes32(0), bytes32(0), bytes32(0));
     _stopPrank();
   }
@@ -200,7 +201,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       publicKeyMultibase: ""
     });
 
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.createVm(command);
 
     _stopPrank();
@@ -222,7 +223,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       publicKeyMultibase: ""
     });
 
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.createVm(command);
 
     _stopPrank();
@@ -309,7 +310,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
     _startPrank(user1);
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.expireVm(bytes32(0), didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, didResult.didInfo.id, bytes32(0));
     _stopPrank();
   }
@@ -318,7 +319,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
     _startPrank(user1);
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.expireVm(
       didResult.didInfo.methods, bytes32(0), DEFAULT_VM_ID_NATIVE, didResult.didInfo.id, bytes32(0)
     );
@@ -329,7 +330,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
     _startPrank(user1);
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.expireVm(
       didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, bytes32(0), bytes32(0)
     );
@@ -394,7 +395,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
   function test_RevertWhen_DeactivateDid_WithEmptyMethods() public {
     _startPrank(user1);
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.deactivateDid(bytes32(0), didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, didResult.didInfo.id);
     _stopPrank();
   }
@@ -402,7 +403,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
   function test_RevertWhen_DeactivateDid_WithEmptySenderId() public {
     _startPrank(user1);
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.deactivateDid(didResult.didInfo.methods, bytes32(0), DEFAULT_VM_ID_NATIVE, didResult.didInfo.id);
     _stopPrank();
   }
@@ -410,7 +411,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
   function test_RevertWhen_DeactivateDid_WithEmptyTargetId() public {
     _startPrank(user1);
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.deactivateDid(didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, bytes32(0));
     _stopPrank();
   }
@@ -458,21 +459,21 @@ contract DidManagerNativeUnitTest is TestBaseNative {
 
   function test_RevertWhen_ReactivateDid_WithEmptyMethods() public {
     _startPrank(user1);
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.reactivateDid(bytes32(0), bytes32("id"), DEFAULT_VM_ID_NATIVE, bytes32("id"));
     _stopPrank();
   }
 
   function test_RevertWhen_ReactivateDid_WithEmptySenderId() public {
     _startPrank(user1);
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.reactivateDid(DEFAULT_DID_METHODS, bytes32(0), DEFAULT_VM_ID_NATIVE, bytes32("id"));
     _stopPrank();
   }
 
   function test_RevertWhen_ReactivateDid_WithEmptyTargetId() public {
     _startPrank(user1);
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.reactivateDid(DEFAULT_DID_METHODS, bytes32("id"), DEFAULT_VM_ID_NATIVE, bytes32(0));
     _stopPrank();
   }
@@ -488,7 +489,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
     );
 
     // Try reactivate with wrong VM ID
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.reactivateDid(didResult.didInfo.methods, didResult.didInfo.id, bytes32(0), didResult.didInfo.id);
 
     _stopPrank();
@@ -1222,7 +1223,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
     // Zero sender address
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.isVmRelationship(
       didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, bytes1(0x01), address(0)
     );
@@ -1346,7 +1347,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
 
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
-    vm.expectRevert(IVMStorageNative.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManagerNative.isVmRelationship(
       didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, bytes1(0), user1
     );

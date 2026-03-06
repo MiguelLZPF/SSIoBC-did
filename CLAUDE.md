@@ -147,7 +147,7 @@ Complex reasoning tasks that require Claude's capabilities:
 6. **W3CResolverNative.sol** - Resolution with field derivation at query time
 
 **Shared:**
-7. **DidManagerBase.sol** - Common DID logic (expiration, controllers)
+7. **DidManagerBase.sol** - Common DID logic (expiration, controllers, parameter validation helpers)
 8. **ServiceStorage.sol** - Service endpoints storage (abstract contract)
 9. **HashUtils.sol** - Shared hash helper library (calculateIdHash, calculatePositionHash)
 
@@ -358,7 +358,7 @@ The agent will perform:
 
 ---
 
-**Last Updated**: 2026-02-15
+**Last Updated**: 2026-03-05
 **Purpose**: Claude Code project-specific context and routing overrides
 **Architecture**: Simplified 2-file system (CLAUDE.md + PROJECT.md)
 **Routing**: Inherits global rules from ~/.claude/CLAUDE.md with project-specific overrides
