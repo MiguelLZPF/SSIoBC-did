@@ -50,11 +50,17 @@ fs_permissions = [
 [lint]
 exclude_lints = ["unsafe-typecast", "pascal-case-struct", "mixed-case-variable"]
 
-# CI profile - more thorough testing in continuous integration
+# Fast CI profile — PRs and coverage (keeps wall-clock under 5 min)
 [profile.ci]
-fuzz = { runs = 1000 }       # 4x default (256) for better edge case coverage
-verbosity = 2                 # Moderate output (-vv)
-gas_reports = ["*"]           # Track gas for all contracts
+fuzz = { runs = 256 }
+invariant = { runs = 64, depth = 32 }
+verbosity = 2
+
+# Thorough CI profile — merge to main only (full property testing)
+[profile.ci_thorough]
+fuzz = { runs = 1000 }
+invariant = { runs = 256, depth = 64 }
+verbosity = 2
 
 # Formatter configuration
 [fmt]
