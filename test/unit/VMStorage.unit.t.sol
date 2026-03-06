@@ -6,6 +6,7 @@ import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
 import { CreateVmCommand, EXPIRATION } from "@src/interfaces/IDidManager.sol";
 import { IVMStorage, DEFAULT_VM_ID, DEFAULT_VM_EXPIRATION, VerificationMethod } from "@src/interfaces/IVMStorage.sol";
+import { MissingRequiredParameter } from "@interfaces/IDidManagerBase.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 /**
@@ -665,7 +666,7 @@ contract VMStorageUnitTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
     // Test with vmId = bytes32(0) - should trigger line 223
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.isVmRelationship(
       didResult.didInfo.methods,
       didResult.didInfo.id,
@@ -675,7 +676,7 @@ contract VMStorageUnitTest is TestBase {
     );
 
     // Test with relationship = bytes1(0) - should trigger line 223
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.isVmRelationship(
       didResult.didInfo.methods,
       didResult.didInfo.id,
@@ -685,7 +686,7 @@ contract VMStorageUnitTest is TestBase {
     );
 
     // Test with sender = address(0) - should trigger line 223
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.isVmRelationship(
       didResult.didInfo.methods,
       didResult.didInfo.id,

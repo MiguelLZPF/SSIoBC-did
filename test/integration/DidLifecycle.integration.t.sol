@@ -8,7 +8,7 @@ import { CreateVmCommand, Controller, CONTROLLERS_MAX_LENGTH } from "@src/interf
 import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
 import { DEFAULT_VM_ID, IVMStorage } from "@src/interfaces/IVMStorage.sol";
 import { W3CDidDocument, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
-import { DidExpired, NotAControllerforTargetId } from "@src/DidManagerBase.sol";
+import { DidExpired, NotAControllerforTargetId, MissingRequiredParameter } from "@interfaces/IDidManagerBase.sol";
 
 /**
  * @title DidLifecycleIntegrationTest
@@ -442,13 +442,13 @@ contract DidLifecycleIntegrationTest is TestBase {
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.createVm(invalidVmCommand);
 
     // === Test: Invalid parameter operations ===
 
     // Try to create DID with empty random (should fail)
-    vm.expectRevert(IVMStorage.MissingRequiredParameter.selector);
+    vm.expectRevert(MissingRequiredParameter.selector);
     didManager.createDid(Fixtures.EMPTY_DID_METHODS, bytes32(0), bytes32(0));
 
     _stopPrank();

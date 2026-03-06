@@ -3,7 +3,7 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { VerificationMethod } from "@src/VMStorageNative.sol";
 import { Service } from "@src/interfaces/IServiceStorage.sol";
-import { Controller, CONTROLLERS_MAX_LENGTH } from "@src/DidManagerBase.sol";
+import { Controller, CONTROLLERS_MAX_LENGTH } from "@interfaces/IDidManagerBase.sol";
 
 /**
  * @dev Command struct for creating a native Verification Method via DidManagerNative.
@@ -36,7 +36,7 @@ interface IDidManagerNative {
   event DidDeactivated(bytes32 indexed targetDidHash);
   event DidReactivated(bytes32 indexed targetDidHash);
 
-  // Errors are declared as file-level in DidManagerBase.sol
+  // Errors are declared as file-level in IDidManagerBase.sol
 
   function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external;
 

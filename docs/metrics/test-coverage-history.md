@@ -240,4 +240,4 @@ Coverage data supports PhD thesis claims about:
 
 ---
 
-*Last Updated: v1.2.2 - 317 total tests (258 unit, 21 fuzz, 15 invariant, 9 integration, 8 performance, 6 stress), all source contracts >90%*
+*Last Updated: v1.2.4 - 317 total tests (258 unit, 21 fuzz, 15 invariant, 9 integration, 8 performance, 6 stress), all source contracts >90%. Fuzz/invariant excluded from default local runs; included in CI profiles (`ci`, `ci_thorough`).*

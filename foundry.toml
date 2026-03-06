@@ -18,6 +18,9 @@ initial_balance = '0xffffffffffffffffffffffff'
 build_info = true
 extra_output = ["storageLayout"]
 
+# Exclude fuzz and invariant tests from default runs (use profile.ci for full suite)
+no_match_test = "testFuzz|invariant"
+
 remappings = [
   # Foundry remappings
   "@src/=src/",
@@ -54,12 +57,14 @@ exclude_lints = ["unsafe-typecast", "pascal-case-struct", "mixed-case-variable"]
 [profile.ci]
 fuzz = { runs = 256 }
 invariant = { runs = 64, depth = 32 }
+no_match_test = "^$"  # Override default exclusion — CI runs fuzz + invariant tests
 verbosity = 2
 
 # Thorough CI profile — merge to main only (full property testing)
 [profile.ci_thorough]
 fuzz = { runs = 1000 }
 invariant = { runs = 256, depth = 64 }
+no_match_test = "^$"  # Override default exclusion — runs full suite
 verbosity = 2
 
 # Formatter configuration

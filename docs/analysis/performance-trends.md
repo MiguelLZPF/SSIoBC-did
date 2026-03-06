@@ -211,7 +211,7 @@ The cross-metric analysis validates key research claims:
 - **Coverage**: >90% on all source contracts, 7/10 at 100%
 
 #### Key Developments
-- DidManagerBase shared abstract (expiration, controllers)
+- DidManagerBase shared abstract (expiration, controllers, centralized parameter validation)
 - VMStorageNative: 1-slot per VM with overflow for keyAgreement publicKeyMultibase
 - W3CResolverUtils shared library (~140 lines deduped)
 - W3CResolverNative: resolution-time field derivation (zero extra storage)

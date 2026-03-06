@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Table of Contents
 
-- [Unreleased](#unreleased)
+- [1.2.4 — 2026-03-05](#124--2026-03-05)
+- [1.2.3 — 2026-02-22](#123--2026-02-22)
 - [1.2.2 — 2026-02-19](#122--2026-02-19)
 - [1.2.1 — 2026-02-17](#121--2026-02-17)
 - [1.2.0 — 2026-02-15](#120--2026-02-15)
@@ -17,7 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [0.8.0 — 2024-07-06](#080--2024-07-06)
 - [0.6.0 — 2024-04-21](#060--2024-04-21)
 
-## [Unreleased]
+## [1.2.4] — 2026-03-05
+
+### Changed
+
+- Centralized parameter validation in `DidManagerBase`: 3 new `internal pure` helpers (`_validateTripleParams`, `_validateAuthorizedParams`, `_validateViewParams`) replace 14 inline validation blocks across `DidManager` and `DidManagerNative`
+- Extracted shared types, constants, and errors into `IDidManagerBase.sol` interface file (single source of truth)
+- Removed duplicate `MissingRequiredParameter` from `IVMStorage` and `IVMStorageNative` interfaces
+- Contract sizes reduced: DidManager 12,550 → 12,450 B (-100 B), DidManagerNative 10,944 → 10,844 B (-100 B)
+- Fuzz and invariant tests excluded from default `forge test` via `no_match_test` in `foundry.toml`; CI profiles (`ci`, `ci_thorough`) clear the exclusion to run the full suite
+
+## [1.2.3] — 2026-02-22
+
+### Changed
+
+- Standardized 14 import paths from `src/` to `@src/` across 3 source contracts for Foundry remapping compatibility
+- Pinned all 9 CI action versions to commit SHA with version comments for supply chain security
 
 ### Added
 
@@ -158,7 +174,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ServiceStorage` contract for service endpoint management
 - Basic DID creation and VM creation functionality
 
-[Unreleased]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.2...HEAD
+[1.2.4]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.3...v1.2.4
+[1.2.3]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.1.0...v1.2.0

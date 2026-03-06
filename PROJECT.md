@@ -746,11 +746,11 @@ The system provides two variants sharing a common base, each optimized for diffe
 
 | Variant | VM Storage | Contract Size | Use Case |
 |---------|-----------|--------------|----------|
-| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,550 B | General-purpose DID with any key type |
-| **Ethereum-Native** (DidManagerNative) | 1-slot per VM + overflow publicKeyMultibase for keyAgreement (ethereumAddress + relationships + expiration = 32 bytes) | 10,944 B | Ethereum-only DIDs, ~13% smaller bytecode |
+| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,450 B | General-purpose DID with any key type |
+| **Ethereum-Native** (DidManagerNative) | 1-slot per VM + overflow publicKeyMultibase for keyAgreement (ethereumAddress + relationships + expiration = 32 bytes) | 10,844 B | Ethereum-only DIDs, ~13% smaller bytecode |
 
 Both variants share:
-- **DidManagerBase**: Expiration management, controller logic (`_isExpired`, `_isControllerFor`, `updateExpiration`)
+- **DidManagerBase**: Expiration management, controller logic (`_isExpired`, `_isControllerFor`, `updateExpiration`), centralized parameter validation (`_validateTripleParams`, `_validateAuthorizedParams`, `_validateViewParams`)
 - **ServiceStorage**: Service endpoint storage (dynamic bytes with `\x00` delimiter)
 - **HashUtils**: Shared hash helper library (`calculateIdHash`, `calculatePositionHash`)
 

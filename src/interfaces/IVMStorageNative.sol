@@ -49,7 +49,7 @@ interface IVMStorageNative {
   event VmExpirationUpdated(bytes32 indexed didIdHash, bytes32 indexed id, bool indexed expired, uint256 expiration);
 
   // * Errors
-  error MissingRequiredParameter();
+  // MissingRequiredParameter: declared in IDidManagerBase.sol (single source of truth)
   error EthereumAddressRequired();
   error VmAlreadyExists();
   error VmNotFound();
