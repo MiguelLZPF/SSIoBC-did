@@ -264,13 +264,18 @@ Install: `pre-commit install`
 
 ### CI/CD Integration
 
-GitHub Actions (`.github/workflows/ci.yml`) — single unified workflow with 6 parallel jobs:
+GitHub Actions (`.github/workflows/ci.yml`) — single unified workflow with 7 jobs:
 - **build**: Compile + EIP-170 contract size check (all jobs depend on this)
-- **test**: Full test suite with `FOUNDRY_PROFILE=ci` (fuzz runs=1000)
-- **coverage**: LCOV coverage with 90% threshold enforcement + PR comment
+- **test**: Unit/fuzz/invariant/integration tests with `FOUNDRY_PROFILE=ci` (fuzz=256, excludes stress/performance)
+- **coverage**: LCOV coverage with `FOUNDRY_PROFILE=ci`, 90% threshold + PR comment (excludes stress/performance)
 - **quality**: `forge fmt --check` + `forge lint`
 - **security**: Slither static analysis with SARIF upload to GitHub Security tab
 - **gas-diff**: PR-only gas cost comparison via `foundry-gas-diff`
+- **thorough**: Full property tests (fuzz=1000, invariant=256) + stress/performance — runs only on push to main
+
+Two Foundry CI profiles in `foundry.toml`:
+- `ci`: Fast (fuzz=256, invariant runs=64/depth=32) — PRs finish in <5 min
+- `ci_thorough`: Deep (fuzz=1000, invariant runs=256/depth=64) — main merges only
 
 Foundry version pinned to `v1.5.1`. Dependabot keeps action versions updated weekly.
 

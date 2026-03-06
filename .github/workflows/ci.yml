@@ -85,6 +85,7 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     needs: build
+    timeout-minutes: 10
     permissions:
       contents: read
     env:
@@ -108,26 +109,19 @@ jobs:
           key: build-${{ github.sha }}
 
       - name: Run tests
-        run: forge test -vv
-
-      - name: Generate gas snapshot
-        run: forge snapshot --snap .gas-snapshot
-
-      - name: Upload gas snapshot
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        with:
-          name: gas-snapshot
-          path: .gas-snapshot
-          retention-days: 7
+        run: forge test -vv --no-match-path "test/{stress,performance}/*"
 
   # ─── Job 3: Coverage Analysis ───────────────────────────────────────
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
     needs: build
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: write
+    env:
+      FOUNDRY_PROFILE: ci
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -147,7 +141,7 @@ jobs:
           key: build-${{ github.sha }}
 
       - name: Generate LCOV report
-        run: forge coverage --report lcov
+        run: forge coverage --report lcov --no-match-path "test/{stress,performance}/*"
 
       - name: Filter coverage to source contracts
         run: |
@@ -215,7 +209,7 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: build
-    if: ${{ !inputs.skip-security }}
+    if: ${{ !inputs.skip-security && (github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]') }}
     permissions:
       contents: read
       security-events: write
@@ -226,6 +220,7 @@ jobs:
 
       - name: Run Slither
         uses: crytic/slither-action@b52cc1cbfee9ca3e8722dd5224299d16c9a6b80f # v0.4.2
+        continue-on-error: true
         with:
           sarif: slither-results.sarif
           fail-on: none
@@ -233,13 +228,13 @@ jobs:
 
       - name: Upload SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@45580472a5bb82c4681c4ac726cfdb60060c2ee1 # v3.32.4
-        if: always()
+        if: always() && hashFiles('slither-results.sarif') != ''
         with:
           sarif_file: slither-results.sarif
 
       - name: Upload Slither report
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: always()
+        if: always() && hashFiles('slither-results.sarif') != ''
         with:
           name: slither-sarif
           path: slither-results.sarif
@@ -249,11 +244,15 @@ jobs:
   gas-diff:
     name: Gas Diff
     runs-on: ubuntu-latest
-    needs: test
-    if: github.event_name == 'pull_request'
+    needs: build
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: write
+      actions: read
+    env:
+      FOUNDRY_PROFILE: ci
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -264,8 +263,16 @@ jobs:
         with:
           version: v1.5.1
 
+      - name: Restore build cache
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            out/
+            cache/
+          key: build-${{ github.sha }}
+
       - name: Generate gas report
-        run: forge test --gas-report > gasreport.ansi
+        run: forge test --gas-report --no-match-path "test/{stress,performance}/*" > gasreport.ansi
         env:
           FOUNDRY_FUZZ_SEED: "0x${{ github.event.pull_request.base.sha }}"
 
@@ -284,3 +291,35 @@ jobs:
           header: gas-diff
           delete: ${{ !steps.gas_diff.outputs.markdown }}
           message: ${{ steps.gas_diff.outputs.markdown }}
+
+  # ─── Job 7: Thorough Property Tests (main only) ────────────────────
+  thorough:
+    name: Thorough Property Tests
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      FOUNDRY_PROFILE: ci_thorough
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1.7.0
+        with:
+          version: v1.5.1
+
+      - name: Restore build cache
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            out/
+            cache/
+          key: build-${{ github.sha }}
+
+      - name: Run all tests (fuzz + invariant + stress + performance)
+        run: forge test -vv
