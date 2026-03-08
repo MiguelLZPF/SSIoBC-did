@@ -10,16 +10,17 @@ import {
   MAX_PUBLIC_KEY_MULTIBASE_LENGTH,
   MAX_BLOCKCHAIN_ACCOUNT_ID_LENGTH,
   CreateVmCommand,
-  VerificationMethod,
-  IVMStorage
-} from "./interfaces/IVMStorage.sol";
-import { MissingRequiredParameter } from "./interfaces/IDidManagerBase.sol";
-import { HashUtils } from "./HashUtils.sol";
+  VerificationMethod
+} from "@types/VmTypes.sol";
+import { IVMStorage } from "@interfaces/IVMStorage.sol";
+import { MissingRequiredParameter, VmRelationshipOutOfRange } from "@types/DidTypes.sol";
+import { HashUtils } from "@src/HashUtils.sol";
+import { VMHooks } from "@storage/VMHooks.sol";
 
 /// @title VMStorage
 /// @author Miguel Gómez Carpena
 /// @notice Multi-slot VM storage (arbitrary key types)
-abstract contract VMStorage is IVMStorage {
+abstract contract VMStorage is IVMStorage, VMHooks {
   using EnumerableSet for EnumerableSet.Bytes32Set;
 
   //* Storage
@@ -112,7 +113,12 @@ abstract contract VMStorage is IVMStorage {
    * @param sender The address of the sender.
    * @return id The identifier of the validated verification method (VM).
    */
-  function _validateVm(bytes32 positionHash, uint256 expiration, address sender) internal returns (bytes32 id) {
+  function _validateVm(bytes32 positionHash, uint256 expiration, address sender)
+    internal
+    virtual
+    override
+    returns (bytes32 id)
+  {
     //* Params validation
     // Optional
     if (expiration == 0) {
@@ -138,14 +144,14 @@ abstract contract VMStorage is IVMStorage {
    * @param didHash The hash of the decentralized identifier (DID).
    * @param id The identifier of the verification method (VM) to expire.
    */
-  function _expireVm(bytes32 didHash, bytes32 id) internal {
+  function _expireVm(bytes32 didHash, bytes32 id) internal virtual override {
     VerificationMethod storage vm = _vmByNsAndId[didHash][id];
     if (vm.expiration <= block.timestamp) revert VmAlreadyExpired();
     vm.expiration = uint88(block.timestamp);
     emit VmExpirationUpdated(didHash, id, true, vm.expiration);
   }
 
-  function _removeAllVms(bytes32 didHash) internal {
+  function _removeAllVms(bytes32 didHash) internal virtual override {
     uint256 len = _vmIds[didHash].length();
     while (len > 0) {
       bytes32 lastId = _vmIds[didHash].at(len - 1);
@@ -186,7 +192,7 @@ abstract contract VMStorage is IVMStorage {
    * @param didHash The hash of the decentralized identifier (DID).
    * @return The length of the VMs array.
    */
-  function _getVmListLength(bytes32 didHash) internal view returns (uint8) {
+  function _getVmListLength(bytes32 didHash) internal view virtual override returns (uint8) {
     return uint8(_vmIds[didHash].length());
   }
 
@@ -197,8 +203,25 @@ abstract contract VMStorage is IVMStorage {
    * @param id The identifier of the verification method (VM).
    * @return exp The expiration timestamp of the VM.
    */
-  function _getExpirationVm(bytes32 didHash, bytes32 id) internal view returns (uint256 exp) {
+  function _getExpirationVm(bytes32 didHash, bytes32 id) internal view virtual override returns (uint256 exp) {
     return _vmByNsAndId[didHash][id].expiration;
+  }
+
+  /**
+   * @dev Returns VM auth fields (expiration, ethereumAddress, relationships) for isAuthorized checks.
+   * Non-reverting: returns zero values for non-existent or expired VMs.
+   * @param didHash The hash of the DID.
+   * @param vmId The identifier of the VM.
+   */
+  function _getVmForAuth(bytes32 didHash, bytes32 vmId)
+    internal
+    view
+    virtual
+    override
+    returns (uint256 expiration, address ethereumAddress, bytes1 relationships)
+  {
+    VerificationMethod memory vm = _getVm(didHash, vmId, 0);
+    return (vm.expiration, vm.ethereumAddress, vm.relationships);
   }
 
   /**
@@ -209,7 +232,13 @@ abstract contract VMStorage is IVMStorage {
    * @return A boolean indicating whether the sender is authenticated or not. That means that the sender's address is in
    * the authentication relationship of the VM.
    */
-  function _isAuthenticated(bytes32 didHash, bytes32 vmId, address sender) internal view returns (bool) {
+  function _isAuthenticated(bytes32 didHash, bytes32 vmId, address sender)
+    internal
+    view
+    virtual
+    override
+    returns (bool)
+  {
     return _isVmRelationship(didHash, vmId, 0x01, sender);
   }
 
@@ -221,7 +250,7 @@ abstract contract VMStorage is IVMStorage {
    * @param sender The address of the sender.
    * @return A boolean indicating whether the sender owns the VM with authentication relationship.
    */
-  function _isVmOwner(bytes32 didHash, bytes32 vmId, address sender) internal view returns (bool) {
+  function _isVmOwner(bytes32 didHash, bytes32 vmId, address sender) internal view virtual override returns (bool) {
     if (vmId == bytes32(0) || sender == address(0)) {
       revert MissingRequiredParameter();
     }
@@ -244,6 +273,8 @@ abstract contract VMStorage is IVMStorage {
   function _isVmRelationship(bytes32 didHash, bytes32 id, bytes1 relationship, address sender)
     internal
     view
+    virtual
+    override
     returns (bool)
   {
     if (id == bytes32(0) || relationship == bytes1(0) || sender == address(0)) {

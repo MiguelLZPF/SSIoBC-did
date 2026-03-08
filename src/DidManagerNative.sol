@@ -1,35 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
-import { IDidManagerNative, CreateVmCommand as NativeCreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
-import { VMStorageNative, VerificationMethod, CreateVmCommand } from "@src/VMStorageNative.sol";
-import { ServiceStorage } from "@src/ServiceStorage.sol";
-import { Service } from "@src/interfaces/IServiceStorage.sol";
+import { IDidManagerNative } from "@interfaces/IDidManagerNative.sol";
+import { DidCreateVmCommandNative, CreateVmCommand, VerificationMethod } from "@types/VmTypesNative.sol";
+import { DEFAULT_DID_METHODS, MissingRequiredParameter, DidAlreadyExists } from "@types/DidTypes.sol";
+import { VMStorageNative } from "@storage/VMStorageNative.sol";
+import { DidAggregate } from "@src/DidAggregate.sol";
 import { HashUtils } from "@src/HashUtils.sol";
-import {
-  Controller,
-  DEFAULT_DID_METHODS,
-  CONTROLLERS_MAX_LENGTH,
-  MissingRequiredParameter,
-  DidAlreadyExists,
-  DidExpired,
-  NotAuthenticatedAsSenderId,
-  NotAControllerforTargetId,
-  DidNotDeactivated
-} from "@interfaces/IDidManagerBase.sol";
-import { DidManagerBase } from "@src/DidManagerBase.sol";
 
-/**
- * @title DidManagerNative
- * @author Miguel Gómez Carpena
- * @dev Ethereum-native DID manager with 1-slot VM storage.
- * Stores only ethereumAddress + relationships + expiration per VM.
- * W3C fields (type_, publicKeyMultibase, blockchainAccountId) are derived at resolution time.
- */
-contract DidManagerNative is IDidManagerNative, VMStorageNative, DidManagerBase, ServiceStorage {
-  /**
-   * @dev Creates a new Ethereum-native DID.
-   */
+/// @title DidManagerNative
+/// @author Miguel Gomez Carpena
+/// @dev Ethereum-native DID manager with 1-slot VM storage.
+/// Thin wrapper: only variant-specific functions (createDid, createVm, isAuthorized, getVm, extras).
+/// All shared logic lives in DidAggregate.
+contract DidManagerNative is IDidManagerNative, VMStorageNative, DidAggregate {
+  /// @dev Creates a new Ethereum-native DID with a single-slot Verification Method.
+  /// Generates a unique ID from keccak256(methods, random, tx.origin, block.prevrandao).
+  /// The initial VM is created with authentication relationship and tx.origin as ethereumAddress.
+  /// @param methods The DID methods (bytes32 with three 10-byte segments). Uses DEFAULT_DID_METHODS if zero.
+  /// @param random A random bytes32 value for unique ID generation. Must be non-zero.
+  /// @param vmId The identifier for the initial Verification Method.
   function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external virtual {
     if (random == bytes32(0)) {
       revert MissingRequiredParameter();
@@ -58,7 +48,8 @@ contract DidManagerNative is IDidManagerNative, VMStorageNative, DidManagerBase,
     emit DidCreated(id, idHash);
   }
 
-  function createVm(NativeCreateVmCommand memory command) external {
+  /// @dev Creates a new native Verification Method (VM).
+  function createVm(DidCreateVmCommandNative memory command) external {
     _validateTripleParams(command.methods, command.senderId, command.targetId);
     if (command.relationships == bytes1(0)) revert MissingRequiredParameter();
     (, bytes32 targetIdHash) = _validateSenderAndTarget({
@@ -76,168 +67,7 @@ contract DidManagerNative is IDidManagerNative, VMStorageNative, DidManagerBase,
     updateExpiration({ idHash: targetIdHash, forceExpire: false });
   }
 
-  function validateVm(bytes32 positionHash, uint256 expiration) external {
-    _validateVm(positionHash, expiration, msg.sender);
-  }
-
-  function expireVm(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId, bytes32 vmId) external {
-    _validateTripleParams(methods, senderId, targetId);
-    (, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);
-    _expireVm(targetIdHash, vmId);
-    updateExpiration({ idHash: targetIdHash, forceExpire: false });
-  }
-
-  function deactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external {
-    _validateTripleParams(methods, senderId, targetId);
-    (, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);
-    emit DidDeactivated(targetIdHash);
-    updateExpiration({ idHash: targetIdHash, forceExpire: true });
-  }
-
-  function reactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external {
-    _validateTripleParams(methods, senderId, targetId);
-    bytes32 senderIdHash = HashUtils.calculateIdHash(methods, senderId);
-    bytes32 targetIdHash = HashUtils.calculateIdHash(methods, targetId);
-
-    if (_expirationDate[targetIdHash] != 0) {
-      revert DidNotDeactivated();
-    }
-
-    if (senderIdHash == targetIdHash) {
-      if (!_isVmOwner(senderIdHash, senderVmId, tx.origin)) {
-        revert NotAuthenticatedAsSenderId();
-      }
-    } else {
-      if (_isExpired(senderIdHash)) {
-        revert DidExpired();
-      }
-      if (!_isAuthenticated(senderIdHash, senderVmId, tx.origin)) {
-        revert NotAuthenticatedAsSenderId();
-      }
-      if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) {
-        revert NotAControllerforTargetId();
-      }
-    }
-
-    updateExpiration({ idHash: targetIdHash, forceExpire: false });
-    emit DidReactivated(targetIdHash);
-  }
-
-  function updateController(
-    bytes32 methods,
-    bytes32 senderId,
-    bytes32 senderVmId,
-    bytes32 targetId,
-    bytes32 controllerId,
-    bytes32 controllerVmId,
-    uint8 controllerPosition
-  ) external {
-    _validateTripleParams(methods, senderId, targetId);
-    (bytes32 senderIdHash, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);
-    if (controllerPosition > CONTROLLERS_MAX_LENGTH - 1) {
-      controllerPosition = CONTROLLERS_MAX_LENGTH - 1;
-    }
-    _controllers[targetIdHash][controllerPosition] = Controller({ id: controllerId, vmId: controllerVmId });
-    emit ControllerUpdated(senderIdHash, targetIdHash, controllerPosition, controllerVmId);
-    updateExpiration({ idHash: targetIdHash, forceExpire: false });
-  }
-
-  function updateService(
-    bytes32 methods,
-    bytes32 senderId,
-    bytes32 senderVmId,
-    bytes32 targetId,
-    bytes32 serviceId,
-    bytes memory type_,
-    bytes memory serviceEndpoint
-  ) external {
-    (, bytes32 targetIdHash) = _validateSenderAndTarget(methods, senderId, senderVmId, targetId);
-    _updateService(targetIdHash, serviceId, type_, serviceEndpoint);
-    updateExpiration({ idHash: targetIdHash, forceExpire: false });
-  }
-
-  //* Internal helpers
-
-  function _validateSenderAndTarget(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId)
-    private
-    view
-    returns (bytes32 senderIdHash, bytes32 targetIdHash)
-  {
-    senderIdHash = HashUtils.calculateIdHash(methods, senderId);
-    targetIdHash = HashUtils.calculateIdHash(methods, targetId);
-    if (_isExpired(senderIdHash) || _isExpired(targetIdHash)) {
-      revert DidExpired();
-    }
-    if (!_isAuthenticated(senderIdHash, senderVmId, tx.origin)) {
-      revert NotAuthenticatedAsSenderId();
-    }
-    if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) {
-      revert NotAControllerforTargetId();
-    }
-  }
-
-  //* View functions
-
-  function getExpiration(bytes32 methods, bytes32 id, bytes32 vmId) external view returns (uint256 exp) {
-    bytes32 idHash = HashUtils.calculateIdHash(methods, id);
-    if (vmId != bytes32(0)) {
-      return _getExpirationVm(idHash, vmId);
-    } else {
-      return _expirationDate[idHash];
-    }
-  }
-
-  function isVmRelationship(bytes32 methods, bytes32 id, bytes32 vmId, bytes1 relationship, address sender)
-    public
-    view
-    returns (bool)
-  {
-    _validateViewParams(methods, id, sender);
-    bytes32 idHash = HashUtils.calculateIdHash(methods, id);
-    if (_isExpired(idHash)) {
-      revert DidExpired();
-    }
-    return _isVmRelationship(idHash, vmId, relationship, sender);
-  }
-
-  /// @inheritdoc IDidManagerNative
-  function isAuthorized(
-    bytes32 methods,
-    bytes32 senderId,
-    bytes32 senderVmId,
-    bytes32 targetId,
-    bytes1 relationship,
-    address sender
-  ) external view returns (bool) {
-    // Revert on invalid inputs only
-    _validateAuthorizedParams(methods, senderId, senderVmId, targetId, relationship, sender);
-    if (relationship > bytes1(0x1F)) revert VmRelationshipOutOfRange();
-
-    bytes32 senderIdHash = HashUtils.calculateIdHash(methods, senderId);
-    bytes32 targetIdHash = HashUtils.calculateIdHash(methods, targetId);
-
-    // 1. Both DIDs must be active
-    if (_isExpired(senderIdHash) || _isExpired(targetIdHash)) return false;
-
-    // 2. Sender's VM has the required relationship (non-reverting via _getVm)
-    VerificationMethod memory senderVm = _getVm(senderIdHash, senderVmId, 0);
-    if (senderVm.expiration == 0 || senderVm.expiration <= block.timestamp) return false;
-    if (senderVm.ethereumAddress != sender || (senderVm.relationships & relationship) != relationship) return false;
-
-    // 3. Sender is controller of target (or IS target for self-controlled)
-    if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) return false;
-
-    return true;
-  }
-
-  function getControllerList(bytes32 methods, bytes32 id)
-    external
-    view
-    returns (Controller[CONTROLLERS_MAX_LENGTH] memory controllers)
-  {
-    return _controllers[HashUtils.calculateIdHash(methods, id)];
-  }
-
+  /// @dev Returns the Verification Method (VM) for a given DID.
   function getVm(bytes32 methods, bytes32 id, bytes32 vmId, uint8 position)
     external
     view
@@ -246,27 +76,18 @@ contract DidManagerNative is IDidManagerNative, VMStorageNative, DidManagerBase,
     return _getVm(HashUtils.calculateIdHash(methods, id), vmId, position);
   }
 
+  /// @dev Returns the length of the VM list for a given DID.
   function getVmListLength(bytes32 methods, bytes32 id) external view returns (uint8) {
     return _getVmListLength(HashUtils.calculateIdHash(methods, id));
   }
 
+  /// @dev Returns the publicKeyMultibase for a native VM.
   function getVmPublicKeyMultibase(bytes32 methods, bytes32 id, bytes32 vmId) external view returns (bytes memory) {
     return _getPublicKeyMultibase(HashUtils.calculateIdHash(methods, id), vmId);
   }
 
+  /// @dev Returns the VM ID at a given position.
   function getVmIdAtPosition(bytes32 methods, bytes32 id, uint8 position) external view returns (bytes32) {
     return _getVmIdAtPosition(HashUtils.calculateIdHash(methods, id), position);
-  }
-
-  function getService(bytes32 methods, bytes32 id, bytes32 serviceId, uint8 position)
-    external
-    view
-    returns (Service memory service)
-  {
-    return _getService(HashUtils.calculateIdHash(methods, id), serviceId, position);
-  }
-
-  function getServiceListLength(bytes32 methods, bytes32 id) external view returns (uint8 length) {
-    return _getServiceListLength(HashUtils.calculateIdHash(methods, id));
   }
 }

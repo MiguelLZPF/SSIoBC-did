@@ -30,5 +30,6 @@ error DidAlreadyExists();
 error DidExpired();
 error MissingRequiredParameter();
 error NotAuthenticatedAsSenderId();
-error NotAControllerforTargetId();
+error NotAControllerForTargetId();
+error VmRelationshipOutOfRange();
 error DidNotDeactivated();

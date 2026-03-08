@@ -7,16 +7,17 @@ import {
   DEFAULT_VM_EXPIRATION_NATIVE,
   MAX_PUBLIC_KEY_MULTIBASE_LENGTH_NATIVE,
   CreateVmCommand,
-  VerificationMethod,
-  IVMStorageNative
-} from "./interfaces/IVMStorageNative.sol";
-import { MissingRequiredParameter } from "./interfaces/IDidManagerBase.sol";
-import { HashUtils } from "./HashUtils.sol";
+  VerificationMethod
+} from "@types/VmTypesNative.sol";
+import { IVMStorageNative } from "@interfaces/IVMStorageNative.sol";
+import { MissingRequiredParameter, VmRelationshipOutOfRange } from "@types/DidTypes.sol";
+import { HashUtils } from "@src/HashUtils.sol";
+import { VMHooks } from "@storage/VMHooks.sol";
 
 /// @title VMStorageNative
 /// @author Miguel Gómez Carpena
 /// @notice Single-slot VM storage (Ethereum addresses)
-abstract contract VMStorageNative is IVMStorageNative {
+abstract contract VMStorageNative is IVMStorageNative, VMHooks {
   using EnumerableSet for EnumerableSet.Bytes32Set;
 
   //* Storage
@@ -97,7 +98,12 @@ abstract contract VMStorageNative is IVMStorageNative {
    * @param sender The address of the sender.
    * @return id The identifier of the validated VM.
    */
-  function _validateVm(bytes32 positionHash, uint256 expiration, address sender) internal returns (bytes32 id) {
+  function _validateVm(bytes32 positionHash, uint256 expiration, address sender)
+    internal
+    virtual
+    override
+    returns (bytes32 id)
+  {
     if (expiration == 0) {
       expiration = block.timestamp + DEFAULT_VM_EXPIRATION_NATIVE;
     }
@@ -117,14 +123,14 @@ abstract contract VMStorageNative is IVMStorageNative {
    * @param didHash The hash of the DID.
    * @param id The identifier of the VM to expire.
    */
-  function _expireVm(bytes32 didHash, bytes32 id) internal {
+  function _expireVm(bytes32 didHash, bytes32 id) internal virtual override {
     VerificationMethod storage vm = _vmByNsAndId[didHash][id];
     if (vm.expiration <= block.timestamp) revert VmAlreadyExpired();
     vm.expiration = uint88(block.timestamp);
     emit VmExpirationUpdated(didHash, id, true, vm.expiration);
   }
 
-  function _removeAllVms(bytes32 didHash) internal {
+  function _removeAllVms(bytes32 didHash) internal virtual override {
     uint256 len = _vmIds[didHash].length();
     while (len > 0) {
       bytes32 lastId = _vmIds[didHash].at(len - 1);
@@ -162,11 +168,11 @@ abstract contract VMStorageNative is IVMStorageNative {
     return _vmByNsAndId[didHash][id];
   }
 
-  function _getVmListLength(bytes32 didHash) internal view returns (uint8) {
+  function _getVmListLength(bytes32 didHash) internal view virtual override returns (uint8) {
     return uint8(_vmIds[didHash].length());
   }
 
-  function _getExpirationVm(bytes32 didHash, bytes32 id) internal view returns (uint256 exp) {
+  function _getExpirationVm(bytes32 didHash, bytes32 id) internal view virtual override returns (uint256 exp) {
     return _vmByNsAndId[didHash][id].expiration;
   }
 
@@ -186,9 +192,32 @@ abstract contract VMStorageNative is IVMStorageNative {
   }
 
   /**
+   * @dev Returns VM auth fields (expiration, ethereumAddress, relationships) for isAuthorized checks.
+   * Non-reverting: returns zero values for non-existent or expired VMs.
+   * @param didHash The hash of the DID.
+   * @param vmId The identifier of the VM.
+   */
+  function _getVmForAuth(bytes32 didHash, bytes32 vmId)
+    internal
+    view
+    virtual
+    override
+    returns (uint256 expiration, address ethereumAddress, bytes1 relationships)
+  {
+    VerificationMethod memory vm = _getVm(didHash, vmId, 0);
+    return (vm.expiration, vm.ethereumAddress, vm.relationships);
+  }
+
+  /**
    * @dev Checks if the given sender is authenticated for the specified DID hash and VM ID.
    */
-  function _isAuthenticated(bytes32 didHash, bytes32 vmId, address sender) internal view returns (bool) {
+  function _isAuthenticated(bytes32 didHash, bytes32 vmId, address sender)
+    internal
+    view
+    virtual
+    override
+    returns (bool)
+  {
     return _isVmRelationship(didHash, vmId, 0x01, sender);
   }
 
@@ -196,7 +225,7 @@ abstract contract VMStorageNative is IVMStorageNative {
    * @dev Checks if the given sender owns a VM with authentication relationship, without checking expiration.
    * Used for self-reactivation of deactivated DIDs.
    */
-  function _isVmOwner(bytes32 didHash, bytes32 vmId, address sender) internal view returns (bool) {
+  function _isVmOwner(bytes32 didHash, bytes32 vmId, address sender) internal view virtual override returns (bool) {
     if (vmId == bytes32(0) || sender == address(0)) {
       revert MissingRequiredParameter();
     }
@@ -218,6 +247,8 @@ abstract contract VMStorageNative is IVMStorageNative {
   function _isVmRelationship(bytes32 didHash, bytes32 id, bytes1 relationship, address sender)
     internal
     view
+    virtual
+    override
     returns (bool)
   {
     if (id == bytes32(0) || relationship == bytes1(0) || sender == address(0)) {

@@ -3,7 +3,7 @@ pragma solidity 0.8.33;
 
 import { Script } from "forge-std/Script.sol";
 import { Configuration, Deployment, DeploymentStoreInfo } from "@script/Configuration.s.sol";
-import { IDidManager } from "@src/interfaces/IDidManager.sol";
+import { IDidManagerFull } from "@interfaces/IDidManagerFull.sol";
 import { W3CResolver } from "@src/W3CResolver.sol";
 
 /**
@@ -12,7 +12,7 @@ import { W3CResolver } from "@src/W3CResolver.sol";
  */
 struct DeployCommand {
   DeploymentStoreInfo storeInfo; // Deployment store information.
-  IDidManager didManager;
+  IDidManagerFull didManager;
 }
 
 contract W3CResolverScript is Script {
@@ -20,7 +20,7 @@ contract W3CResolverScript is Script {
   string private constant CONTRACT_FILE_NAME = "W3CResolver.sol";
   Configuration config = new Configuration();
 
-  function deploy(IDidManager didManager, bool store, string calldata tag, bool broadcast)
+  function deploy(IDidManagerFull didManager, bool store, string calldata tag, bool broadcast)
     external
     returns (W3CResolver w3cResolver, Deployment memory deployment)
   {
