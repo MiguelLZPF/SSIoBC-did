@@ -4,7 +4,7 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBaseNative } from "../helpers/TestBaseNative.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpersNative } from "../helpers/DidTestHelpersNative.sol";
-import { CreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
+import { DidCreateVmCommandNative as CreateVmCommand, VerificationMethod } from "@types/VmTypesNative.sol";
 import {
   Controller,
   DEFAULT_DID_METHODS,
@@ -13,10 +13,11 @@ import {
   DidAlreadyExists,
   DidExpired,
   NotAuthenticatedAsSenderId,
-  NotAControllerforTargetId,
-  DidNotDeactivated
-} from "@interfaces/IDidManagerBase.sol";
-import { DEFAULT_VM_ID_NATIVE, IVMStorageNative, VerificationMethod } from "@src/interfaces/IVMStorageNative.sol";
+  NotAControllerForTargetId,
+  DidNotDeactivated,
+  VmRelationshipOutOfRange
+} from "@types/DidTypes.sol";
+import { DEFAULT_VM_ID_NATIVE, IVMStorageNative } from "@interfaces/IVMStorageNative.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 /**
@@ -874,7 +875,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
       publicKeyMultibase: ""
     });
 
-    vm.expectRevert(NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerForTargetId.selector);
     didManagerNative.createVm(command);
 
     _stopPrank();
@@ -1034,7 +1035,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
     );
 
     // Non-controller tries to reactivate
-    vm.expectRevert(NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerForTargetId.selector);
     didManagerNative.reactivateDid(
       ownerDid.didInfo.methods, nonControllerDid.didInfo.id, DEFAULT_VM_ID_NATIVE, ownerDid.didInfo.id
     );
@@ -1236,7 +1237,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
 
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
 
-    vm.expectRevert(IVMStorageNative.VmRelationshipOutOfRange.selector);
+    vm.expectRevert(VmRelationshipOutOfRange.selector);
     didManagerNative.isVmRelationship(
       didResult.didInfo.methods, didResult.didInfo.id, DEFAULT_VM_ID_NATIVE, bytes1(0x20), user1
     );
@@ -1316,7 +1317,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
     );
 
     // user2 tries to deactivate user1's DID but isn't a controller
-    vm.expectRevert(NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerForTargetId.selector);
     didManagerNative.deactivateDid(
       ownerDid.didInfo.methods, otherDid.didInfo.id, DEFAULT_VM_ID_NATIVE, ownerDid.didInfo.id
     );

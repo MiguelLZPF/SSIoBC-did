@@ -40,7 +40,8 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | **v1.2.1** | **12.6 kB** | **11.2 kB** | **10.9 kB** | **11.7 kB** | **Added isAuthorized() cross-DID authorization, removed redundant authenticate()** |
 | v1.2.2 | 12.6 kB | 11.2 kB | 10.9 kB | 11.7 kB | Test hardening and config fixes (no source changes) |
 | v1.2.3 | 12.6 kB | 11.2 kB | 10.9 kB | 11.7 kB | Import standardization and CI pinning (no logic changes) |
-| **v1.2.4** | **12.5 kB** | **11.2 kB** | **10.8 kB** | **11.7 kB** | **Centralized parameter validation in DidManagerBase (-100 B each)** |
+| v1.2.4 | 12.5 kB | 11.2 kB | 10.8 kB | 11.7 kB | Centralized parameter validation in DidManagerBase (-100 B each) |
+| **v1.3.0** | **12.5 kB** | **10.8 kB** | **10.9 kB** | **11.4 kB** | **Architecture refactor: DidAggregate + VMHooks (9 hooks) + ISP interfaces + W3CResolverBase + peer review fixes (isAuthorized extraction, resolver optimizations)** |
 
 ### Visual Documentation
 
@@ -326,6 +327,37 @@ The v1.2.4 release extracts 14 duplicated inline parameter validation blocks int
 
 **Note:** 4 instances in VMStorage/VMStorageNative left as-is (no shared base between them). All 3 helpers are `internal pure` — zero storage impact, optimizer inlines at `optimizer_runs=200`.
 
+### v1.3.0 Architecture Refactor + Peer Review (March 2026)
+
+The v1.3.0 release introduces DidAggregate + VMHooks (Template Method pattern) and incorporates peer review improvements including isAuthorized extraction, resolver optimizations, and bug fixes.
+
+#### v1.3.0 Contract Sizes
+```
+| Contract             | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|----------------------|------------------|-------------------|--------------------|--------------------|
+| DidManager           | 12,514           | 12,542            | 12,062             | 36,610              |
+| DidManagerNative     | 10,906           | 10,934            | 13,670             | 38,218              |
+| W3CResolver          | 10,847           | 10,991            | 13,729             | 38,161              |
+| W3CResolverNative    | 11,369           | 11,513            | 13,207             | 37,639              |
+```
+
+**Key Changes:**
+1. **DidAggregate**: Absorbs DidManagerBase + shared lifecycle logic; `isAuthorized()` extracted from concrete managers via `_getVmForAuth` hook
+2. **VMHooks**: 9 abstract hooks (added `_getVmForAuth` for non-reverting authorization checks)
+3. **W3CResolverBase**: `DEFAULT_CONTEXT` storage → in-memory construction (saves ~2100 gas); `_bytesToHexString` changed to `internal`
+4. **Bug fixes**: Missing `_validateTripleParams` in `updateService`, missing `checkDidInput` in `resolve()`
+5. **W3CTypes**: `capabilityInvocation`/`capabilityDelegation` field order corrected to match W3C spec
+
+**Size Impact (v1.2.4 → v1.3.0):**
+| Contract | v1.2.4 (B) | v1.3.0 (B) | Change | % Change |
+|----------|-----------|-----------|--------|----------|
+| DidManager | 12,450 | 12,514 | +64 | +0.5% |
+| DidManagerNative | 10,844 | 10,906 | +62 | +0.6% |
+| W3CResolver | 11,169 | 10,847 | -322 | -2.9% |
+| W3CResolverNative | 11,709 | 11,369 | -340 | -2.9% |
+
+**Net impact**: Managers grew +64/+62 B from `_getVmForAuth` hook implementations. Resolvers shrank -322/-340 B from `DEFAULT_CONTEXT` removal + `_bytesToHexString` internalization. Overall net: -536 B across all 4 contracts.
+
 #### Trade-off Analysis
 
 The v1.0 architecture provides:
@@ -395,4 +427,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v1.2.4 - Centralized parameter validation in DidManagerBase (-100 B each variant)*
+*Last Updated: v1.3.0 - Architecture refactor (DidAggregate + VMHooks) + peer review improvements (isAuthorized extraction, resolver optimizations)*

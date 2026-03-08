@@ -4,24 +4,22 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
+import { IDidManagerFull } from "@interfaces/IDidManagerFull.sol";
+import { IDidWriteOps } from "@interfaces/IDidWriteOps.sol";
+import { DidCreateVmCommand as CreateVmCommand, VerificationMethod } from "@types/VmTypes.sol";
 import {
-  IDidManager,
-  CreateVmCommand,
   Controller,
   CONTROLLERS_MAX_LENGTH,
   EXPIRATION,
-  VerificationMethod
-} from "@src/interfaces/IDidManager.sol";
-import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
-import {
+  DEFAULT_DID_METHODS,
   MissingRequiredParameter,
   DidAlreadyExists,
   DidExpired,
   NotAuthenticatedAsSenderId,
-  NotAControllerforTargetId,
+  NotAControllerForTargetId,
   DidNotDeactivated
-} from "@interfaces/IDidManagerBase.sol";
-import { DEFAULT_VM_ID, IVMStorage } from "@src/interfaces/IVMStorage.sol";
+} from "@types/DidTypes.sol";
+import { DEFAULT_VM_ID, IVMStorage } from "@interfaces/IVMStorage.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 /**
@@ -609,7 +607,7 @@ contract DidManagerUnitTest is TestBase {
 
     // Listen for the ControllerUpdated event to verify the position was capped
     vm.expectEmit(true, true, true, true);
-    emit IDidManager.ControllerUpdated(
+    emit IDidWriteOps.ControllerUpdated(
       ownerDid.didInfo.idHash,
       ownerDid.didInfo.idHash,
       4, // Should be capped to CONTROLLERS_MAX_LENGTH - 1 = 4
@@ -936,7 +934,7 @@ contract DidManagerUnitTest is TestBase {
     );
 
     // Try to deactivate as non-controller
-    vm.expectRevert(NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerForTargetId.selector);
     didManager.deactivateDid(
       ownerDid.didInfo.methods,
       nonControllerDid.didInfo.id, // Non-controller trying to deactivate
@@ -1393,7 +1391,7 @@ contract DidManagerUnitTest is TestBase {
   // COVERAGE GAP TESTS - Target specific uncovered branches
   // =========================================================================
 
-  function test_CreateVm_Should_RevertWithNotAControllerforTargetId_When_SenderNotController() public {
+  function test_CreateVm_Should_RevertWithNotAControllerForTargetId_When_SenderNotController() public {
     // Create two separate DIDs - one will be owner, one will be non-controller
     _startPrank(user1);
     DidTestHelpers.CreateDidResult memory ownerDid =
@@ -1422,7 +1420,7 @@ contract DidManagerUnitTest is TestBase {
     _stopPrank();
 
     // Try to create VM on ownerDid as nonControllerDid (not a controller)
-    // This should trigger lines 271-274: NotAControllerforTargetId error
+    // This should trigger lines 271-274: NotAControllerForTargetId error
     _startPrank(user2);
     CreateVmCommand memory vmCommand = CreateVmCommand({
       methods: DEFAULT_DID_METHODS,
@@ -1438,7 +1436,7 @@ contract DidManagerUnitTest is TestBase {
       expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
     });
 
-    vm.expectRevert(NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerForTargetId.selector);
     didManager.createVm(vmCommand);
     _stopPrank();
   }
@@ -1520,7 +1518,7 @@ contract DidManagerUnitTest is TestBase {
 
     // This should fail because nonControllerDid is not in the controllers list
     // Since we're authenticated (same user), this will reach controller validation
-    vm.expectRevert(NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerForTargetId.selector);
     didManager.createVm(vmCommand);
 
     _stopPrank();
@@ -1715,7 +1713,7 @@ contract DidManagerUnitTest is TestBase {
     );
 
     // Try to reactivate as non-controller
-    vm.expectRevert(NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerForTargetId.selector);
     didManager.reactivateDid(
       ownerDid.didInfo.methods,
       nonControllerDid.didInfo.id, // Non-controller trying to reactivate

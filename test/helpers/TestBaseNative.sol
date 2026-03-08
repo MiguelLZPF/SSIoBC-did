@@ -2,8 +2,8 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { Test } from "forge-std/Test.sol";
-import { IDidManagerNative } from "@src/interfaces/IDidManagerNative.sol";
-import { IW3CResolver } from "@src/interfaces/IW3CResolver.sol";
+import { IDidManagerNative } from "@interfaces/IDidManagerNative.sol";
+import { IW3CResolver } from "@interfaces/IW3CResolver.sol";
 import { DidManagerNativeScript } from "@script/DidManagerNative.s.sol";
 import { W3CResolverNativeScript } from "@script/W3CResolverNative.s.sol";
 

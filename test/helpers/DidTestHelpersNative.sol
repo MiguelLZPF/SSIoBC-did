@@ -2,9 +2,10 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { Vm } from "forge-std/Vm.sol";
-import { IDidManagerNative, CreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
-import { DEFAULT_DID_METHODS } from "@interfaces/IDidManagerBase.sol";
-import { DEFAULT_VM_ID_NATIVE, VerificationMethod } from "@src/interfaces/IVMStorageNative.sol";
+import { IDidManagerNative } from "@interfaces/IDidManagerNative.sol";
+import { DidCreateVmCommandNative as CreateVmCommand, VerificationMethod } from "@types/VmTypesNative.sol";
+import { DEFAULT_DID_METHODS } from "@types/DidTypes.sol";
+import { DEFAULT_VM_ID_NATIVE } from "@types/VmTypesNative.sol";
 import { Fixtures } from "./Fixtures.sol";
 
 /**

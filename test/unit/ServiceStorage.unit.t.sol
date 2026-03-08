@@ -4,13 +4,9 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import {
-  IServiceStorage,
-  Service,
-  MAX_SERVICE_TYPE_LENGTH,
-  MAX_SERVICE_ENDPOINT_LENGTH
-} from "@src/interfaces/IServiceStorage.sol";
-import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
+import { IServiceStorage } from "@interfaces/IServiceStorage.sol";
+import { Service, MAX_SERVICE_TYPE_LENGTH, MAX_SERVICE_ENDPOINT_LENGTH } from "@types/ServiceTypes.sol";
+import { DEFAULT_VM_ID } from "@types/VmTypes.sol";
 
 /**
  * @title ServiceStorageUnitTest

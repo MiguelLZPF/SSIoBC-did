@@ -6,11 +6,13 @@ import { TestBaseNative } from "@test/helpers/TestBaseNative.sol";
 import { DidTestHelpers } from "@test/helpers/DidTestHelpers.sol";
 import { DidTestHelpersNative } from "@test/helpers/DidTestHelpersNative.sol";
 import { Fixtures } from "@test/helpers/Fixtures.sol";
-import { IDidManager, CreateVmCommand } from "@src/interfaces/IDidManager.sol";
-import { IDidManagerNative, CreateVmCommand as NativeCreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
-import { DEFAULT_VM_ID, IVMStorage } from "@src/interfaces/IVMStorage.sol";
-import { DEFAULT_VM_ID_NATIVE, IVMStorageNative } from "@src/interfaces/IVMStorageNative.sol";
-import "@interfaces/IDidManagerBase.sol";
+import { IDidManagerFull } from "@interfaces/IDidManagerFull.sol";
+import { DidCreateVmCommand as CreateVmCommand } from "@types/VmTypes.sol";
+import { IDidManagerNative } from "@interfaces/IDidManagerNative.sol";
+import { DidCreateVmCommandNative as NativeCreateVmCommand } from "@types/VmTypesNative.sol";
+import { DEFAULT_VM_ID, IVMStorage } from "@interfaces/IVMStorage.sol";
+import { DEFAULT_VM_ID_NATIVE, IVMStorageNative } from "@interfaces/IVMStorageNative.sol";
+import "@types/DidTypes.sol";
 
 // =========================================================================
 // Full W3C Variant Tests
@@ -526,7 +528,7 @@ contract AuthorizeUnitTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
     _stopPrank();
 
-    vm.expectRevert(IVMStorage.VmRelationshipOutOfRange.selector);
+    vm.expectRevert(VmRelationshipOutOfRange.selector);
     didManager.isAuthorized(
       didResult.didInfo.methods,
       didResult.didInfo.id,
@@ -1036,7 +1038,7 @@ contract AuthorizeNativeUnitTest is TestBaseNative {
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
     _stopPrank();
 
-    vm.expectRevert(IVMStorageNative.VmRelationshipOutOfRange.selector);
+    vm.expectRevert(VmRelationshipOutOfRange.selector);
     didManagerNative.isAuthorized(
       didResult.didInfo.methods,
       didResult.didInfo.id,

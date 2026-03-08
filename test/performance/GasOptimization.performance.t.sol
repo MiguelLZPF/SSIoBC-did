@@ -4,8 +4,9 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { CreateVmCommand, EXPIRATION } from "@src/interfaces/IDidManager.sol";
-import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
+import { DidCreateVmCommand as CreateVmCommand } from "@types/VmTypes.sol";
+import { EXPIRATION } from "@types/DidTypes.sol";
+import { DEFAULT_VM_ID } from "@types/VmTypes.sol";
 import { console } from "forge-std/console.sol";
 
 /**

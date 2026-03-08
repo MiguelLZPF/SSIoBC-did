@@ -212,7 +212,6 @@ jobs:
     if: ${{ !inputs.skip-security && (github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]') }}
     permissions:
       contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -225,12 +224,6 @@ jobs:
           sarif: slither-results.sarif
           fail-on: none
           slither-args: --filter-paths "lib/|test/|script/" --exclude-dependencies
-
-      - name: Upload SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
-        if: always() && hashFiles('slither-results.sarif') != ''
-        with:
-          sarif_file: slither-results.sarif
 
       - name: Upload Slither report
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0

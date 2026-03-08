@@ -4,9 +4,9 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { CreateVmCommand, EXPIRATION } from "@src/interfaces/IDidManager.sol";
-import { IVMStorage, DEFAULT_VM_ID, DEFAULT_VM_EXPIRATION, VerificationMethod } from "@src/interfaces/IVMStorage.sol";
-import { MissingRequiredParameter } from "@interfaces/IDidManagerBase.sol";
+import { DidCreateVmCommand as CreateVmCommand, VerificationMethod } from "@types/VmTypes.sol";
+import { EXPIRATION, MissingRequiredParameter, VmRelationshipOutOfRange } from "@types/DidTypes.sol";
+import { IVMStorage, DEFAULT_VM_ID, DEFAULT_VM_EXPIRATION } from "@interfaces/IVMStorage.sol";
 import { Vm } from "forge-std/Vm.sol";
 
 /**
@@ -705,7 +705,7 @@ contract VMStorageUnitTest is TestBase {
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
 
     // Test with relationship > 0x1F - should trigger line 225
-    vm.expectRevert(IVMStorage.VmRelationshipOutOfRange.selector);
+    vm.expectRevert(VmRelationshipOutOfRange.selector);
     didManager.isVmRelationship(
       didResult.didInfo.methods,
       didResult.didInfo.id,

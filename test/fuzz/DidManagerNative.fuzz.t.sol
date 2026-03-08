@@ -4,9 +4,9 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBaseNative } from "../helpers/TestBaseNative.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpersNative } from "../helpers/DidTestHelpersNative.sol";
-import { CreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
-import { DEFAULT_DID_METHODS, DidAlreadyExists } from "@interfaces/IDidManagerBase.sol";
-import { DEFAULT_VM_ID_NATIVE } from "@src/interfaces/IVMStorageNative.sol";
+import { DidCreateVmCommandNative as CreateVmCommand } from "@types/VmTypesNative.sol";
+import { DEFAULT_DID_METHODS, DidAlreadyExists } from "@types/DidTypes.sol";
+import { DEFAULT_VM_ID_NATIVE } from "@types/VmTypesNative.sol";
 
 /**
  * @title DidManagerNativeFuzzTest

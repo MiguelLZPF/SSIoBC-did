@@ -39,7 +39,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Innovation**: First complete on-chain DID document storage (vs event-based)
 - **Language**: Solidity 0.8.33 (Foundry framework)
 - **Coverage**: >90% required (enforced in CI/CD)
-- **Architecture**: Dual-variant (Full W3C + Ethereum-Native) with shared DidManagerBase + ServiceStorage + HashUtils
+- **Architecture**: Dual-variant (Full W3C + Ethereum-Native) with shared DidAggregate (incl. isAuthorized) + VMHooks (9 hooks) + ServiceStorage + HashUtils (Template Method pattern)
 - **Storage**: Hash-based lists with EnumerableSet (gas-optimized)
 - **Standards**: W3C DID Core v1.0 compliant
 - **Working Dir**: `/Users/miguel_lzpf/Projects/SSIoBC-did/`
@@ -137,19 +137,24 @@ Complex reasoning tasks that require Claude's capabilities:
 ### Dual-Variant System
 
 **Full W3C Variant** (multi-key, multi-type):
-1. **DidManager.sol** - Core DID lifecycle (inherits VMStorage, DidManagerBase, ServiceStorage)
-2. **VMStorage.sol** - Verification methods storage (abstract, multi-type VMs)
-3. **W3CResolver.sol** - W3C-compliant document resolution
+1. **DidManager.sol** - Thin wrapper: createDid, createVm, getVm (inherits VMStorage + DidAggregate)
+2. **storage/VMStorage.sol** - Verification methods storage (abstract, multi-type VMs)
+3. **W3CResolver.sol** - W3C-compliant document resolution (extends W3CResolverBase)
 
 **Ethereum-Native Variant** (single-key, Ethereum-only):
-4. **DidManagerNative.sol** - Native DID lifecycle (inherits VMStorageNative, DidManagerBase, ServiceStorage)
-5. **VMStorageNative.sol** - Native VM storage (abstract, 1-slot address-based VMs)
-6. **W3CResolverNative.sol** - Resolution with field derivation at query time
+4. **DidManagerNative.sol** - Thin wrapper (inherits VMStorageNative + DidAggregate)
+5. **storage/VMStorageNative.sol** - Native VM storage (abstract, 1-slot address-based VMs)
+6. **W3CResolverNative.sol** - Resolution with field derivation (extends W3CResolverBase)
 
 **Shared:**
-7. **DidManagerBase.sol** - Common DID logic (expiration, controllers, parameter validation helpers)
-8. **ServiceStorage.sol** - Service endpoints storage (abstract contract)
-9. **HashUtils.sol** - Shared hash helper library (calculateIdHash, calculatePositionHash)
+7. **DidAggregate.sol** - All shared DID lifecycle logic (expiration, controllers, auth, isAuthorized, services, validation)
+8. **storage/VMHooks.sol** - 9 abstract VM storage hook declarations (shared ancestor, avoids diamond)
+9. **W3CResolverBase.sol** - Shared resolver logic (resolve, resolveService)
+10. **storage/ServiceStorage.sol** - Service endpoints storage (abstract contract)
+11. **HashUtils.sol** - Shared hash helper library (calculateIdHash, calculatePositionHash)
+
+**Types** (src/types/): DidTypes.sol, VmTypes.sol, VmTypesNative.sol, ServiceTypes.sol, W3CTypes.sol
+**Interfaces** (src/interfaces/): IDidManager (composite), IDidManagerFull, IDidManagerNative, IDidReadOps, IDidWriteOps, IDidAuth, IVMStorage, IVMStorageNative, IServiceStorage, IW3CResolver
 
 ### DID Structure
 
@@ -167,7 +172,8 @@ did:method0:method1:method2:id
 - **EnumerableSet**: Efficient set operations for VMs and Services
 - **Immutable Architecture**: No proxies, no upgrades
 - **Custom Errors**: Gas optimization (all contracts use custom errors, no require strings)
-- **Abstract Storage**: Modular VMStorage/VMStorageNative and ServiceStorage
+- **Template Method + VMHooks**: DidAggregate calls abstract hooks; VMStorage variants implement them via shared VMHooks ancestor (no diamond)
+- **Abstract Storage**: Modular VMStorage/VMStorageNative and ServiceStorage (in src/storage/)
 - **Storage Caching**: Direct storage reads with early exit (e.g., _isControllerFor, _isExpired)
 - **Resolution-time Derivation**: W3CResolverNative derives VM fields at query time (zero extra storage)
 
@@ -269,7 +275,7 @@ GitHub Actions (`.github/workflows/ci.yml`) — single unified workflow with 7 j
 - **test**: Unit/fuzz/invariant/integration tests with `FOUNDRY_PROFILE=ci` (fuzz=256, excludes stress/performance)
 - **coverage**: LCOV coverage with `FOUNDRY_PROFILE=ci`, 90% threshold + PR comment (excludes stress/performance)
 - **quality**: `forge fmt --check` + `forge lint`
-- **security**: Slither static analysis with SARIF upload to GitHub Security tab
+- **security**: Slither static analysis with SARIF artifact upload
 - **gas-diff**: PR-only gas cost comparison via `foundry-gas-diff`
 - **thorough**: Full property tests (fuzz=1000, invariant=256) + stress/performance — runs only on push to main
 
@@ -358,7 +364,7 @@ The agent will perform:
 
 ---
 
-**Last Updated**: 2026-03-05
+**Last Updated**: 2026-03-08
 **Purpose**: Claude Code project-specific context and routing overrides
 **Architecture**: Simplified 2-file system (CLAUDE.md + PROJECT.md)
 **Routing**: Inherits global rules from ~/.claude/CLAUDE.md with project-specific overrides

@@ -13,7 +13,7 @@
 
 ## Overview
 
-This document provides comprehensive cross-metric analysis of SSIoBC-did performance evolution, examining relationships between contract size, gas consumption, and test coverage across versions v0.1.0 through v1.2.1. The analysis supports PhD research validation and identifies key performance trends.
+This document provides comprehensive cross-metric analysis of SSIoBC-did performance evolution, examining relationships between contract size, gas consumption, and test coverage across versions v0.1.0 through v1.3.0. The analysis supports PhD research validation and identifies key performance trends.
 
 ## Cross-Metric Correlations
 
@@ -211,9 +211,11 @@ The cross-metric analysis validates key research claims:
 - **Coverage**: >90% on all source contracts, 7/10 at 100%
 
 #### Key Developments
-- DidManagerBase shared abstract (expiration, controllers, centralized parameter validation)
+- DidAggregate shared abstract aggregate root (expiration, controllers, auth, services, parameter validation)
+- VMHooks shared ancestor for VM storage hooks (eliminates diamond inheritance)
 - VMStorageNative: 1-slot per VM with overflow for keyAgreement publicKeyMultibase
 - W3CResolverUtils shared library (~140 lines deduped)
+- W3CResolverBase shared abstract base for resolver logic
 - W3CResolverNative: resolution-time field derivation (zero extra storage)
 - isAuthorized() cross-DID controller-aware authorization
 - E2E ECDH key exchange integration test
@@ -226,7 +228,7 @@ The cross-metric analysis validates key research claims:
 ## Predictive Analysis
 
 ### Validated Predictions from v0.8.0
-- **Size Plateau**: Confirmed — v1.2.1 core contracts remain in ~11-12.5 kB range
+- **Size Plateau**: Confirmed — v1.3.0 core contracts remain in ~11-12.5 kB range
 - **Gas Optimization**: Achieved — systematic improvements across v1.0-v1.1
 - **Coverage Maintenance**: Confirmed — >90% sustained through major architecture changes
 - **L2 Potential**: Not yet explored but architecture is compatible
@@ -282,7 +284,7 @@ The cross-metric analysis validates key research claims:
 ### Supporting Evidence
 - [Screenshot Archives](../assets/screenshots/) - Visual performance documentation
 - [Size Data Files](../assets/data/) - Numerical comparison data
-- Version tracking: Git tags v0.1.0 through v1.2.1
+- Version tracking: Git tags v0.1.0 through v1.3.0
 
 ### Academic Context
 - PhD thesis: "SSIoBC – Decentralized Identifiers [X.XX].md"
@@ -291,4 +293,4 @@ The cross-metric analysis validates key research claims:
 
 ---
 
-*Analysis based on complete performance dataset spanning SSIoBC-did development from v0.1.0 through v1.2.2, supporting comprehensive PhD research validation*
+*Analysis based on complete performance dataset spanning SSIoBC-did development from v0.1.0 through v1.3.0, supporting comprehensive PhD research validation*

@@ -7,9 +7,10 @@ import { Vm } from "forge-std/Vm.sol";
 import { TestBaseNative } from "../helpers/TestBaseNative.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpersNative } from "../helpers/DidTestHelpersNative.sol";
-import { IDidManagerNative, CreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
-import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
-import { DEFAULT_VM_ID_NATIVE } from "@src/interfaces/IVMStorageNative.sol";
+import { IDidManagerNative } from "@interfaces/IDidManagerNative.sol";
+import { DidCreateVmCommandNative as CreateVmCommand } from "@types/VmTypesNative.sol";
+import { DEFAULT_DID_METHODS } from "@types/DidTypes.sol";
+import { DEFAULT_VM_ID_NATIVE } from "@types/VmTypesNative.sol";
 
 /**
  * @title NativeSystemInvariantsTest

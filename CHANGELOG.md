@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Table of Contents
 
+- [1.3.0 — 2026-03-08](#130--2026-03-08)
 - [1.2.4 — 2026-03-05](#124--2026-03-05)
 - [1.2.3 — 2026-02-22](#123--2026-02-22)
 - [1.2.2 — 2026-02-19](#122--2026-02-19)
@@ -17,6 +18,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [1.0.1 — 2026-02-03](#101--2026-02-03)
 - [0.8.0 — 2024-07-06](#080--2024-07-06)
 - [0.6.0 — 2024-04-21](#060--2024-04-21)
+
+## [1.3.0] — 2026-03-08
+
+### Added
+
+- `DidAggregate.sol` — shared abstract aggregate root containing ALL DID lifecycle logic (expiration, controllers, auth, services, parameter validation); eliminates duplication between DidManager and DidManagerNative
+- `VMHooks.sol` — tiny shared ancestor declaring 9 abstract VM storage hooks (including `_getVmForAuth`); resolves Solidity diamond inheritance without bytecode overhead
+- `W3CResolverBase.sol` — shared abstract base for W3C resolvers (resolve, resolveService)
+- ISP-compliant interface segregation: `IDidReadOps`, `IDidWriteOps`, `IDidAuth` composed into `IDidManager`
+- `IDidManagerFull.sol` — variant-specific interface extending IDidManager with full W3C VM operations
+- Type files in `src/types/`: `DidTypes.sol`, `VmTypes.sol`, `VmTypesNative.sol`, `ServiceTypes.sol`, `W3CTypes.sol`
+
+### Changed
+
+- **Architecture**: Template Method pattern with VMHooks shared ancestor — DidAggregate calls abstract hooks, VMStorage/VMStorageNative provide concrete implementations, no diamond conflict
+- `DidManager.sol` rewritten as thin wrapper (~90 lines, was ~315) inheriting VMStorage + DidAggregate
+- `DidManagerNative.sol` rewritten as thin wrapper (~100 lines, was ~272) inheriting VMStorageNative + DidAggregate
+- `isAuthorized()` extracted from concrete managers into DidAggregate via `_getVmForAuth` hook (eliminates 28 lines of exact duplication)
+- `W3CResolver.sol` and `W3CResolverNative.sol` now extend W3CResolverBase
+- `_bytesToHexString` changed from `public` to `internal` in W3CResolverBase (fixes _ prefix convention)
+- `DEFAULT_CONTEXT` storage variable replaced with in-memory construction (saves ~2100 gas per cold SLOAD)
+- `_validateSenderAndTarget` optimized with short-circuit hash on self-operations (saves ~30 gas)
+- `W3CDidDocument` struct field order corrected: `capabilityInvocation` now before `capabilityDelegation` (matches W3C spec)
+- `NotAControllerforTargetId` renamed to `NotAControllerForTargetId` (casing fix)
+- `VmRelationshipOutOfRange` error centralized to `DidTypes.sol` (removed from IVMStorage/IVMStorageNative)
+- Storage contracts moved to `src/storage/` (VMStorage, VMStorageNative, ServiceStorage)
+- `IDidManager.sol` rewritten as Liskov-safe composite interface (IDidReadOps + IDidWriteOps + IDidAuth)
+- Contract sizes: DidManager 12,514 B (+64), DidManagerNative 10,906 B (+62), W3CResolver 10,847 B (-322), W3CResolverNative 11,369 B (-340)
+- Function selectors identical (fully backward-compatible ABI)
+- 281 tests passing (unchanged)
+
+### Fixed
+
+- Added missing `_validateTripleParams` to `updateService` in DidAggregate (ensures consistent `MissingRequiredParameter` error for zero params)
+- Added `checkDidInput` validation to `resolve()` in W3CResolverBase (was missing unlike resolveService/resolveVm)
+
+### Removed
+
+- `DidManagerBase.sol` — fully absorbed into DidAggregate
+- `IDidManagerBase.sol` — types extracted to `src/types/DidTypes.sol`, interfaces split into ISP-compliant files
 
 ## [1.2.4] — 2026-03-05
 
@@ -174,6 +215,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ServiceStorage` contract for service endpoint management
 - Basic DID creation and VM creation functionality
 
+[1.3.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.4...v1.3.0
 [1.2.4]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.1...v1.2.2
