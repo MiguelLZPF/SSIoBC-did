@@ -1,131 +1,29 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0 <0.9.0;
 
-import { VerificationMethod } from "@src/VMStorageNative.sol";
-import { Service } from "@src/interfaces/IServiceStorage.sol";
-import { Controller, CONTROLLERS_MAX_LENGTH } from "@interfaces/IDidManagerBase.sol";
+import { IDidManager } from "@interfaces/IDidManager.sol";
+import { VerificationMethod, DidCreateVmCommandNative } from "@types/VmTypesNative.sol";
 
-/**
- * @dev Command struct for creating a native Verification Method via DidManagerNative.
- * Simplified: only 8 fields (vs 11 in the full variant).
- * No type_, blockchainAccountId, or expiration.
- * publicKeyMultibase is REQUIRED when keyAgreement (0x04) is set, and FORBIDDEN otherwise.
- */
-struct CreateVmCommand {
-  bytes32 methods; // The DID methods
-  bytes32 senderId; // The ID of the sender
-  bytes32 senderVmId; // The ID of the sender's VM
-  bytes32 targetId; // The ID of the target DID
-  bytes32 vmId; // The ID of the verification method
-  address ethereumAddress; // MANDATORY - the Ethereum address
-  bytes1 relationships; // The relationships of the VM
-  bytes publicKeyMultibase; // Required IFF keyAgreement (0x04) is set; pre-encoded multibase (must start with 'z')
-}
+/// @title IDidManagerNative
+/// @author Miguel Gomez Carpena
+/// @dev Interface for managing Ethereum-native DIDs with 1-slot VM storage.
+/// Extends IDidManager (Liskov-safe composite) with native-specific VM operations.
+interface IDidManagerNative is IDidManager {
+  /// @dev Creates a new native Verification Method (VM).
+  function createVm(DidCreateVmCommandNative memory command) external;
 
-/**
- * @title IDidManagerNative
- * @author Miguel Gómez Carpena
- * @dev Interface for managing Ethereum-native DIDs with 1-slot VM storage.
- * Produces identical W3C output via resolution-time derivation.
- */
-interface IDidManagerNative {
-  event DidCreated(bytes32 indexed id, bytes32 indexed idHash);
-  event ControllerUpdated(
-    bytes32 indexed senderDidHash, bytes32 indexed targetDidHash, uint8 controllerPosition, bytes32 vmId
-  );
-  event DidDeactivated(bytes32 indexed targetDidHash);
-  event DidReactivated(bytes32 indexed targetDidHash);
-
-  // Errors are declared as file-level in IDidManagerBase.sol
-
-  function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external;
-
-  function createVm(CreateVmCommand memory command) external;
-
-  function validateVm(bytes32 positionHash, uint256 expiration) external;
-
-  function expireVm(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId, bytes32 vmId) external;
-
-  function deactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external;
-
-  function reactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external;
-
-  function getExpiration(bytes32 methods, bytes32 id, bytes32 vmId) external view returns (uint256 exp);
-
-  function isVmRelationship(bytes32 methods, bytes32 id, bytes32 vmId, bytes1 relationship, address sender)
-    external
-    view
-    returns (bool);
-
-  /// @notice Checks if sender is authorized to act on targetId with the given VM relationship.
-  /// @dev Public equivalent of the internal _validateSenderAndTarget() but:
-  ///      - Takes sender address (not tx.origin) for cross-contract use
-  ///      - Returns false for auth failures instead of reverting
-  ///      - Accepts any VM relationship (not hardcoded to 0x01)
-  ///      Combines: (1) both DIDs active, (2) sender's VM has relationship,
-  ///      (3) sender is controller of target (or IS target for self-controlled DIDs).
-  /// @param methods The DID methods namespace.
-  /// @param senderId The sender's DID ID.
-  /// @param senderVmId The sender's VM ID being used for authorization.
-  /// @param targetId The target DID ID the sender wants to act on.
-  /// @param relationship The required VM relationship bitmask (e.g., 0x02 for assertionMethod).
-  /// @param sender The caller's Ethereum address (msg.sender from the calling contract).
-  /// @return authorized True if authorized, false otherwise.
-  function isAuthorized(
-    bytes32 methods,
-    bytes32 senderId,
-    bytes32 senderVmId,
-    bytes32 targetId,
-    bytes1 relationship,
-    address sender
-  ) external view returns (bool authorized);
-
-  function updateController(
-    bytes32 methods,
-    bytes32 senderId,
-    bytes32 senderVmId,
-    bytes32 targetId,
-    bytes32 controllerId,
-    bytes32 controllerVmId,
-    uint8 controllerPosition
-  ) external;
-
-  function getControllerList(bytes32 methods, bytes32 id)
-    external
-    view
-    returns (Controller[CONTROLLERS_MAX_LENGTH] memory controllerList);
-
+  /// @dev Returns the Verification Method (VM) for a given DID and VM ID.
   function getVm(bytes32 methods, bytes32 id, bytes32 vmId, uint8 position)
     external
     view
     returns (VerificationMethod memory vm);
 
+  /// @dev Returns the length of the Verification Method (VM) list for a given DID.
   function getVmListLength(bytes32 methods, bytes32 id) external view returns (uint8);
 
-  /**
-   * @dev Returns the publicKeyMultibase for a native VM. Empty for non-keyAgreement VMs.
-   */
+  /// @dev Returns the publicKeyMultibase for a native VM.
   function getVmPublicKeyMultibase(bytes32 methods, bytes32 id, bytes32 vmId) external view returns (bytes memory);
 
-  /**
-   * @dev Returns the VM ID at a given position. Used by W3CResolverNative for document construction.
-   */
+  /// @dev Returns the VM ID at a given position.
   function getVmIdAtPosition(bytes32 methods, bytes32 id, uint8 position) external view returns (bytes32);
-
-  function updateService(
-    bytes32 methods,
-    bytes32 senderId,
-    bytes32 senderVmId,
-    bytes32 targetId,
-    bytes32 serviceId,
-    bytes memory type_,
-    bytes memory serviceEndpoint
-  ) external;
-
-  function getService(bytes32 methods, bytes32 id, bytes32 serviceId, uint8 position)
-    external
-    view
-    returns (Service memory service);
-
-  function getServiceListLength(bytes32 methods, bytes32 id) external view returns (uint8 length);
 }

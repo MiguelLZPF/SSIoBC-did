@@ -25,6 +25,8 @@ remappings = [
   # Foundry remappings
   "@src/=src/",
   "@interfaces/=src/interfaces/",
+  "@types/=src/types/",
+  "@storage/=src/storage/",
   "@script/=script/",
   "@lib/=lib/",
   "@test/=test/",

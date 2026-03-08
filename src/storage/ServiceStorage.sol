@@ -3,12 +3,12 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {
-  IServiceStorage,
   Service,
   SERVICE_NAMESPACE,
   MAX_SERVICE_TYPE_LENGTH,
   MAX_SERVICE_ENDPOINT_LENGTH
-} from "@src/interfaces/IServiceStorage.sol";
+} from "@types/ServiceTypes.sol";
+import { IServiceStorage } from "@interfaces/IServiceStorage.sol";
 import { HashUtils } from "@src/HashUtils.sol";
 
 // Example of a service:
