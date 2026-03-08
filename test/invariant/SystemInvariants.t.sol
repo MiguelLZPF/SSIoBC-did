@@ -7,9 +7,10 @@ import { Vm } from "forge-std/Vm.sol";
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { IDidManager, CreateVmCommand } from "@src/interfaces/IDidManager.sol";
-import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
-import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
+import { IDidManagerFull } from "@interfaces/IDidManagerFull.sol";
+import { DidCreateVmCommand as CreateVmCommand } from "@types/VmTypes.sol";
+import { DEFAULT_DID_METHODS } from "@types/DidTypes.sol";
+import { DEFAULT_VM_ID } from "@types/VmTypes.sol";
 
 /**
  * @title SystemInvariantsTest
@@ -196,7 +197,7 @@ contract SystemInvariantsTest is StdInvariant, TestBase {
 contract InvariantHandler is Test {
   using DidTestHelpers for *;
 
-  IDidManager private didManager;
+  IDidManagerFull private didManager;
 
   // State tracking
   bytes32[] private createdDids;
@@ -213,7 +214,7 @@ contract InvariantHandler is Test {
   address private user1 = Fixtures.TEST_USER_1;
   address private user2 = Fixtures.TEST_USER_2;
 
-  constructor(IDidManager _didManager) {
+  constructor(IDidManagerFull _didManager) {
     didManager = _didManager;
 
     // Setup users

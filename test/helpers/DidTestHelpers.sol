@@ -2,9 +2,10 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { Vm } from "forge-std/Vm.sol";
-import { IDidManager, CreateVmCommand, VerificationMethod } from "@src/interfaces/IDidManager.sol";
-import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
-import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
+import { IDidManagerFull } from "@interfaces/IDidManagerFull.sol";
+import { DidCreateVmCommand as CreateVmCommand, VerificationMethod } from "@types/VmTypes.sol";
+import { DEFAULT_DID_METHODS } from "@types/DidTypes.sol";
+import { DEFAULT_VM_ID } from "@types/VmTypes.sol";
 import { Fixtures } from "./Fixtures.sol";
 
 /**
@@ -49,7 +50,7 @@ library DidTestHelpers {
    * @param didManager The DID manager contract
    * @return result The creation result with event data
    */
-  function createDefaultDid(Vm vm, IDidManager didManager) internal returns (CreateDidResult memory result) {
+  function createDefaultDid(Vm vm, IDidManagerFull didManager) internal returns (CreateDidResult memory result) {
     return createDid(vm, didManager, Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_0, bytes32(0));
   }
 
@@ -62,7 +63,7 @@ library DidTestHelpers {
    * @param vmId The initial VM ID
    * @return result The creation result with event data
    */
-  function createDid(Vm vm, IDidManager didManager, bytes32 methods, bytes32 random, bytes32 vmId)
+  function createDid(Vm vm, IDidManagerFull didManager, bytes32 methods, bytes32 random, bytes32 vmId)
     internal
     returns (CreateDidResult memory result)
   {
@@ -106,7 +107,7 @@ library DidTestHelpers {
    * @param vmId The VM ID
    * @return result The creation result
    */
-  function createDefaultVm(Vm vm, IDidManager didManager, DidInfo memory didInfo, bytes32 vmId)
+  function createDefaultVm(Vm vm, IDidManagerFull didManager, DidInfo memory didInfo, bytes32 vmId)
     internal
     returns (CreateVmResult memory result)
   {
@@ -143,7 +144,7 @@ library DidTestHelpers {
    * @param command The VM creation command
    * @return result The creation result
    */
-  function createVm(Vm vm, IDidManager didManager, CreateVmCommand memory command)
+  function createVm(Vm vm, IDidManagerFull didManager, CreateVmCommand memory command)
     internal
     returns (CreateVmResult memory result)
   {

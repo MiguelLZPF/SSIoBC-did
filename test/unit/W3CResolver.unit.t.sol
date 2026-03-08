@@ -4,11 +4,12 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { CreateVmCommand, DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
-import { W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
+import { DidCreateVmCommand as CreateVmCommand } from "@types/VmTypes.sol";
+import { DEFAULT_DID_METHODS } from "@types/DidTypes.sol";
+import { W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@types/W3CTypes.sol";
 import { W3CResolver } from "@src/W3CResolver.sol";
-import { DidInputRequired } from "@src/W3CResolverUtils.sol";
-import { DEFAULT_VM_ID } from "@src/interfaces/IVMStorage.sol";
+import { W3CResolverUtils, DidInputRequired } from "@src/W3CResolverUtils.sol";
+import { DEFAULT_VM_ID } from "@types/VmTypes.sol";
 
 /**
  * @title W3CResolverUnitTest
@@ -639,30 +640,28 @@ contract W3CResolverUnitTest is TestBase {
     _stopPrank();
   }
 
-  function test_BytesToHexString_Should_ConvertBytesToHexString_When_Called() public {
-    // Test the _bytesToHexString function directly (lines 302-314)
-    // This is a public function, so we can test it directly
+  function test_BytesToHexString_Should_ConvertBytesToHexString_When_Called() public pure {
+    // Test the bytesToHexString function via the W3CResolverUtils library
 
     bytes memory testInput1 = hex"00";
-    // Cast to the concrete contract to access public function
-    string memory result1 = W3CResolver(address(w3cResolver))._bytesToHexString(testInput1);
+    string memory result1 = W3CResolverUtils.bytesToHexString(testInput1);
     assertEq(result1, "00", "Should convert single zero byte");
 
     bytes memory testInput2 = hex"ff";
-    string memory result2 = W3CResolver(address(w3cResolver))._bytesToHexString(testInput2);
+    string memory result2 = W3CResolverUtils.bytesToHexString(testInput2);
     assertEq(result2, "ff", "Should convert single max byte");
 
     bytes memory testInput3 = hex"0123456789abcdef";
-    string memory result3 = W3CResolver(address(w3cResolver))._bytesToHexString(testInput3);
+    string memory result3 = W3CResolverUtils.bytesToHexString(testInput3);
     assertEq(result3, "0123456789abcdef", "Should convert multi-byte input");
 
     bytes memory emptyInput = hex"";
-    string memory emptyResult = W3CResolver(address(w3cResolver))._bytesToHexString(emptyInput);
+    string memory emptyResult = W3CResolverUtils.bytesToHexString(emptyInput);
     assertEq(emptyResult, "", "Should handle empty input");
 
     // Test with various byte values to ensure full coverage of the function
     bytes memory mixedInput = hex"1a2b3c4d5e6f";
-    string memory mixedResult = W3CResolver(address(w3cResolver))._bytesToHexString(mixedInput);
+    string memory mixedResult = W3CResolverUtils.bytesToHexString(mixedInput);
     assertEq(mixedResult, "1a2b3c4d5e6f", "Should convert mixed hex values");
   }
 

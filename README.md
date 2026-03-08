@@ -41,29 +41,31 @@ Optimized for Ethereum addresses only. Stores each VM in a single 32-byte storag
 
 ## Contract Architecture
 
-### Source Contracts (9 files)
+### Source Contracts
 
 | Contract | Description |
 |----------|-------------|
-| **DidManager.sol** | Full W3C DID lifecycle management |
-| **DidManagerNative.sol** | Ethereum-native DID lifecycle management |
-| **DidManagerBase.sol** | Shared abstract base (expiration, controllers) |
+| **DidManager.sol** | Full W3C DID lifecycle (thin wrapper ~119 lines) |
+| **DidManagerNative.sol** | Ethereum-native DID lifecycle (thin wrapper ~119 lines) |
+| **DidAggregate.sol** | Shared aggregate root (expiration, controllers, auth, services, validation) |
+| **VMHooks.sol** | Shared abstract VM hook declarations (eliminates diamond inheritance) |
 | **VMStorage.sol** | Full W3C verification method storage (multi-slot) |
 | **VMStorageNative.sol** | Native VM storage (1-slot per VM) |
 | **ServiceStorage.sol** | Shared service endpoints storage |
 | **HashUtils.sol** | Shared hash utility library |
+| **W3CResolverBase.sol** | Shared abstract resolver base (resolve, resolveService) |
 | **W3CResolver.sol** | Full W3C DID document resolution |
 | **W3CResolverNative.sol** | Native DID document resolution with field derivation |
 
-### Interfaces (6 files)
+### Interfaces
 
-`IDidManager`, `IDidManagerNative`, `IVMStorage`, `IVMStorageNative`, `IServiceStorage`, `IW3CResolver`
+ISP-compliant: `IDidReadOps`, `IDidWriteOps`, `IDidAuth` composed into `IDidManager`; variant-specific `IDidManagerFull`, `IDidManagerNative`; storage `IVMStorage`, `IVMStorageNative`, `IServiceStorage`
 
 ### Inheritance Structure
 
 ```
-DidManager       = VMStorage       + DidManagerBase + ServiceStorage
-DidManagerNative = VMStorageNative + DidManagerBase + ServiceStorage
+DidManager       = VMStorage       + DidAggregate (VMHooks + ServiceStorage)
+DidManagerNative = VMStorageNative + DidAggregate (VMHooks + ServiceStorage)
 ```
 
 ## Quick Start

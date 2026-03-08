@@ -5,9 +5,9 @@ import { Vm } from "forge-std/Vm.sol";
 import { TestBaseNative } from "../helpers/TestBaseNative.sol";
 import { DidTestHelpersNative } from "../helpers/DidTestHelpersNative.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
-import { CreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
-import { DEFAULT_VM_ID_NATIVE } from "@src/interfaces/IVMStorageNative.sol";
-import { W3CDidDocument, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
+import { DidCreateVmCommandNative as CreateVmCommand } from "@types/VmTypesNative.sol";
+import { DEFAULT_VM_ID_NATIVE } from "@types/VmTypesNative.sol";
+import { W3CDidDocument, W3CDidInput } from "@types/W3CTypes.sol";
 
 // =============================================================================
 // Secp256k1 — Minimal EC math for ECDH in tests

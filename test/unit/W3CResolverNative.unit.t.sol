@@ -4,11 +4,11 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBaseNative } from "../helpers/TestBaseNative.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpersNative } from "../helpers/DidTestHelpersNative.sol";
-import { CreateVmCommand } from "@src/interfaces/IDidManagerNative.sol";
-import { W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
+import { DidCreateVmCommandNative as CreateVmCommand } from "@types/VmTypesNative.sol";
+import { W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@types/W3CTypes.sol";
 import { W3CResolverNative } from "@src/W3CResolverNative.sol";
-import { DidInputRequired } from "@src/W3CResolverUtils.sol";
-import { DEFAULT_VM_ID_NATIVE } from "@src/interfaces/IVMStorageNative.sol";
+import { W3CResolverUtils, DidInputRequired } from "@src/W3CResolverUtils.sol";
+import { DEFAULT_VM_ID_NATIVE } from "@types/VmTypesNative.sol";
 import { Vm } from "forge-std/Vm.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -478,19 +478,17 @@ contract W3CResolverNativeUnitTest is TestBaseNative {
   // _bytesToHexString TESTS
   // =========================================================================
 
-  function test_BytesToHexString_Should_ConvertCorrectly_When_ValidInputProvided() public view {
-    W3CResolverNative resolver = W3CResolverNative(address(w3cResolverNative));
+  function test_BytesToHexString_Should_ConvertCorrectly_When_ValidInputProvided() public pure {
     bytes memory input = new bytes(2);
     input[0] = 0xAB;
     input[1] = 0xCD;
-    string memory result = resolver._bytesToHexString(input);
+    string memory result = W3CResolverUtils.bytesToHexString(input);
     assertEq(result, "abcd");
   }
 
-  function test_BytesToHexString_Should_ReturnEmpty_When_EmptyInputProvided() public view {
-    W3CResolverNative resolver = W3CResolverNative(address(w3cResolverNative));
+  function test_BytesToHexString_Should_ReturnEmpty_When_EmptyInputProvided() public pure {
     bytes memory input = new bytes(0);
-    string memory result = resolver._bytesToHexString(input);
+    string memory result = W3CResolverUtils.bytesToHexString(input);
     assertEq(bytes(result).length, 0);
   }
 

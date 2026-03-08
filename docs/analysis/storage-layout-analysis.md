@@ -26,8 +26,8 @@ This document provides comprehensive storage layout analysis for the SSIoBC-did 
 - Future upgrade planning
 - Academic documentation
 
-**Contract Version:** v1.2.0
-**Last Updated:** February 2026
+**Contract Version:** v1.3.0
+**Last Updated:** March 2026
 
 ---
 
@@ -36,13 +36,13 @@ This document provides comprehensive storage layout analysis for the SSIoBC-did 
 The DidManager contract uses inheritance to compose functionality:
 
 ```
-DidManager IS VMStorage, ServiceStorage
+DidManager IS VMStorage, DidAggregate (IS ServiceStorage, VMHooks)
 ```
 
 Storage slots are allocated in inheritance order:
-1. VMStorage slots (0-4)
-2. ServiceStorage slots (5-7)
-3. DidManager slots (8-9)
+1. VMStorage slots (0-4) — via VMHooks shared ancestor
+2. ServiceStorage slots (5-7) — via DidAggregate
+3. DidAggregate slots (8-9) — expiration & controllers
 
 ---
 
@@ -55,8 +55,8 @@ Storage slots are allocated in inheritance order:
 ║                    DidManager Contract Storage Layout (Inheritance Order)              ║
 ╠═══════════════════════════════════════════════════════════════════════════════════════╣
 ║                                                                                        ║
-║    Inheritance: DidManager IS VMStorage, ServiceStorage                               ║
-║    Storage Order: VMStorage slots → ServiceStorage slots → DidManager slots           ║
+║    Inheritance: DidManager IS VMStorage, DidAggregate (IS ServiceStorage, VMHooks)    ║
+║    Storage Order: VMStorage slots → ServiceStorage slots → DidAggregate slots        ║
 ║                                                                                        ║
 ║  ┌─────────────────────────────────────────────────────────────────────────────────┐  ║
 ║  │                      VMStorage State Variables (5 mappings)                      │  ║
@@ -99,7 +99,7 @@ Storage slots are allocated in inheritance order:
 ║  └─────────────────────────────────────────────────────────────────────────────────┘  ║
 ║                                                                                        ║
 ║  ┌─────────────────────────────────────────────────────────────────────────────────┐  ║
-║  │                    DidManager State Variables (2 mappings)                       │  ║
+║  │                   DidAggregate State Variables (2 mappings)                      │  ║
 ║  ├─────────────────────────────────────────────────────────────────────────────────┤  ║
 ║  │  Slot 8: _expirationDate                                                        │  ║
 ║  │          mapping(bytes32 didHash => uint256 expiration)                         │  ║
@@ -208,11 +208,11 @@ Storage slots are allocated in inheritance order:
 ╚═══════════════════════════════════════════════════════════════════════════════════════╝
 ```
 
-### DidManager Storage (Slots 8-9)
+### DidAggregate Storage (Slots 8-9)
 
 ```
 ╔═══════════════════════════════════════════════════════════════════════════════════════╗
-║                         DidManager Storage Detail (Slot 8-9)                           ║
+║                        DidAggregate Storage Detail (Slot 8-9)                          ║
 ╠═══════════════════════════════════════════════════════════════════════════════════════╣
 ║                                                                                        ║
 ║  _expirationDate Mapping (Slot 8):                                                    ║
@@ -416,4 +416,4 @@ The Ethereum-native variant uses a similar structure to VMStorage but with 1-slo
 
 ---
 
-*Document generated for SSIoBC-did v1.2.0 - February 2026*
+*Document generated for SSIoBC-did v1.3.0 - March 2026*

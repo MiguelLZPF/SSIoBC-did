@@ -2,8 +2,8 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { Test } from "forge-std/Test.sol";
-import { IDidManager } from "@src/interfaces/IDidManager.sol";
-import { IW3CResolver } from "@src/interfaces/IW3CResolver.sol";
+import { IDidManagerFull } from "@interfaces/IDidManagerFull.sol";
+import { IW3CResolver } from "@interfaces/IW3CResolver.sol";
 import { DidManagerScript } from "@script/DidManager.s.sol";
 import { W3CResolverScript } from "@script/W3CResolver.s.sol";
 
@@ -18,14 +18,14 @@ abstract contract TestBase is Test {
   address internal constant TEST_DEFAULT_SENDER = address(0);
 
   // Core contracts
-  IDidManager internal didManager;
+  IDidManagerFull internal didManager;
   IW3CResolver internal w3cResolver;
 
   /**
    * @notice Deploys DidManager and W3CResolver instances
    * @return The deployed DidManager contract
    */
-  function _deployDidManager() internal returns (IDidManager) {
+  function _deployDidManager() internal returns (IDidManagerFull) {
     (didManager,) = new DidManagerScript()
       .deploy(
         false, // store

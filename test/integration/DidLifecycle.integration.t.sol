@@ -4,11 +4,17 @@ pragma solidity >=0.8.0 <0.9.0;
 import { TestBase } from "../helpers/TestBase.sol";
 import { Fixtures } from "../helpers/Fixtures.sol";
 import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
-import { CreateVmCommand, Controller, CONTROLLERS_MAX_LENGTH } from "@src/interfaces/IDidManager.sol";
-import { DEFAULT_DID_METHODS } from "@src/interfaces/IDidManager.sol";
-import { DEFAULT_VM_ID, IVMStorage } from "@src/interfaces/IVMStorage.sol";
-import { W3CDidDocument, W3CDidInput } from "@src/interfaces/IW3CResolver.sol";
-import { DidExpired, NotAControllerforTargetId, MissingRequiredParameter } from "@interfaces/IDidManagerBase.sol";
+import { DidCreateVmCommand as CreateVmCommand } from "@types/VmTypes.sol";
+import {
+  Controller,
+  CONTROLLERS_MAX_LENGTH,
+  DEFAULT_DID_METHODS,
+  DidExpired,
+  NotAControllerForTargetId,
+  MissingRequiredParameter
+} from "@types/DidTypes.sol";
+import { DEFAULT_VM_ID, IVMStorage } from "@interfaces/IVMStorage.sol";
+import { W3CDidDocument, W3CDidInput } from "@types/W3CTypes.sol";
 
 /**
  * @title DidLifecycleIntegrationTest
@@ -809,7 +815,7 @@ contract DidLifecycleIntegrationTest is TestBase {
     _startPrank(bob);
 
     // Bob should no longer be able to add services as he's no longer a controller
-    vm.expectRevert(NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerForTargetId.selector);
     didManager.updateService(
       aliceDid.didInfo.methods,
       bobDid.didInfo.id,
@@ -856,7 +862,7 @@ contract DidLifecycleIntegrationTest is TestBase {
 
     // Bob still cannot perform operations (reconfirm his loss of access)
     _startPrank(bob);
-    vm.expectRevert(NotAControllerforTargetId.selector);
+    vm.expectRevert(NotAControllerForTargetId.selector);
     didManager.updateService(
       aliceDid.didInfo.methods,
       bobDid.didInfo.id,

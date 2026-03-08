@@ -19,9 +19,9 @@ The documentation transforms raw performance data collected through screenshots 
 
 ### Key Performance Highlights
 
-- **Contract Size**: DidManager ~12.5kB / DidManagerNative ~10.8kB (v1.2.4, optimized for deployment size)
+- **Contract Size**: DidManager ~12.5kB / DidManagerNative ~10.9kB (v1.3.0, DidAggregate + VMHooks architecture)
 - **Dual-Variant Architecture**: Full W3C compliance (multi-key, multi-type) + Ethereum-Native efficiency (single-key)
-- **Test Coverage**: >90% across 317 tests (unit, fuzz, invariant, integration) - v1.2.4
+- **Test Coverage**: >90% across 281 tests (unit, fuzz, invariant, integration) - v1.2.4
 - **Gas Efficiency**: Optimized through hash-based storage, EnumerableSet, and storage caching
 - **Bytecode Optimization**: 20.2% size reduction in v1.1.0; optimizer_runs tuned to 200 (v1.2.0)
 
@@ -57,17 +57,17 @@ PROJECT.md                              # Architecture diagrams & design pattern
 ## Metrics History
 
 ### 📏 [Contract Size History](./metrics/contract-size-history.md)
-**Tracking**: v0.1.0 → v1.2.4 (19 versions)
+**Tracking**: v0.1.0 → v1.3.0 (20 versions)
 
 - **Evolution Analysis**: Size progression through architecture changes and optimization phases
-- **Dual-Variant Sizes**: DidManager ~12.5kB (Full W3C) vs DidManagerNative ~10.8kB (Ethereum-Native)
+- **Dual-Variant Sizes**: DidManager ~12.5kB (Full W3C) vs DidManagerNative ~10.9kB (Ethereum-Native)
 - **Size Constraints**: EIP-170 compliance and safety margins maintained
 - **Optimization Impact**: 20.2% reduction in v1.1.0; deployment size optimization in v1.2.0
 
 **Key Finding**: Stable size range despite extensive feature additions (dual variants, native support, publicKeyMultibase), proving W3C compliance feasibility at scale.
 
 ### ⛽ [Gas Consumption History](./metrics/gas-consumption-history.md)
-**Tracking**: v0.1.0 → v1.2.4 (19 versions)
+**Tracking**: v0.1.0 → v1.3.0 (20 versions)
 
 - **Cost Analysis**: Real-world deployment and operation costs across both variants
 - **Performance Evolution**: Systematic gas optimization through v1.1.0 (SLOAD caching, direct storage reads)
@@ -80,11 +80,11 @@ PROJECT.md                              # Architecture diagrams & design pattern
 **Tracking**: v0.1.2 → v1.2.4 (17 versions)
 
 - **Quality Assurance**: Consistent >90% coverage across all source contracts
-- **Testing Strategy**: 317 tests spanning unit, fuzz, invariant, and integration scenarios
+- **Testing Strategy**: 281 tests spanning unit, fuzz, invariant, and integration scenarios
 - **Dual-Variant Validation**: Comprehensive testing for both Full W3C and Ethereum-Native variants
 - **Research Rigor**: Academic-quality validation standards with 7/10 contracts at 100% coverage
 
-**Key Finding**: Sustained >90% coverage across extensive test suite (317 tests) demonstrates production-ready implementation quality.
+**Key Finding**: Sustained >90% coverage across extensive test suite (281 tests) demonstrates production-ready implementation quality.
 
 ## Analysis & Research
 
@@ -190,8 +190,18 @@ Academic validation of thesis claims:
   - Contract sizes reduced: DidManager -100 B, DidManagerNative -100 B
   - Fuzz/invariant tests excluded from default `forge test` (still run in CI)
 
+#### Architecture Refactor Phase (v1.3.x)
+- **v1.3.0** - DidAggregate + VMHooks Architecture + Peer Review
+  - Template Method pattern: DidAggregate + VMHooks (9 hooks) replaces DidManagerBase
+  - `isAuthorized()` extracted to DidAggregate via `_getVmForAuth` hook (-28 lines duplication)
+  - ISP-compliant interface segregation (IDidReadOps + IDidWriteOps + IDidAuth)
+  - Resolver optimizations: DEFAULT_CONTEXT in-memory (-2100 gas), `_bytesToHexString` internalized
+  - Bug fixes: missing validation in `updateService` and `resolve()`
+  - W3C spec compliance: field ordering, error naming conventions
+  - Net size: managers +64/+62 B (hooks), resolvers -322/-340 B (optimizations)
+
 ### Git Tags Available
-`v0.1.1`, `v0.1.2`, `v0.1.4`, `v0.2.0`, `v0.3.0`, `v0.4.0`, `v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v1.0.1`, `v1.0.2`, `v1.1.0`, `v1.2.0`, `v1.2.1`, `v1.2.2`, `v1.2.3`, `v1.2.4`
+`v0.1.1`, `v0.1.2`, `v0.1.4`, `v0.2.0`, `v0.3.0`, `v0.4.0`, `v0.5.0`, `v0.6.0`, `v0.7.0`, `v0.8.0`, `v1.0.1`, `v1.0.2`, `v1.1.0`, `v1.2.0`, `v1.2.1`, `v1.2.2`, `v1.2.3`, `v1.2.4`, `v1.3.0`
 
 ## How to Use This Documentation
 
@@ -226,7 +236,7 @@ This documentation directly supports the PhD research on:
 - **First Complete On-chain DID System**: Comprehensive storage without external dependencies (both Full W3C and Ethereum-Native variants)
 - **Dual-Variant Architecture**: Innovation demonstrating both compliance and efficiency trade-offs
 - **Performance Optimization**: Hash-based storage architecture with 20.2% bytecode reduction (v1.1.0)
-- **Academic Rigor**: >90% test coverage (317 tests) and systematic validation across variants (v1.2.4)
+- **Academic Rigor**: >90% test coverage (281 tests) and systematic validation across variants (v1.2.4)
 - **Economic Viability**: Real-world cost analysis and feasibility demonstration at scale
 - **Open Source Publication**: Apache-2.0 licensed implementation with comprehensive documentation
 
@@ -258,4 +268,4 @@ Documentation provides:
 
 ---
 
-*This documentation represents the complete performance evolution of SSIoBC-did from initial implementation through production-ready v1.2.4, including dual-variant architecture (Full W3C and Ethereum-Native), comprehensive testing (317 tests, >90% coverage), centralized parameter validation, and open-source publication. It supports rigorous PhD research on fully on-chain DID document management systems and provides validation for scalable, W3C-compliant blockchain identity solutions.*
+*This documentation represents the complete performance evolution of SSIoBC-did from initial implementation through v1.3.0, including dual-variant architecture (Full W3C and Ethereum-Native), DidAggregate + VMHooks Template Method pattern, comprehensive testing (281 tests, >90% coverage), and open-source publication. It supports rigorous PhD research on fully on-chain DID document management systems and provides validation for scalable, W3C-compliant blockchain identity solutions.*

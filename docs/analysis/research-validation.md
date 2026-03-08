@@ -158,8 +158,8 @@ High test coverage validates:
 **Evidence:**
 - Full W3C variant supports arbitrary key types and multi-slot VMs
 - Ethereum-Native variant packs each VM into a single 32-byte slot
-- Both share DidManagerBase, ServiceStorage, and HashUtils
-- Native variant achieves ~19.4% bytecode size reduction
+- Both share DidAggregate (aggregate root), VMHooks (shared ancestor), ServiceStorage, and HashUtils
+- Native variant achieves ~13% bytecode size reduction
 
 ### Claim 3: Gas-Efficient On-Chain Storage
 
