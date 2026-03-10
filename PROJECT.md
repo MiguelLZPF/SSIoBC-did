@@ -804,8 +804,8 @@ The system provides two variants sharing a common base, each optimized for diffe
 
 | Variant | VM Storage | Contract Size | Use Case |
 |---------|-----------|--------------|----------|
-| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,514 B | General-purpose DID with any key type |
-| **Ethereum-Native** (DidManagerNative) | 1-slot per VM + overflow publicKeyMultibase for keyAgreement (ethereumAddress + relationships + expiration = 32 bytes) | 10,906 B | Ethereum-only DIDs, ~13% smaller bytecode |
+| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,885 B | General-purpose DID with any key type |
+| **Ethereum-Native** (DidManagerNative) | 1-slot per VM + overflow publicKeyMultibase for keyAgreement (ethereumAddress + relationships + expiration = 32 bytes) | 11,277 B | Ethereum-only DIDs, ~12% smaller bytecode |
 
 Both variants share (via Template Method pattern):
 - **DidAggregate**: All shared DID lifecycle logic — expiration, controllers, auth (incl. `isAuthorized`), services, parameter validation (`_validateTripleParams`, `_validateAuthorizedParams`, `_validateViewParams`). Calls abstract VM hooks.

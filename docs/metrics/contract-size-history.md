@@ -42,6 +42,7 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | v1.2.3 | 12.6 kB | 11.2 kB | 10.9 kB | 11.7 kB | Import standardization and CI pinning (no logic changes) |
 | v1.2.4 | 12.5 kB | 11.2 kB | 10.8 kB | 11.7 kB | Centralized parameter validation in DidManagerBase (-100 B each) |
 | **v1.3.0** | **12.5 kB** | **10.8 kB** | **10.9 kB** | **11.4 kB** | **Architecture refactor: DidAggregate + VMHooks (9 hooks) + ISP interfaces + W3CResolverBase + peer review fixes (isAuthorized extraction, resolver optimizations)** |
+| **v1.3.1** | **12.9 kB** | **10.8 kB** | **11.3 kB** | **11.4 kB** | **Off-chain auth: isAuthorizedOffChain() + lifecycle flows docs + 24 signature-based tests** |
 
 ### Visual Documentation
 

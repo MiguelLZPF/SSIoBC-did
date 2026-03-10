@@ -222,6 +222,12 @@ library Fixtures {
   address internal constant TEST_USER_3 = address(0x12);
   address internal constant TEST_USER_4 = address(0x13);
 
+  // Private keys for signature-based tests (arbitrary non-zero values)
+  // Derived addresses computed via vm.addr(TEST_PK_N) in test setUp()
+  uint256 internal constant TEST_PK_1 = 0xA11CE;
+  uint256 internal constant TEST_PK_2 = 0xB0B;
+  uint256 internal constant TEST_PK_3 = 0xCA201;
+
   // =========================================================================
   // Utility Functions
   // =========================================================================
