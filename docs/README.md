@@ -40,7 +40,8 @@ docs/
 │   ├── storage-layout-analysis.md     # Storage optimization analysis
 │   ├── deployment-guide.md            # Production deployment instructions
 │   ├── threat-model.md                # Security threat analysis
-│   └── research-validation.md         # Academic findings & validation
+│   ├── research-validation.md         # Academic findings & validation
+│   └── test-catalog.md               # Exhaustive test case catalog (343 tests)
 └── assets/                             # Supporting data & evidence
     ├── screenshots/                    # Organized visual documentation
     │   ├── contract-size/              # Size reports by version
@@ -108,6 +109,13 @@ Security analysis and threat assessment:
 - Controller delegation security considerations
 - Multi-method DID namespace collision prevention
 - Verification method cryptographic attack surfaces
+
+### 🧪 [Test Catalog](./analysis/test-catalog.md)
+Exhaustive catalog of all 343 test cases:
+- Every test function with exact name, one-liner description, and detailed function/contract mapping
+- Organized by category: unit (284), fuzz (21), integration (9), invariant (15), performance (8), stress (6)
+- Coverage mapping per production contract
+- Helper and fixture file documentation
 
 ### 🎓 [Research Validation](./analysis/research-validation.md)
 Academic validation of thesis claims:
