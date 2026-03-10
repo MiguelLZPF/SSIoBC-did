@@ -181,25 +181,44 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     bytes1 relationship,
     address sender
   ) external view returns (bool) {
-    // Revert on invalid inputs only
-    _validateAuthorizedParams(methods, senderId, senderVmId, targetId, relationship, sender);
-    if (relationship > bytes1(0x1F)) revert VmRelationshipOutOfRange();
+    return _isAuthorized(methods, senderId, senderVmId, targetId, relationship, sender);
+  }
 
-    bytes32 senderIdHash = HashUtils.calculateIdHash(methods, senderId);
-    bytes32 targetIdHash = (senderId == targetId) ? senderIdHash : HashUtils.calculateIdHash(methods, targetId);
+  /// @dev Verifies off-chain authorization by recovering the signer from an ECDSA signature
+  /// and delegating to _isAuthorized. Non-reverting for auth failures. Reverts only on invalid inputs.
+  /// The messageHash is opaque — callers decide the signing scheme (raw, EIP-191, EIP-712).
+  /// @param methods The DID methods (bytes32 with three 10-byte segments).
+  /// @param senderId The ID of the sender's DID (signer's DID).
+  /// @param senderVmId The ID of the sender's Verification Method.
+  /// @param targetId The ID of the target DID (may equal senderId for self-owned).
+  /// @param relationship The required W3C relationship bitmask (0x01-0x1F).
+  /// @param messageHash The hash that was signed (opaque to this function).
+  /// @param v ECDSA recovery parameter (27 or 28).
+  /// @param r ECDSA signature component r.
+  /// @param s ECDSA signature component s.
+  /// @return True if the recovered signer is authorized; false otherwise.
+  function isAuthorizedOffChain(
+    bytes32 methods,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes1 relationship,
+    bytes32 messageHash,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external view returns (bool) {
+    // Validate signature-specific params (remaining validated by _isAuthorized)
+    if (messageHash == bytes32(0) || r == bytes32(0) || s == bytes32(0)) {
+      revert MissingRequiredParameter();
+    }
 
-    // 1. Both DIDs must be active
-    if (_isExpired(senderIdHash) || _isExpired(targetIdHash)) return false;
+    // Recover signer — returns address(0) on invalid signature
+    address recovered = ecrecover(messageHash, v, r, s);
+    if (recovered == address(0)) return false;
 
-    // 2. Sender's VM has the required relationship (non-reverting via _getVmForAuth)
-    (uint256 vmExpiration, address vmEthereumAddress, bytes1 vmRelationships) = _getVmForAuth(senderIdHash, senderVmId);
-    if (vmExpiration == 0 || vmExpiration <= block.timestamp) return false;
-    if (vmEthereumAddress != sender || (vmRelationships & relationship) != relationship) return false;
-
-    // 3. Sender is controller of target (or IS target for self-controlled)
-    if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) return false;
-
-    return true;
+    // Delegate to shared authorization logic
+    return _isAuthorized(methods, senderId, senderVmId, targetId, relationship, recovered);
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -299,6 +318,36 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
       return true;
     }
     return false;
+  }
+
+  /// @dev Shared authorization logic used by both isAuthorized and isAuthorizedOffChain.
+  /// Non-reverting: returns false for expired DIDs or invalid VMs. Reverts only on invalid inputs.
+  function _isAuthorized(
+    bytes32 methods,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes1 relationship,
+    address sender
+  ) private view returns (bool) {
+    _validateAuthorizedParams(methods, senderId, senderVmId, targetId, relationship, sender);
+    if (relationship > bytes1(0x1F)) revert VmRelationshipOutOfRange();
+
+    bytes32 senderIdHash = HashUtils.calculateIdHash(methods, senderId);
+    bytes32 targetIdHash = (senderId == targetId) ? senderIdHash : HashUtils.calculateIdHash(methods, targetId);
+
+    // 1. Both DIDs must be active
+    if (_isExpired(senderIdHash) || _isExpired(targetIdHash)) return false;
+
+    // 2. Sender's VM has the required relationship (non-reverting via _getVmForAuth)
+    (uint256 vmExpiration, address vmEthereumAddress, bytes1 vmRelationships) = _getVmForAuth(senderIdHash, senderVmId);
+    if (vmExpiration == 0 || vmExpiration <= block.timestamp) return false;
+    if (vmEthereumAddress != sender || (vmRelationships & relationship) != relationship) return false;
+
+    // 3. Sender is controller of target (or IS target for self-controlled)
+    if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) return false;
+
+    return true;
   }
 
   // ═══════════════════════════════════════════════════════════════════

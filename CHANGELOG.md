@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Table of Contents
 
+- [1.3.1 — 2026-03-10](#131--2026-03-10)
 - [1.3.0 — 2026-03-08](#130--2026-03-08)
 - [1.2.4 — 2026-03-05](#124--2026-03-05)
 - [1.2.3 — 2026-02-22](#123--2026-02-22)
@@ -18,6 +19,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [1.0.1 — 2026-02-03](#101--2026-02-03)
 - [0.8.0 — 2024-07-06](#080--2024-07-06)
 - [0.6.0 — 2024-04-21](#060--2024-04-21)
+
+## [1.3.1] — 2026-03-10
+
+### Added
+
+- `isAuthorizedOffChain()` view function combining ECDSA signature recovery with authorization checks for gasless DID ownership verification via `eth_call`
+- Comprehensive DID lifecycle flows documentation (`docs/analysis/did-lifecycle-flows.md`) covering on-chain auth, off-chain auth, resolution, controller delegation, and operations reference
+- 24 unit tests for off-chain authentication (16 Full W3C + 8 Native variants) covering self-controlled/controller-delegated modes, invalid signatures, expired DIDs/VMs, and consistency checks
+
+### Changed
+
+- Extracted `_isAuthorized()` private function from `isAuthorized()` for code reuse (DRY pattern between on-chain and off-chain entry points)
+- Added `TEST_PK_1/2/3` private key constants to `Fixtures.sol` for signature-based testing
+- Contract sizes: DidManager 12,885 B (+371), DidManagerNative 11,277 B (+371), W3CResolver 10,847 B (unchanged), W3CResolverNative 11,369 B (unchanged)
+- 305 tests passing (281 existing + 24 new off-chain auth tests)
 
 ## [1.3.0] — 2026-03-08
 
@@ -47,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `IDidManager.sol` rewritten as Liskov-safe composite interface (IDidReadOps + IDidWriteOps + IDidAuth)
 - Contract sizes: DidManager 12,514 B (+64), DidManagerNative 10,906 B (+62), W3CResolver 10,847 B (-322), W3CResolverNative 11,369 B (-340)
 - Function selectors identical (fully backward-compatible ABI)
-- 281 tests passing (unchanged)
+- 281 tests passing (baseline for v1.3.1 additions)
 
 ### Fixed
 

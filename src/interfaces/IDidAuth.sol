@@ -15,6 +15,20 @@ interface IDidAuth {
     address sender
   ) external view returns (bool authorized);
 
+  /// @notice Verifies off-chain authorization via ECDSA signature recovery + authorization check.
+  /// @dev Combines ecrecover with isAuthorized for gasless DID authentication via eth_call.
+  function isAuthorizedOffChain(
+    bytes32 methods,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes1 relationship,
+    bytes32 messageHash,
+    uint8 v,
+    bytes32 r,
+    bytes32 s
+  ) external view returns (bool);
+
   /// @dev Checks if there is a VM relationship.
   function isVmRelationship(bytes32 methods, bytes32 id, bytes32 vmId, bytes1 relationship, address sender)
     external
