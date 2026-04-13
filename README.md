@@ -153,8 +153,8 @@ If you use this software in your research, please cite it using the metadata in 
 ### Software Citation (BibTeX)
 
 ```bibtex
-@software{lopezfernandez2026ssiobc_did,
-  author       = {Lopez Fernandez, Miguel Angel},
+@software{gomezcarpena2026ssiobc_did,
+  author       = {G\'{o}mez Carpena, Miguel},
   title        = {{SSIoBC-DID}: Self-Sovereign Identity Over BlockChain -- Decentralized Identifiers},
   year         = {2026},
   url          = {https://github.com/MiguelLZPF/SSIoBC-did},
@@ -165,12 +165,13 @@ If you use this software in your research, please cite it using the metadata in 
 ### Research Paper Citation
 
 ```bibtex
-@article{gomezcarpena2026ssiobc,
-  author  = {G\'{o}mez Carpena, Miguel},
-  title   = {[USER_TO_PROVIDE: Paper Title]},
-  journal = {[USER_TO_PROVIDE: Journal Name]},
-  year    = {2026},
-  doi     = {[USER_TO_PROVIDE]}
+@inproceedings{gomezcarpena2026ssiobc,
+  author    = {G\'{o}mez-Carpena, Miguel and Lanza, Jorge and S\'{a}nchez, Luis},
+  title     = {Towards full Digital Sovereignty on-chain enabled by smart contract-based {DID} management},
+  booktitle = {Proc. Int. Conf. Digital Sovereignty (ICDS 2025)},
+  year      = {2026},
+  publisher = {Springer},
+  url       = {https://link.springer.com/book/9783032215239}
 }
 ```
 
