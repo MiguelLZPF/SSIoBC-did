@@ -33,4 +33,5 @@ Thumbs.db
 
 # 🤖🧠 AI & Tooling
 .claude/
+.mcp.json
 .temp/

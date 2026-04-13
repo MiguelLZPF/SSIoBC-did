@@ -1,33 +1,11 @@
-# CLAUDE.md - SSIoBC-did Subproject
+# CLAUDE.md - SSIoBC-did
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Context Isolation Notice
-
-**Scope:** This file contains context ONLY for the SSIoBC-did smart contract implementation subproject.
-
-**Context Isolation Rule:** If parent directory context (`/Users/miguel_lzpf/Projects/SSIoBC/CLAUDE.md`) is automatically loaded by Claude Code, you MUST IGNORE all parent-specific details including:
-- ❌ Parent project file structure (Articles/, Diagrams/, Results/, main paper files)
-- ❌ Main research paper references and version tracking
-- ❌ Parent repository organization and workflows
-- ❌ Cross-project file references outside this directory
-
-**What to Keep from Global/Parent:**
-- ✅ General PhD research context (academic quality standards)
-- ✅ Multi-AI routing rules (global orchestration system)
-- ✅ General blockchain/DID domain knowledge
-
-**Working Directory:** `/Users/miguel_lzpf/Projects/SSIoBC/SSIoBC-did/`
-**MCP Access:** Restricted to current directory only (verified via .mcp.json)
-
----
-
 ## Table of Contents
 
-- [Context Isolation Notice](#context-isolation-notice)
 - [Quick Facts](#quick-facts)
 - [Essential Commands](#essential-commands)
-- [AI Orchestration & Routing](#ai-orchestration--routing)
 - [Project Knowledge Reference](#project-knowledge-reference)
 - [Development Guidelines](#development-guidelines)
 - [Security Guidelines](#security-guidelines)
@@ -42,7 +20,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Architecture**: Dual-variant (Full W3C + Ethereum-Native) with shared DidAggregate (incl. isAuthorized) + VMHooks (9 hooks) + ServiceStorage + HashUtils (Template Method pattern)
 - **Storage**: Hash-based lists with EnumerableSet (gas-optimized)
 - **Standards**: W3C DID Core v1.0 compliant
-- **Working Dir**: `/Users/miguel_lzpf/Projects/SSIoBC-did/`
 
 ## Essential Commands
 
@@ -78,48 +55,6 @@ forge script script/DidManager.s.sol:DidManagerScript --sig "deploy(bool,string,
 # Deploy with broadcast
 forge script script/DidManager.s.sol:DidManagerScript --sig "deploy(bool,string,bool)" true "DidManager_Test" true --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
 ```
-
-## AI Orchestration & Routing
-
-**Global routing rules apply** (defined in `~/.claude/CLAUDE.md`).
-
-See also:
-- `~/.claude/agents/ROUTING-RULES.md` - Complete routing keywords
-- `~/.claude/agents/AGENT-SELECTION-GUIDE.md` - When to use each agent
-
-### Project-Specific Routing Overrides
-
-For this blockchain project, the following guidelines apply:
-
-#### Security Reviews (MANUAL ONLY)
-- **@blockchain-code-assassin** is **MANUAL ONLY** (never auto-routed)
-- When user requests "audit", "review contract", or "security analysis":
-  - **Suggest** using @blockchain-code-assassin for comprehensive audit
-  - **Wait** for user approval before invoking
-  - **Do NOT** auto-route to blockchain-code-assassin
-
-#### Solidity Code Quality
-- **Formatting/linting**: Use @agent-code-worker-solidity (automatic)
-- **Simple fixes**: Use @agent-code-worker-solidity (automatic)
-- **Security audits**: Suggest @blockchain-code-assassin (manual, wait for approval)
-
-#### Research Tasks
-- **W3C DID specifications**: Use @agent-truth-seeker-gemini (automatic)
-- **Solidity best practices**: Use @agent-truth-seeker-gemini (automatic)
-- **EIP/ERC standards**: Use @agent-truth-seeker-gemini (automatic)
-
-#### Git Operations
-- **All git operations**: Use @agent-git-maestro (automatic)
-- **PGP signing**: Required for all commits
-
-### When Claude Handles Directly
-
-Complex reasoning tasks that require Claude's capabilities:
-- **Architecture Design**: Smart contract system design, pattern selection
-- **Complex Debugging**: Root cause analysis, multi-layer issues
-- **Strategic Decisions**: Technology choices, design patterns
-- **Novel Problems**: No established patterns, requires reasoning
-- **Business Logic**: DID lifecycle, controller delegation, complex state management
 
 ## Project Knowledge Reference
 
@@ -250,13 +185,10 @@ git config --global user.signingkey YOUR_GPG_KEY_ID
 git config --global commit.gpgsign true
 ```
 
-**Always route git operations to @agent-git-maestro** for proper signing.
-
 ### Quality Thresholds
 
 - **Coverage**: >90% minimum (enforced in CI/CD)
 - **Gas Tracking**: Update `docs/metrics/gas-costs-*.md` for significant changes
-- **Security**: ALL contract changes reviewed by blockchain-code-assassin
 - **W3C Compliance**: Verify DID document format compliance
 
 ### Pre-commit Integration
@@ -333,23 +265,6 @@ When developing or reviewing smart contracts for this DID/SSI project, the follo
 - **DoS**: Protect against resource exhaustion attacks
 - **Access Control**: Ensure only authorized parties can modify DIDs
 
-### Security Review Process
-
-When requesting security audits, use **@blockchain-code-assassin** (manual invocation only):
-
-```
-User: "@blockchain-code-assassin, please audit DidManager.sol for security issues"
-```
-
-The agent will perform:
-- Reentrancy analysis
-- Access control validation
-- Gas optimization review
-- W3C DID compliance check
-- Common vulnerability scan
-
-**Never auto-route to blockchain-code-assassin** - always wait for explicit user approval due to the depth and cost of analysis.
-
 ## File References
 
 **For detailed information, check these files**:
@@ -359,12 +274,8 @@ The agent will perform:
 | **PROJECT.md** | Project knowledge base | Architecture, DID concepts, design patterns, file organization |
 | **foundry.toml** | Foundry configuration | Solidity version, optimizer, formatter settings |
 | **docs/metrics/** | Performance tracking | Gas costs, coverage trends (academic quality) |
-| **~/.claude/CLAUDE.md** | Global routing rules | Multi-AI orchestration, routing keywords, agent selection |
-| **~/.claude/agents/** | Agent definitions | Individual agent capabilities and instructions |
 
 ---
 
-**Last Updated**: 2026-03-08
-**Purpose**: Claude Code project-specific context and routing overrides
+**Last Updated**: 2026-04-13
 **Architecture**: Simplified 2-file system (CLAUDE.md + PROJECT.md)
-**Routing**: Inherits global rules from ~/.claude/CLAUDE.md with project-specific overrides

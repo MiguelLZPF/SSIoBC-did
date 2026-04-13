@@ -6,8 +6,8 @@ authors:
   - given-names: Miguel
     family-names: "Gómez Carpena"
     email: mgcdreamer@gmail.com
-    orcid: "[USER_TO_PROVIDE]"
-    affiliation: "[USER_TO_PROVIDE]"
+    orcid: "https://orcid.org/0009-0000-1922-2859"
+    affiliation: "Universidad de Cantabria"
 repository-code: "https://github.com/MiguelLZPF/SSIoBC-did"
 license: Apache-2.0
 keywords:
@@ -27,18 +27,29 @@ abstract: >-
   architecture (Full W3C and Ethereum-Native) built with Solidity and the Foundry
   framework. Stores complete DID documents on-chain for direct resolution without
   off-chain indexing.
-version: "1.2.0"
-date-released: "2026-02-15"
+version: "1.3.1"
+date-released: "2026-03-10"
 preferred-citation:
-  type: article
-  title: "[USER_TO_PROVIDE: Paper Title]"
+  type: conference-paper
+  title: "Towards full Digital Sovereignty on-chain enabled by smart contract-based DID management"
   authors:
     - given-names: Miguel
-      family-names: "Gómez Carpena"
-      email: mgcdreamer@gmail.com
-      orcid: "[USER_TO_PROVIDE]"
-      affiliation: "[USER_TO_PROVIDE]"
-  journal: "[USER_TO_PROVIDE: Journal Name]"
-  year: 2026
-  doi: "[USER_TO_PROVIDE]"
-  abstract: "[USER_TO_PROVIDE: Paper Abstract]"
+      family-names: "Gómez-Carpena"
+      orcid: "https://orcid.org/0009-0000-1922-2859"
+      affiliation: "Universidad de Cantabria"
+    - given-names: Jorge
+      family-names: Lanza
+      affiliation: "Universidad de Cantabria"
+    - given-names: Luis
+      family-names: "Sánchez"
+      affiliation: "Universidad de Cantabria"
+  collection-title: "Proc. Int. Conf. Digital Sovereignty (ICDS 2025)"
+  year: 2025
+  publisher:
+    name: Springer
+  url: "https://link.springer.com/book/9783032215239"
+  conference:
+    name: "International Conference on Digital Sovereignty (ICDS 2025)"
+    city: Oslo
+    country: "NO"
+    date-start: "2025-10-01"
