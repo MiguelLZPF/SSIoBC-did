@@ -1,6 +1,6 @@
 # DID Lifecycle Flows
 
-**Version**: 1.0.0 | **Date**: 2026-03-10 | **Status**: Active
+**Version**: 1.1.0 | **Date**: 2026-06-10 | **Status**: Active
 **Source contracts**: `src/DidAggregate.sol`, `src/DidManager.sol`, `src/DidManagerNative.sol`, `src/W3CResolverBase.sol`
 
 ## Table of Contents
@@ -35,8 +35,8 @@
 | Role | Description |
 |------|-------------|
 | **Subject** | Entity identified by the DID (may or may not control it) |
-| **Owner** | EOA that created the DID (`tx.origin` at creation time); owns the initial VM |
-| **Sender** | EOA executing the current transaction (`tx.origin` for on-chain, recovered address for off-chain) |
+| **Owner** | EOA that created the DID (`msg.sender` at creation time — the signing EOA, enforced by `onlyDirectEOA`); owns the initial VM |
+| **Sender** | EOA executing the current transaction (`msg.sender` for on-chain, recovered address for off-chain) |
 | **Controller** | DID authorized to act on behalf of another DID (up to 5 per DID) |
 | **Verifier** | External party checking authorization (calls `isAuthorized` / `isAuthorizedOffChain` via `eth_call`) |
 | **Resolver** | Entity querying `W3CResolver.resolve()` to obtain a W3C DID Document |
@@ -52,10 +52,12 @@
 
 ## 2. On-Chain Authentication
 
-On-chain authentication relies on `tx.origin` matching the `ethereumAddress` stored in a Verification Method. Two auth entry points exist:
+On-chain authentication relies on `msg.sender` matching the `ethereumAddress` stored in a Verification Method. Two auth entry points exist:
 
 - **`isAuthorized()`** — Non-reverting composite check (VM relationship + controller). Used by verifiers.
 - **`isVmRelationship()`** — Reverting single-VM check. Used internally by authenticated operations.
+
+Since v1.4.0, every authenticated write entry point (`createDid`, `createVm`, `validateVm`, `expireVm`, `deactivateDid`, `reactivateDid`, `updateController`, `updateService`) is additionally protected by the `onlyDirectEOA` modifier, which reverts with `DirectEOACallRequired()` unless `msg.sender == tx.origin`. This rejects calls routed through intermediary contracts (closing the pre-v1.4.0 confused-deputy hole) while guaranteeing that the authenticated `msg.sender` is always the transaction's signing EOA. `tx.origin` is never used as identity — it survives only inside this equality guard.
 
 ### 2.1 Self-Controlled DID Authentication
 
@@ -70,8 +72,8 @@ sequenceDiagram
     Sender->>DM: Write operation (e.g., createVm)
     DM->>DA: _validateSenderAndTarget(methods, senderId, vmId, targetId)
     DA->>DA: _isExpired(senderIdHash) → must be false
-    DA->>DA: _isAuthenticated(senderIdHash, vmId, tx.origin)
-    Note over DA: Checks VM exists, not expired,<br/>ethereumAddress == tx.origin,<br/>has authentication relationship (0x01)
+    DA->>DA: _isAuthenticated(senderIdHash, vmId, msg.sender)
+    Note over DA: Checks VM exists, not expired,<br/>ethereumAddress == msg.sender,<br/>has authentication relationship (0x01)
     DA->>DA: _isControllerFor(senderId, vmId, senderIdHash, targetIdHash)
     Note over DA: controllers[] is empty AND<br/>senderIdHash == targetIdHash → true
     DA-->>DM: (senderIdHash, targetIdHash)
@@ -92,7 +94,7 @@ sequenceDiagram
     DM->>DA: _validateSenderAndTarget(methods, senderId, vmId, targetId)
     DA->>DA: _isExpired(senderIdHash) → must be false
     DA->>DA: _isExpired(targetIdHash) → must be false
-    DA->>DA: _isAuthenticated(senderIdHash, vmId, tx.origin)
+    DA->>DA: _isAuthenticated(senderIdHash, vmId, msg.sender)
     Note over DA: Controller's VM must have<br/>authentication relationship
     DA->>DA: _isControllerFor(senderId, vmId, senderIdHash, targetIdHash)
     Note over DA: Iterates _controllers[targetIdHash][0..4]<br/>Matches controller.id == senderId<br/>If controller.vmId != 0: also matches vmId
@@ -106,7 +108,7 @@ All authenticated write operations (`createVm`, `deactivateDid`, `updateControll
 
 1. Calculate `senderIdHash` and `targetIdHash`
 2. Check both DIDs are active (not expired/deactivated)
-3. Check sender is authenticated (VM exists, not expired, `tx.origin` matches, has authentication relationship)
+3. Check sender is authenticated (VM exists, not expired, `msg.sender` matches, has authentication relationship)
 4. Check sender controls target (self-controlled or registered as controller)
 
 On failure, reverts with: `DidExpired`, `NotAuthenticatedAsSenderId`, or `NotAControllerForTargetId`.
@@ -115,7 +117,7 @@ On failure, reverts with: `DidExpired`, `NotAuthenticatedAsSenderId`, or `NotACo
 
 ## 3. Off-Chain Authentication
 
-Off-chain authentication enables **gasless DID ownership verification** via `eth_call`. Instead of relying on `tx.origin`, the signer proves ownership by providing an ECDSA signature over a challenge message.
+Off-chain authentication enables **gasless DID ownership verification** via `eth_call`. Instead of relying on `msg.sender`, the signer proves ownership by providing an ECDSA signature over a challenge message.
 
 ### 3.1 Challenge-Response Pattern
 
@@ -165,7 +167,7 @@ flowchart TD
 
 ### 3.3 Self-Controlled vs Controller-Delegated
 
-Both modes work identically to on-chain authentication (Section 2), but the `sender` address comes from `ecrecover` instead of `tx.origin`:
+Both modes work identically to on-chain authentication (Section 2), but the `sender` address comes from `ecrecover` instead of `msg.sender`:
 
 | Aspect | Self-Controlled | Controller-Delegated |
 |--------|----------------|---------------------|
@@ -305,9 +307,9 @@ Brief descriptions of remaining DID operations. For full NatSpec documentation, 
 **Function**: `DidManager.createDid(bytes32 methods, bytes32 random, bytes32 vmId)`
 
 1. Validate `random != 0`; default methods to `"lzpf::main::"` if zero
-2. Generate ID: `keccak256(methods, random, tx.origin, block.prevrandao)`
+2. Generate ID: `keccak256(methods, random, msg.sender, block.prevrandao)`
 3. Check DID doesn't already exist
-4. Create initial VM with `authentication` (0x01) relationship bound to `tx.origin`
+4. Create initial VM with `authentication` (0x01) relationship bound to `msg.sender`
 5. Auto-validate the initial VM
 6. Set DID expiration to `block.timestamp + 4 years`
 7. Emit `DidCreated`, `VmCreated`, `VmValidated`

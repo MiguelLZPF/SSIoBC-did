@@ -105,7 +105,7 @@ did:method0:method1:method2:id
 ```
 
 1. Call `createDid` with method identifiers and a random value (defaults provided if omitted)
-2. A unique DID ID is generated from `keccak256(methods, random, tx.origin, block.prevrandao)`
+2. A unique DID ID is generated from `keccak256(methods, random, msg.sender, block.prevrandao)`
 3. The initial verification method is created and linked to the DID
 4. The VM owner validates it by calling `validateVm` (proves address ownership)
 5. The DID document can be resolved via the W3CResolver contract

@@ -29,6 +29,21 @@ interface IDidAuth {
     bytes32 s
   ) external view returns (bool);
 
+  /// @notice Verifies off-chain authorization for a claimed signer, supporting EOA and ERC-1271
+  /// contract signatures (smart accounts, multisigs, EIP-7702-delegated EOAs).
+  /// @dev Contract signatures cannot be recovered, so `signer` is supplied and verified via
+  /// `SignatureChecker`. ERC-6492 counterfactual wallets are not supported.
+  function isAuthorizedOffChainWithSigner(
+    bytes32 methods,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes1 relationship,
+    address signer,
+    bytes32 messageHash,
+    bytes calldata signature
+  ) external view returns (bool);
+
   /// @dev Checks if there is a VM relationship.
   function isVmRelationship(bytes32 methods, bytes32 id, bytes32 vmId, bytes1 relationship, address sender)
     external

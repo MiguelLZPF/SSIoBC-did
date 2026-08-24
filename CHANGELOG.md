@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Table of Contents
 
+- [Unreleased](#unreleased)
+- [1.4.0 — 2026-06-10](#140--2026-06-10)
 - [1.3.1 — 2026-03-10](#131--2026-03-10)
 - [1.3.0 — 2026-03-08](#130--2026-03-08)
 - [1.2.4 — 2026-03-05](#124--2026-03-05)
@@ -19,6 +21,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [1.0.1 — 2026-02-03](#101--2026-02-03)
 - [0.8.0 — 2024-07-06](#080--2024-07-06)
 - [0.6.0 — 2024-04-21](#060--2024-04-21)
+
+## [Unreleased]
+
+### Added
+
+- **ERC-1271 contract-signer support in the off-chain authorization path** (roadmap idea #1).
+  New view function `isAuthorizedOffChainWithSigner(methods, senderId, senderVmId, targetId, relationship, signer, messageHash, signature)`
+  on both variants. A contract signature cannot be recovered, so the caller states the claimed
+  `signer` and the contract verifies the claim with OpenZeppelin `SignatureChecker`:
+  `ecrecover` when `signer` has no code, an `IERC1271.isValidSignature` staticcall otherwise.
+  This makes smart accounts, multisigs and EIP-7702-delegated EOAs usable as DID signers on the
+  read path, without touching the `onlyDirectEOA` guard on write paths.
+- `test/mocks/MockERC1271Wallets.sol` — ERC-1271 wallet mocks (approving, rejecting, reverting,
+  and a contract with no `isValidSignature`). The approving mock stores its owner in an
+  `immutable`, so `vm.etch` preserves it and tests can simulate an EIP-7702 delegated EOA.
+- `test/unit/AuthorizeOffChainErc1271.unit.t.sol` — 21 tests (14 full W3C + 7 native): EOA
+  parity with the `v,r,s` overload, contract-signer accept/reject, wrong magic value, reverting
+  wallet, non-wallet contract, malformed signature, and parameter validation.
+
+### Changed
+
+- `IDidAuth` gains `isAuthorizedOffChainWithSigner`; existing selectors are unchanged, so this is
+  ABI-additive.
+- Contract sizes: DidManager 14,009 B (+868), DidManagerNative 12,401 B (+868), resolvers unchanged.
+- 346 tests passing on the default profile (325 before).
+
+### Notes
+
+- **ERC-6492 is not supported.** Counterfactual (undeployed) wallets cannot be verified on chain;
+  the signing account must already have code.
+- **Known gap:** a contract cannot yet *own* a verification method. `createVm` forces
+  `expiration = 0` whenever `ethereumAddress` is set, and `validateVm` requires
+  `msg.sender == vm.ethereumAddress` under `onlyDirectEOA`, so a contract address can never
+  activate its own VM. Contract signers therefore only work for addresses that were validated as
+  EOAs and later gained code (the EIP-7702 shape). Closing this needs a signature-based
+  `validateVm` and is tracked in `docs/analysis/improvement-roadmap.md`.
+
+## [1.4.0] — 2026-06-10
+
+### ⚠️ BREAKING
+
+- **Authentication identity migrated from `tx.origin` to `msg.sender`** across all write operations:
+  - `createDid` (both variants): ID entropy now `keccak256(methods, random, msg.sender, block.prevrandao)`, initial VM `ethereumAddress` and validation now bound to `msg.sender`
+  - `reactivateDid` (self-reactivation and controller-reactivation branches) authenticates `msg.sender`
+  - `_validateSenderAndTarget` (feeds `expireVm`, `deactivateDid`, `updateController`, `updateService`, `createVm`) authenticates `msg.sender`
+- **New `onlyDirectEOA` modifier on all 8 authenticated state-changing entry points per variant** (`createDid`, `createVm`, `validateVm`, `expireVm`, `deactivateDid`, `reactivateDid`, `updateController`, `updateService`): reverts `DirectEOACallRequired()` unless `msg.sender == tx.origin`. Calls routed through intermediary contracts (multisigs, smart accounts, forwarders, ERC-4337 bundlers) now revert — use direct EOA transactions, or `isAuthorizedOffChain` for signature-based flows
+- DID IDs created through an intermediary contract pre-1.4.0 are not reproducible with the new derivation (attribution moved from `tx.origin` to `msg.sender`); direct EOA creations are unaffected
+- ABI function selectors unchanged; one new custom error added to the ABI
+
+### Security
+
+- **Closes the `tx.origin` confused-deputy/phishing vulnerability class**: previously, any contract a DID owner called could perform DID operations as them (deactivate, rotate controllers, add VMs), because authorization asked "who signed the transaction" instead of "who is calling". With `msg.sender` auth plus the equality guard, the signature-derived identity guarantee is preserved (the guard passes only when `msg.sender` IS the transaction's signing EOA) while intermediary impersonation becomes impossible
+- `tx.origin` survives ONLY inside the `onlyDirectEOA` equality guard — never as an identity source
+- EIP-7702-delegated EOAs keep working (their own address signs the transaction)
+
+### Added
+
+- `DirectEOACallRequired()` custom error in `src/types/DidTypes.sol`
+- `onlyDirectEOA` modifier in `DidAggregate.sol`
+- `test/unit/DirectEOAGuard.unit.t.sol` — 20 tests (10 per variant): confused-deputy attack mocks against all 8 guarded entry points, full direct-EOA lifecycle, and msg.sender identity-attribution checks
+
+### Changed
+
+- Rewrote inverted NatSpec on `reactivateDid` (the old comment claimed `tx.origin` *prevented* intermediary impersonation; it enabled it)
+- Test helpers (`DidTestHelpers`, `DidTestHelpersNative`) and auth unit tests now prank both `msg.sender` and `tx.origin` to the same EOA
+- Contract sizes: DidManager 13,141 B (+256), DidManagerNative 11,533 B (+256), resolvers unchanged
+- 363 tests passing under CI profile (343 existing + 20 new guard tests)
 
 ## [1.3.1] — 2026-03-10
 

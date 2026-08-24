@@ -6,6 +6,7 @@
 - [DID ID Predictability](#did-id-predictability)
 - [Front-Running Risk](#front-running-risk)
 - [Controller Delegation Attacks](#controller-delegation-attacks)
+- [Intermediary-Contract Impersonation (Confused Deputy)](#intermediary-contract-impersonation-confused-deputy)
 - [Privacy Considerations](#privacy-considerations)
 - [Deployment-Time Risks](#deployment-time-risks)
 - [Denial of Service](#denial-of-service)
@@ -44,12 +45,12 @@ The system uses **no proxies or upgradability patterns**, which provides:
 
 DID IDs are generated from:
 ```solidity
-keccak256(abi.encodePacked(methods, random, tx.origin, block.prevrandao))
+keccak256(abi.encodePacked(methods, random, msg.sender, block.prevrandao))
 ```
 
 ### Analysis
 
-- **`tx.origin`**: Deterministic per sender, provides uniqueness across accounts
+- **`msg.sender`**: Deterministic per sender, provides uniqueness across accounts (always the signing EOA, since `onlyDirectEOA` enforces `msg.sender == tx.origin`)
 - **`random`**: User-provided randomness, adds entropy if chosen well
 - **`block.prevrandao`**: Pseudo-random from beacon chain, known to validators ~1 slot ahead
 
@@ -116,6 +117,23 @@ Controllers can perform operations on behalf of a DID. Potential attack vectors:
 - **Vector**: Two controllers race to remove each other
 - **Impact**: Transaction ordering determines outcome
 - **Mitigation**: This is expected behavior in multi-party governance
+
+---
+
+## Intermediary-Contract Impersonation (Confused Deputy)
+
+### Pre-v1.4.0 Vulnerability
+
+Before v1.4.0, on-chain authentication compared `tx.origin` against the VM's `ethereumAddress`. Because `tx.origin` is the transaction's originating EOA regardless of call depth, **any contract a user interacted with** (a phishing dApp, a malicious token, a compromised protocol) could call the DID contracts mid-transaction and pass authentication as that user — a classic confused-deputy / `tx.origin` phishing hole.
+
+### v1.4.0 Mitigation
+
+- **`msg.sender` authentication**: All identity checks now use `msg.sender` — `createDid` (ID entropy + initial VM binding), `reactivateDid`, and `_validateSenderAndTarget` (which feeds `expireVm`, `deactivateDid`, `updateController`, `updateService`, `createVm`).
+- **`onlyDirectEOA` guard**: All 8 authenticated write entry points require `msg.sender == tx.origin`, so the caller must be the transaction's signing EOA with no intermediary contract in the call chain. `tx.origin` survives only inside this equality guard — never as identity.
+
+### Residual Trade-off
+
+Smart-account/AA callers (multisigs, smart accounts, meta-tx forwarders, ERC-4337 bundlers) are **intentionally blocked on-chain for now** — such calls revert with `DirectEOACallRequired()`. EIP-7702-delegated EOAs continue to work. Signature-based flows can use `isAuthorizedOffChain` (gasless, `ecrecover`-based) or `isAuthorizedOffChainWithSigner`, which additionally accepts **ERC-1271** contract signatures through OpenZeppelin `SignatureChecker`. That path is read-only (a `view` reached by `eth_call` or `staticcall`), so a malicious `isValidSignature` implementation cannot mutate state; a reverting one returns false rather than bubbling. ERC-6492 counterfactual wallets are out of scope: the signing account must already be deployed.
 
 ---
 
@@ -206,6 +224,7 @@ The `TooManyVerificationMethods` error prevents creating more than 255 VMs per D
 |--------|----------|------------|
 | DID ID predictability | LOW | Adequate entropy from keccak256 inputs |
 | Front-running | LOW | Authentication required for all mutations |
+| Confused deputy (intermediary-contract impersonation) | HIGH (pre-v1.4.0, fixed) | `msg.sender` auth + `onlyDirectEOA` guard (v1.4.0) |
 | Malicious controller | MEDIUM | Trust model, max 5 controllers |
 | Privacy exposure | MEDIUM | Don't store PII, use off-chain for sensitive data |
 | Resolver manipulation | HIGH (if exploited) | Verify deployment addresses, bytecode hashes |

@@ -6,6 +6,7 @@ import { ServiceStorage } from "@storage/ServiceStorage.sol";
 import { VMHooks } from "@storage/VMHooks.sol";
 import { Service } from "@types/ServiceTypes.sol";
 import { HashUtils } from "@src/HashUtils.sol";
+import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {
   Controller,
   EXPIRATION,
@@ -15,7 +16,8 @@ import {
   NotAuthenticatedAsSenderId,
   NotAControllerForTargetId,
   DidNotDeactivated,
-  VmRelationshipOutOfRange
+  VmRelationshipOutOfRange,
+  DirectEOACallRequired
 } from "@types/DidTypes.sol";
 
 /// @title DidAggregate
@@ -35,14 +37,34 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
   mapping(bytes32 => Controller[CONTROLLERS_MAX_LENGTH]) internal _controllers;
 
   // ═══════════════════════════════════════════════════════════════════
+  // Modifiers
+  // ═══════════════════════════════════════════════════════════════════
+
+  /// @dev Restricts authenticated state-changing entry points to direct EOA calls.
+  /// Passes only when msg.sender is the transaction's signing EOA (msg.sender == tx.origin),
+  /// i.e. no intermediary contract sits in the call chain. This preserves the signature-derived
+  /// identity guarantee while closing the confused-deputy hole: a contract the user calls can
+  /// never act on the user's DID. tx.origin survives ONLY in this equality guard — it is never
+  /// used as an identity source.
+  modifier onlyDirectEOA() {
+    if (msg.sender != tx.origin) {
+      revert DirectEOACallRequired();
+    }
+    _;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // Shared write operations (IDidWriteOps — WRITTEN ONCE)
   // ═══════════════════════════════════════════════════════════════════
 
-  function validateVm(bytes32 positionHash, uint256 expiration) external {
+  function validateVm(bytes32 positionHash, uint256 expiration) external onlyDirectEOA {
     _validateVm(positionHash, expiration, msg.sender);
   }
 
-  function expireVm(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId, bytes32 vmId) external {
+  function expireVm(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId, bytes32 vmId)
+    external
+    onlyDirectEOA
+  {
     //* Params validation
     _validateTripleParams(methods, senderId, targetId);
     //* Implementation
@@ -51,7 +73,10 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     updateExpiration({ idHash: targetIdHash, forceExpire: false });
   }
 
-  function deactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external {
+  function deactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId)
+    external
+    onlyDirectEOA
+  {
     //* Params validation
     _validateTripleParams(methods, senderId, targetId);
     //* Implementation
@@ -60,9 +85,12 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     updateExpiration({ idHash: targetIdHash, forceExpire: true });
   }
 
-  /// @dev Reactivates a deactivated DID. Uses tx.origin intentionally for EOA identity verification:
-  /// the DID system requires the actual signing EOA, preventing intermediary contracts from impersonating.
-  function reactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external {
+  /// @dev Reactivates a deactivated DID. Authenticates msg.sender; the onlyDirectEOA guard enforces
+  /// direct EOA calls so intermediary contracts cannot impersonate the signing EOA.
+  function reactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId)
+    external
+    onlyDirectEOA
+  {
     //* Params validation
     _validateTripleParams(methods, senderId, targetId);
     //* Implementation
@@ -78,7 +106,7 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     if (senderIdHash == targetIdHash) {
       // Self-reactivation: owner reactivating their own deactivated DID
       // Skip DID expiration check (it's deactivated), but validate VM ownership
-      if (!_isVmOwner(senderIdHash, senderVmId, tx.origin)) {
+      if (!_isVmOwner(senderIdHash, senderVmId, msg.sender)) {
         revert NotAuthenticatedAsSenderId();
       }
     } else {
@@ -89,7 +117,7 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
       }
 
       // Sender must be authenticated with a valid VM
-      if (!_isAuthenticated(senderIdHash, senderVmId, tx.origin)) {
+      if (!_isAuthenticated(senderIdHash, senderVmId, msg.sender)) {
         revert NotAuthenticatedAsSenderId();
       }
 
@@ -112,7 +140,7 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     bytes32 controllerId,
     bytes32 controllerVmId,
     uint8 controllerPosition
-  ) external {
+  ) external onlyDirectEOA {
     //* Params validation
     _validateTripleParams(methods, senderId, targetId);
     //* Implementation
@@ -136,7 +164,7 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     bytes32 serviceId,
     bytes memory type_,
     bytes memory serviceEndpoint
-  ) external {
+  ) external onlyDirectEOA {
     //* Params validation
     _validateTripleParams(methods, senderId, targetId);
     //* Implementation
@@ -221,6 +249,45 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     return _isAuthorized(methods, senderId, senderVmId, targetId, relationship, recovered);
   }
 
+  /// @notice Verifies off-chain authorization for a *claimed* signer, supporting both EOAs and
+  /// ERC-1271 smart-contract signers (smart accounts, multisigs, EIP-7702-delegated EOAs).
+  /// @dev Unlike {isAuthorizedOffChain}, the signer cannot be recovered from a contract signature,
+  /// so the caller states it explicitly and the contract verifies the claim via
+  /// OpenZeppelin's `SignatureChecker`: `ecrecover` when `signer` has no code, an
+  /// `IERC1271.isValidSignature` staticcall otherwise. Non-reverting for authorization and
+  /// signature failures; reverts only on missing parameters. Counterfactual (ERC-6492) wallets
+  /// are NOT supported — the signing account must already be deployed.
+  /// @param methods The DID methods (three packed 10-byte segments).
+  /// @param senderId The sender's DID identifier.
+  /// @param senderVmId The sender's verification method identifier.
+  /// @param targetId The DID identifier being acted upon.
+  /// @param relationship The required VM relationship bitmask.
+  /// @param signer The address claimed to have produced `signature` (EOA or ERC-1271 contract).
+  /// @param messageHash The hash that was signed.
+  /// @param signature The signature bytes (65-byte ECDSA, or an ERC-1271 wallet-specific blob).
+  /// @return True when the signature is valid for `signer` and `signer` is authorized.
+  function isAuthorizedOffChainWithSigner(
+    bytes32 methods,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes1 relationship,
+    address signer,
+    bytes32 messageHash,
+    bytes calldata signature
+  ) external view returns (bool) {
+    // Validate signature-specific params (remaining validated by _isAuthorized)
+    if (signer == address(0) || messageHash == bytes32(0) || signature.length == 0) {
+      revert MissingRequiredParameter();
+    }
+
+    // EOA -> ecrecover; contract -> IERC1271.isValidSignature. Never reverts on a bad signature.
+    if (!SignatureChecker.isValidSignatureNowCalldata(signer, messageHash, signature)) return false;
+
+    // Delegate to shared authorization logic
+    return _isAuthorized(methods, senderId, senderVmId, targetId, relationship, signer);
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // Shared read operations (IDidReadOps — WRITTEN ONCE)
   // ═══════════════════════════════════════════════════════════════════
@@ -270,7 +337,7 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     if (_isExpired(senderIdHash) || _isExpired(targetIdHash)) {
       revert DidExpired();
     }
-    if (!_isAuthenticated(senderIdHash, senderVmId, tx.origin)) {
+    if (!_isAuthenticated(senderIdHash, senderVmId, msg.sender)) {
       revert NotAuthenticatedAsSenderId();
     }
     if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) {

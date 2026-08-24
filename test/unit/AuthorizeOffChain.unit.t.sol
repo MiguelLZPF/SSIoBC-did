@@ -85,7 +85,7 @@ contract AuthorizeOffChainUnitTest is TestBase {
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, cmd);
     _stopPrank();
-    vm.startPrank(user1);
+    vm.startPrank(user1, user1);
     didManager.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -132,7 +132,7 @@ contract AuthorizeOffChainUnitTest is TestBase {
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, cmd);
     _stopPrank();
-    vm.startPrank(user2);
+    vm.startPrank(user2, user2);
     didManager.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -437,7 +437,7 @@ contract AuthorizeOffChainUnitTest is TestBase {
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, cmd);
     _stopPrank();
-    vm.startPrank(user1);
+    vm.startPrank(user1, user1);
     didManager.validateVm(vmResult.vmCreatedPositionHash, block.timestamp + 100);
     vm.stopPrank();
 
@@ -485,7 +485,7 @@ contract AuthorizeOffChainUnitTest is TestBase {
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, cmd);
     _stopPrank();
-    vm.startPrank(user2);
+    vm.startPrank(user2, user2);
     didManager.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -692,7 +692,7 @@ contract AuthorizeOffChainUnitTest is TestBase {
     vm.deal(signer, 100 ether);
 
     // Create DID with signer's address
-    vm.startPrank(signer);
+    vm.startPrank(signer, signer);
     DidTestHelpers.CreateDidResult memory didResult = DidTestHelpers.createDefaultDid(vm, didManager);
     vm.stopPrank();
 
@@ -789,7 +789,7 @@ contract AuthorizeOffChainNativeUnitTest is TestBaseNative {
     });
     DidTestHelpersNative.CreateVmResult memory vmResult = DidTestHelpersNative.createVm(vm, didManagerNative, cmd);
     _stopPrank();
-    vm.startPrank(user1);
+    vm.startPrank(user1, user1);
     didManagerNative.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -832,7 +832,7 @@ contract AuthorizeOffChainNativeUnitTest is TestBaseNative {
     });
     DidTestHelpersNative.CreateVmResult memory vmResult = DidTestHelpersNative.createVm(vm, didManagerNative, cmd);
     _stopPrank();
-    vm.startPrank(user2);
+    vm.startPrank(user2, user2);
     didManagerNative.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -1023,7 +1023,7 @@ contract AuthorizeOffChainNativeUnitTest is TestBaseNative {
     address signer = vm.addr(privateKey);
     vm.deal(signer, 100 ether);
 
-    vm.startPrank(signer);
+    vm.startPrank(signer, signer);
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
     vm.stopPrank();
 

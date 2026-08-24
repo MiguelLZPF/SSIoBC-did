@@ -33,3 +33,4 @@ error NotAuthenticatedAsSenderId();
 error NotAControllerForTargetId();
 error VmRelationshipOutOfRange();
 error DidNotDeactivated();
+error DirectEOACallRequired();

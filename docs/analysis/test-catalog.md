@@ -9,25 +9,27 @@
 - [Unit Tests](#unit-tests)
   - [Authorize.unit.t.sol](#1-authorizeunittsol--28-tests)
   - [AuthorizeOffChain.unit.t.sol](#2-authorizeoffchainunittsol--26-tests)
-  - [DidManager.unit.t.sol](#3-didmanagerunittsol--60-tests)
-  - [DidManagerNative.unit.t.sol](#4-didmanagernativeunittsol--72-tests)
-  - [ServiceStorage.unit.t.sol](#5-servicestorageunittsol--19-tests)
-  - [VMStorage.unit.t.sol](#6-vmstorageunittsol--30-tests)
-  - [W3CResolver.unit.t.sol](#7-w3cresolverunittsol--22-tests)
-  - [W3CResolverNative.unit.t.sol](#8-w3cresolvernativeunittsol--27-tests)
+  - [AuthorizeOffChainErc1271.unit.t.sol](#3-authorizeoffchainerc1271unittsol--21-tests)
+  - [DidManager.unit.t.sol](#4-didmanagerunittsol--60-tests)
+  - [DidManagerNative.unit.t.sol](#5-didmanagernativeunittsol--72-tests)
+  - [DirectEOAGuard.unit.t.sol](#6-directeoaguardunittsol--20-tests)
+  - [ServiceStorage.unit.t.sol](#7-servicestorageunittsol--19-tests)
+  - [VMStorage.unit.t.sol](#8-vmstorageunittsol--30-tests)
+  - [W3CResolver.unit.t.sol](#9-w3cresolverunittsol--22-tests)
+  - [W3CResolverNative.unit.t.sol](#10-w3cresolvernativeunittsol--27-tests)
 - [Fuzz Tests](#fuzz-tests)
-  - [DidManager.fuzz.t.sol](#9-didmanagerfuzztsol--10-tests)
-  - [DidManagerNative.fuzz.t.sol](#10-didmanagernativefuzztsol--11-tests)
+  - [DidManager.fuzz.t.sol](#11-didmanagerfuzztsol--10-tests)
+  - [DidManagerNative.fuzz.t.sol](#12-didmanagernativefuzztsol--11-tests)
 - [Integration Tests](#integration-tests)
-  - [DidLifecycle.integration.t.sol](#11-didlifecycleintegrationtsol--6-tests)
-  - [KeyAgreementE2E.t.sol](#12-keyagreemente2etsol--3-tests)
+  - [DidLifecycle.integration.t.sol](#13-didlifecycleintegrationtsol--6-tests)
+  - [KeyAgreementE2E.t.sol](#14-keyagreemente2etsol--3-tests)
 - [Invariant Tests](#invariant-tests)
-  - [SystemInvariants.t.sol](#13-systeminvariantstsol--7-invariants)
-  - [NativeSystemInvariants.t.sol](#14-nativesysteminvariantstsol--8-invariants)
+  - [SystemInvariants.t.sol](#15-systeminvariantstsol--7-invariants)
+  - [NativeSystemInvariants.t.sol](#16-nativesysteminvariantstsol--8-invariants)
 - [Performance Tests](#performance-tests)
-  - [GasOptimization.performance.t.sol](#15-gasoptimizationperformancetsol--8-tests)
+  - [GasOptimization.performance.t.sol](#17-gasoptimizationperformancetsol--8-tests)
 - [Stress Tests](#stress-tests)
-  - [StressTest.t.sol](#16-stresstesttsol--6-tests)
+  - [StressTest.t.sol](#18-stresstesttsol--6-tests)
 - [Helper & Fixture Files](#helper--fixture-files)
 - [Coverage by Production Contract](#coverage-by-production-contract)
 
@@ -37,15 +39,15 @@
 
 | Category | Count | Files |
 |----------|------:|------:|
-| Unit Tests | 284 | 8 |
+| Unit Tests | 325 | 10 |
 | Fuzz Tests | 21 | 2 |
 | Integration Tests | 9 | 2 |
 | Invariant Tests | 15 | 2 |
 | Performance Tests | 8 | 1 |
 | Stress Tests | 6 | 1 |
-| **TOTAL** | **343** | **16** |
+| **TOTAL** | **384** | **18** |
 
-> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases.
+> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 346 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 384 run under the CI profiles.
 
 ---
 
@@ -116,7 +118,42 @@ Subset of full variant tests adapted for `DidManagerNative`. Tests 1-5 (true/fal
 
 ---
 
-### 3. `DidManager.unit.t.sol` — 60 tests
+### 3. `AuthorizeOffChainErc1271.unit.t.sol` — 21 tests
+
+**File**: `test/unit/AuthorizeOffChainErc1271.unit.t.sol`
+**Primary target**: `DidAggregate.isAuthorizedOffChainWithSigner()` — ERC-1271-aware off-chain authorization
+**Mocks**: `test/mocks/MockERC1271Wallets.sol`
+
+The approving mock keeps its owner in an `immutable`, which lives in runtime code rather than
+storage, so `vm.etch` preserves it. That is what lets these tests simulate an **EIP-7702 delegated
+EOA**: an address validated as a plain EOA that later gains contract code.
+
+#### AuthorizeOffChainErc1271UnitTest (Full W3C variant, 14 tests)
+
+| # | Test | What it verifies | Path exercised |
+|---|------|------------------|----------------|
+| 1 | `test_WithSigner_Should_ReturnTrue_When_EoaSignsWithBytesSignature` | 65-byte `r\|\|s\|\|v` EOA signature authorizes | `SignatureChecker` EOA branch -> `_isAuthorized()` |
+| 2 | `test_WithSigner_Should_MatchLegacyOverload_When_EoaSigns` | New overload agrees with the `v,r,s` overload | both entry points, same signature |
+| 3 | `test_WithSigner_Should_ReturnFalse_When_EoaSignatureFromDifferentKey` | Signature/claimed-signer mismatch returns false | `ECDSA.tryRecover` != `signer` |
+| 4 | `test_WithSigner_Should_ReturnFalse_When_SignerOwnsNoVm` | Valid signature from an unrelated key returns false | `_isAuthorized()` VM address check |
+| 5 | `test_WithSigner_Should_ReturnTrue_When_Erc1271WalletApprovesSignature` | Contract signer accepted when the wallet returns the magic value | `IERC1271.isValidSignature` -> `0x1626ba7e` |
+| 6 | `test_LegacyOverload_Should_ReturnFalse_When_SignerIsErc1271Wallet` | The raw `ecrecover` entry point cannot see a contract signature | documents why the new overload exists |
+| 7 | `test_WithSigner_Should_ReturnFalse_When_Erc1271WalletRejectsSignature` | Wallet rejects a signature from the wrong key | mock returns `0xffffffff` |
+| 8 | `test_WithSigner_Should_ReturnFalse_When_Erc1271ReturnsWrongMagicValue` | Always-rejecting wallet returns false | `MockERC1271AlwaysReject` |
+| 9 | `test_WithSigner_Should_ReturnFalse_When_Erc1271Reverts` | A reverting `isValidSignature` is swallowed, not bubbled | staticcall failure branch |
+| 10 | `test_WithSigner_Should_ReturnFalse_When_ContractIsNotAWallet` | Contract with no `isValidSignature` returns false | empty returndata branch |
+| 11 | `test_RevertWhen_WithSigner_SignerIsZero` | `signer == address(0)` reverts `MissingRequiredParameter` | parameter validation |
+| 12 | `test_RevertWhen_WithSigner_MessageHashIsZero` | Zero message hash reverts `MissingRequiredParameter` | parameter validation |
+| 13 | `test_RevertWhen_WithSigner_SignatureIsEmpty` | Empty signature reverts `MissingRequiredParameter` | parameter validation |
+| 14 | `test_WithSigner_Should_ReturnFalse_When_SignatureLengthIsInvalid` | Malformed (4-byte) signature returns false instead of reverting | `ECDSA.RecoverError.InvalidSignatureLength` |
+
+#### AuthorizeOffChainErc1271NativeUnitTest (Ethereum-Native variant, 7 tests)
+
+Mirrors tests 1, 5, 7, 9, 4, 11 and 13 above against `DidManagerNative`.
+
+---
+
+### 4. `DidManager.unit.t.sol` — 60 tests
 
 **File**: `test/unit/DidManager.unit.t.sol`
 **Contract**: `DidManagerUnitTest`
@@ -239,7 +276,7 @@ Subset of full variant tests adapted for `DidManagerNative`. Tests 1-5 (true/fal
 
 ---
 
-### 4. `DidManagerNative.unit.t.sol` — 72 tests
+### 5. `DidManagerNative.unit.t.sol` — 72 tests
 
 **File**: `test/unit/DidManagerNative.unit.t.sol`
 **Contract**: `DidManagerNativeUnitTest`
@@ -264,7 +301,48 @@ Contains all 60 tests from `DidManager.unit.t.sol` adapted for native variant (1
 
 ---
 
-### 5. `ServiceStorage.unit.t.sol` — 19 tests
+### 6. `DirectEOAGuard.unit.t.sol` — 20 tests
+
+**File**: `test/unit/DirectEOAGuard.unit.t.sol`
+**Contracts**: `DirectEOAGuardUnitTest is TestBase` (10), `DirectEOAGuardNativeUnitTest is TestBaseNative` (10)
+**Primary target**: `DidAggregate.onlyDirectEOA` modifier (v1.4.0) — `msg.sender == tx.origin` equality guard on all 8 authenticated write entry points, reverting `DirectEOACallRequired()` for calls routed through intermediary contracts
+**Attack mocks**: `MaliciousIntermediary` / `MaliciousIntermediaryNative` — confused-deputy contracts forwarding calls to all 8 guarded functions
+
+#### DirectEOAGuardUnitTest (Full W3C variant, 10 tests)
+
+| # | Test Name | What It Does | Production Functions & Contracts Touched | Notable Setup |
+|---|-----------|-------------|------------------------------------------|---------------|
+| 1 | `test_CreateDid_Should_Revert_When_CalledThroughIntermediary` | `createDid` via intermediary contract reverts | `DidManager.createDid()` → `onlyDirectEOA` → `DirectEOACallRequired` | `vm.prank(victim, victim)` then attacker call via `MaliciousIntermediary`, `vm.expectRevert(DirectEOACallRequired)` |
+| 2 | `test_CreateVm_Should_Revert_When_CalledThroughIntermediary` | `createVm` via intermediary contract reverts | `DidManager.createVm()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
+| 3 | `test_ValidateVm_Should_Revert_When_CalledThroughIntermediary` | `validateVm` via intermediary contract reverts | `validateVm()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
+| 4 | `test_ExpireVm_Should_Revert_When_CalledThroughIntermediary` | `expireVm` via intermediary contract reverts | `DidAggregate.expireVm()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
+| 5 | `test_DeactivateDid_Should_Revert_When_CalledThroughIntermediary` | `deactivateDid` via intermediary contract reverts | `DidAggregate.deactivateDid()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
+| 6 | `test_ReactivateDid_Should_Revert_When_CalledThroughIntermediary` | `reactivateDid` via intermediary contract reverts | `DidAggregate.reactivateDid()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
+| 7 | `test_UpdateController_Should_Revert_When_CalledThroughIntermediary` | `updateController` via intermediary contract reverts | `DidAggregate.updateController()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
+| 8 | `test_UpdateService_Should_Revert_When_CalledThroughIntermediary` | `updateService` via intermediary contract reverts | `DidAggregate.updateService()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
+| 9 | `test_OnlyDirectEOA_Should_AllowFullLifecycle_When_CalledDirectly` | Direct EOA calls pass the guard across the full lifecycle: createVm → validateVm → updateService → updateController → expireVm → deactivateDid → reactivateDid | All 8 guarded entry points, `onlyDirectEOA` passes (`msg.sender == tx.origin`) | Direct EOA calls, no intermediary |
+| 10 | `test_CreateDid_Should_BindInitialVmToMsgSender_When_CalledDirectly` | Initial VM is bound to `msg.sender`: `isAuthorized` returns true for the creator, false for a non-creator | `createDid()` → initial VM `ethereumAddress = msg.sender` → `isAuthorized()` | Two EOAs compared (creator vs non-creator) |
+
+#### DirectEOAGuardNativeUnitTest (Ethereum-Native variant, 10 tests)
+
+| # | Test Name | What It Does |
+|---|-----------|-------------|
+| 1 | `test_CreateDid_Should_Revert_When_CalledThroughIntermediary` | `DidManagerNative.createDid` via `MaliciousIntermediaryNative` reverts `DirectEOACallRequired` |
+| 2 | `test_CreateVm_Should_Revert_When_CalledThroughIntermediary` | `createVm` via intermediary reverts `DirectEOACallRequired` |
+| 3 | `test_ValidateVm_Should_Revert_When_CalledThroughIntermediary` | `validateVm` via intermediary reverts `DirectEOACallRequired` |
+| 4 | `test_ExpireVm_Should_Revert_When_CalledThroughIntermediary` | `expireVm` via intermediary reverts `DirectEOACallRequired` |
+| 5 | `test_DeactivateDid_Should_Revert_When_CalledThroughIntermediary` | `deactivateDid` via intermediary reverts `DirectEOACallRequired` |
+| 6 | `test_ReactivateDid_Should_Revert_When_CalledThroughIntermediary` | `reactivateDid` via intermediary reverts `DirectEOACallRequired` |
+| 7 | `test_UpdateController_Should_Revert_When_CalledThroughIntermediary` | `updateController` via intermediary reverts `DirectEOACallRequired` |
+| 8 | `test_UpdateService_Should_Revert_When_CalledThroughIntermediary` | `updateService` via intermediary reverts `DirectEOACallRequired` |
+| 9 | `test_OnlyDirectEOA_Should_AllowFullLifecycle_When_CalledDirectly` | Direct EOA full lifecycle (createVm → validateVm → updateService → updateController → expireVm → deactivateDid → reactivateDid) passes the guard |
+| 10 | `test_CreateDid_Should_BindInitialVmToMsgSender_When_CalledDirectly` | Initial native VM bound to `msg.sender`; `isAuthorized` true for creator, false for non-creator |
+
+Same 10 scenarios as the full variant, targeting `DidManagerNative` with 1-slot VM storage via `MaliciousIntermediaryNative`.
+
+---
+
+### 7. `ServiceStorage.unit.t.sol` — 19 tests
 
 **File**: `test/unit/ServiceStorage.unit.t.sol`
 **Contract**: `ServiceStorageUnitTest`
@@ -321,7 +399,7 @@ Contains all 60 tests from `DidManager.unit.t.sol` adapted for native variant (1
 
 ---
 
-### 6. `VMStorage.unit.t.sol` — 30 tests
+### 8. `VMStorage.unit.t.sol` — 30 tests
 
 **File**: `test/unit/VMStorage.unit.t.sol`
 **Contract**: `VMStorageUnitTest`
@@ -399,7 +477,7 @@ Contains all 60 tests from `DidManager.unit.t.sol` adapted for native variant (1
 
 ---
 
-### 7. `W3CResolver.unit.t.sol` — 22 tests
+### 9. `W3CResolver.unit.t.sol` — 22 tests
 
 **File**: `test/unit/W3CResolver.unit.t.sol`
 **Contract**: `W3CResolverUnitTest`
@@ -432,7 +510,7 @@ Contains all 60 tests from `DidManager.unit.t.sol` adapted for native variant (1
 
 ---
 
-### 8. `W3CResolverNative.unit.t.sol` — 27 tests
+### 10. `W3CResolverNative.unit.t.sol` — 27 tests
 
 **File**: `test/unit/W3CResolverNative.unit.t.sol`
 **Contract**: `W3CResolverNativeUnitTest`
@@ -474,7 +552,7 @@ Shares 20 tests with W3CResolver (adapted for native), **plus** 7 native-specifi
 
 ## Fuzz Tests
 
-### 9. `DidManager.fuzz.t.sol` — 10 tests
+### 11. `DidManager.fuzz.t.sol` — 10 tests
 
 **File**: `test/fuzz/DidManager.fuzz.t.sol`
 **Contract**: `DidManagerFuzzTest`
@@ -495,7 +573,7 @@ Shares 20 tests with W3CResolver (adapted for native), **plus** 7 native-specifi
 
 ---
 
-### 10. `DidManagerNative.fuzz.t.sol` — 11 tests
+### 12. `DidManagerNative.fuzz.t.sol` — 11 tests
 
 **File**: `test/fuzz/DidManagerNative.fuzz.t.sol`
 **Contract**: `DidManagerNativeFuzzTest`
@@ -511,7 +589,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ## Integration Tests
 
-### 11. `DidLifecycle.integration.t.sol` — 6 tests
+### 13. `DidLifecycle.integration.t.sol` — 6 tests
 
 **File**: `test/integration/DidLifecycle.integration.t.sol`
 **Contract**: `DidLifecycleIntegrationTest`
@@ -528,7 +606,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ---
 
-### 12. `KeyAgreementE2E.t.sol` — 3 tests
+### 14. `KeyAgreementE2E.t.sol` — 3 tests
 
 **File**: `test/integration/KeyAgreementE2E.t.sol`
 **Contract**: `KeyAgreementE2ETest`
@@ -544,7 +622,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ## Invariant Tests
 
-### 13. `SystemInvariants.t.sol` — 7 invariants
+### 15. `SystemInvariants.t.sol` — 7 invariants
 
 **File**: `test/invariant/SystemInvariants.t.sol`
 **Contract**: `SystemInvariantsTest`
@@ -563,7 +641,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ---
 
-### 14. `NativeSystemInvariants.t.sol` — 8 invariants
+### 16. `NativeSystemInvariants.t.sol` — 8 invariants
 
 **File**: `test/invariant/NativeSystemInvariants.t.sol`
 **Contract**: `NativeSystemInvariantsTest`
@@ -579,7 +657,7 @@ Same 7 invariants as above for native variant **plus**:
 
 ## Performance Tests
 
-### 15. `GasOptimization.performance.t.sol` — 8 tests
+### 17. `GasOptimization.performance.t.sol` — 8 tests
 
 **File**: `test/performance/GasOptimization.performance.t.sol`
 **Contract**: `GasOptimizationPerformanceTest`
@@ -601,7 +679,7 @@ Same 7 invariants as above for native variant **plus**:
 
 ## Stress Tests
 
-### 16. `StressTest.t.sol` — 6 tests
+### 18. `StressTest.t.sol` — 6 tests
 
 **File**: `test/stress/StressTest.t.sol`
 **Contract**: `StressTest`
@@ -636,7 +714,7 @@ These files are not test files but support the test infrastructure:
 
 | Production Contract | Test Files Covering It | Approximate Test Count |
 |---------------------|----------------------|----------------------:|
-| **DidAggregate** (shared lifecycle) | Authorize, AuthorizeOffChain, DidManager, DidManagerNative, DidLifecycle | ~180 |
+| **DidAggregate** (shared lifecycle) | Authorize, AuthorizeOffChain, DidManager, DidManagerNative, DirectEOAGuard, DidLifecycle | ~200 |
 | **VMStorage** (Full W3C VMs) | VMStorage.unit, DidManager.unit, W3CResolver.unit, fuzz, invariant | ~90 |
 | **VMStorageNative** (Native VMs) | DidManagerNative.unit, W3CResolverNative.unit, native fuzz/invariant | ~83 |
 | **ServiceStorage** (services) | ServiceStorage.unit, DidManager.unit, DidLifecycle | ~25 |
@@ -645,13 +723,13 @@ These files are not test files but support the test infrastructure:
 | **W3CResolverBase** (shared resolution) | Both resolver test files | ~49 |
 | **W3CResolverUtils** (shared library) | Both resolver test files | ~10 |
 | **HashUtils** (hash library) | Indirectly via ALL storage tests | all |
-| **DidManager** (Full W3C wrapper) | DidManager.unit, fuzz, invariant, integration | ~78 |
-| **DidManagerNative** (Native wrapper) | DidManagerNative.unit, native fuzz/invariant | ~84 |
+| **DidManager** (Full W3C wrapper) | DidManager.unit, DirectEOAGuard.unit, fuzz, invariant, integration | ~88 |
+| **DidManagerNative** (Native wrapper) | DidManagerNative.unit, DirectEOAGuard.unit, native fuzz/invariant | ~94 |
 | **VMHooks** (abstract hooks) | Indirectly via all manager/storage tests | all |
 
 ---
 
-**Last Updated**: 2026-03-10
-**Total Test Count**: 343
+**Last Updated**: 2026-06-10
+**Total Test Count**: 363 (325 in the default profile; fuzz/invariant run under CI profiles)
 **Test Framework**: Foundry (forge test)
 **Coverage Target**: >90% (enforced in CI/CD)

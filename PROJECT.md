@@ -459,7 +459,7 @@ flowchart TB
         └──────────┴──────────┴──────────┴────┘"]
 
         ID["id (bytes32)
-        keccak256(methods, random, tx.origin, prevrandao)"]
+        keccak256(methods, random, msg.sender, prevrandao)"]
 
         Hash["didHash (bytes32)
         keccak256(methods, id)"]
@@ -622,7 +622,7 @@ sequenceDiagram
 
     Note over User,Chain: DID Creation Flow
     User->>DM: createDid(methods, random, vmId)
-    DM->>DM: Generate ID = keccak256(methods, random, tx.origin, prevrandao)
+    DM->>DM: Generate ID = keccak256(methods, random, msg.sender, prevrandao)
     DM->>DM: Calculate didHash = keccak256(methods, id)
     DM->>VMS: _createVm(vmCommand)
     VMS->>VMS: Store VM (expiration=0, unvalidated)
@@ -652,6 +652,8 @@ sequenceDiagram
         DM-->>User: Revert with error
     end
 ```
+
+> **Note (v1.4.0)**: All authenticated write entry points additionally enforce the `onlyDirectEOA` guard (`msg.sender == tx.origin`), so the authenticated `msg.sender` is always the transaction's signing EOA. See [Key Design Patterns](#key-design-patterns) → Direct-EOA Authentication Guard.
 
 ### Controller Delegation Model
 
@@ -1136,7 +1138,7 @@ bytes32 id = keccak256(
     abi.encodePacked(
         methods,
         random,
-        tx.origin,
+        msg.sender,
         block.prevrandao
     )
 );
@@ -1145,7 +1147,7 @@ bytes32 id = keccak256(
 **Inputs**:
 - `methods` - The DID method bytes
 - `random` - User-provided randomness
-- `tx.origin` - Transaction originator
+- `msg.sender` - Calling account (the signing EOA, since `onlyDirectEOA` enforces `msg.sender == tx.origin`)
 - `block.prevrandao` - Block randomness (post-merge)
 
 **Uniqueness**: Cryptographically guaranteed through Keccak256
@@ -1153,7 +1155,7 @@ bytes32 id = keccak256(
 **Predictability trade-off**: `block.prevrandao` is a RANDAO mix, not a secure random oracle. Validators can influence it within a 2^128 bias window. For DID systems this is acceptable because:
 1. DID ID collision requires a full Keccak256 preimage, not just RANDAO control
 2. The user-provided `random` value (e.g., UUIDv4) is the primary entropy source
-3. `tx.origin` binds the ID to a specific account, preventing cross-account replay
+3. `msg.sender` binds the ID to a specific account, preventing cross-account replay
 4. Worst case: a validator front-runs to claim a *specific* DID ID — mitigated by the user choosing `random` off-chain before broadcasting
 
 #### Hash (bytes32)
@@ -1392,6 +1394,26 @@ require(condition, "Invalid DID");  // String storage expensive (~96+ bytes each
 ```
 
 **Gas Savings**: ~50-100 gas per error, ~280-300 bytes bytecode reduction from eliminating require strings
+
+### 5. Direct-EOA Authentication Guard (v1.4.0)
+
+All 8 authenticated write entry points per variant (`createDid`, `createVm`, `validateVm`, `expireVm`, `deactivateDid`, `reactivateDid`, `updateController`, `updateService`) are protected by the `onlyDirectEOA` modifier in `DidAggregate`:
+
+```solidity
+modifier onlyDirectEOA() {
+  if (msg.sender != tx.origin) revert DirectEOACallRequired();
+  _;
+}
+```
+
+**What it does**: The call passes only when `msg.sender` IS the transaction's signing EOA — i.e., no intermediary contract sits anywhere in the call chain.
+
+**Why**:
+- **Closes the confused-deputy hole**: Pre-v1.4.0 authentication compared `tx.origin`, so any contract a user called could act on that user's DID mid-transaction. All identity checks now use `msg.sender`, and intermediary contracts revert with `DirectEOACallRequired()`.
+- **Preserves the signature-derived identity guarantee**: The equality check ensures the authenticated address is exactly the account that signed the transaction.
+- **`tx.origin` is never used as identity**: It survives only inside this equality guard; every identity comparison (ID entropy, VM binding, `_isAuthenticated`, `_isVmOwner`) uses `msg.sender`.
+
+**Compatibility**: EIP-7702-delegated EOAs keep working (top-level calls still satisfy `msg.sender == tx.origin`). Calls routed through multisigs, smart accounts, meta-tx forwarders, or ERC-4337 bundlers revert on write paths; signature-based flows use `isAuthorizedOffChain` (EOA, `ecrecover`) or `isAuthorizedOffChainWithSigner` (EOA **and** ERC-1271 contract signers, via OpenZeppelin `SignatureChecker`). A contract cannot yet own a verification method, because `validateVm` requires `msg.sender == vm.ethereumAddress` under `onlyDirectEOA`; the ERC-1271 path therefore covers addresses validated as EOAs that later gained code, which is the EIP-7702 case.
 
 ## Key Technologies
 
