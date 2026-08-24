@@ -24,7 +24,6 @@ struct Controller {
 /// string is built, because neither is legal under the W3C DID Core v1.0 ABNF. See PROJECT.md,
 /// "Segment Filler: Why ; and Not 0x00".
 bytes32 constant DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;");
-// character
 uint256 constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
 uint8 constant CONTROLLERS_MAX_LENGTH = 5;
 

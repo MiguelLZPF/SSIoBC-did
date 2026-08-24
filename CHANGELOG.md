@@ -31,12 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on both variants. A contract signature cannot be recovered, so the caller states the claimed
   `signer` and the contract verifies the claim with OpenZeppelin `SignatureChecker`:
   `ecrecover` when `signer` has no code, an `IERC1271.isValidSignature` staticcall otherwise.
-  This makes smart accounts, multisigs and EIP-7702-delegated EOAs usable as DID signers on the
-  read path, without touching the `onlyDirectEOA` guard on write paths.
+  On the read path this covers **EIP-7702-delegated EOAs** and any contract that both implements
+  ERC-1271 and owns an active verification method. Plain smart accounts and multisigs are **not**
+  usable yet: a contract cannot activate its own VM (see Notes), so 7702 is the only shape
+  reachable today. The `onlyDirectEOA` guard on write paths is untouched.
 - `test/mocks/MockERC1271Wallets.sol` — ERC-1271 wallet mocks (approving, rejecting, reverting,
   and a contract with no `isValidSignature`). The approving mock stores its owner in an
   `immutable`, so `vm.etch` preserves it and tests can simulate an EIP-7702 delegated EOA.
-- `test/unit/AuthorizeOffChainErc1271.unit.t.sol` — 21 tests (14 full W3C + 7 native): EOA
+- `test/unit/AuthorizeOffChainErc1271.unit.t.sol` — 24 tests (17 full W3C + 7 native): EOA
   parity with the `v,r,s` overload, contract-signer accept/reject, wrong magic value, reverting
   wallet, non-wallet contract, malformed signature, and parameter validation.
 
@@ -44,9 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `IDidAuth` gains `isAuthorizedOffChainWithSigner`; existing selectors are unchanged, so this is
   ABI-additive.
-- Contract sizes: DidManager 14,009 B (+868), DidManagerNative 12,401 B (+868), W3CResolver
-  11,215 B (+368), W3CResolverNative 11,737 B (+368).
-- 356 tests passing on the default profile (325 before), 394 under the CI profile (363 before).
+- Contract sizes: DidManager 14,089 B (+948), DidManagerNative 12,481 B (+948), W3CResolver
+  11,215 B (+368), W3CResolverNative 11,737 B (+368). EIP-170 limit is 24,576 B.
+- 359 tests passing on the default profile (325 before), 397 under the CI profile (363 before).
 
 ### Fixed
 
@@ -73,6 +75,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 
+- **EIP-7702 ECDSA fallback.** A delegated EOA carries code, so `SignatureChecker` takes the
+  ERC-1271 branch and returns `false` whenever the delegate does not implement
+  `isValidSignature`, even for a valid signature from the account's own key. Measured before the
+  fallback with `vm.signAndAttachDelegation`: `isAuthorizedOffChain` `true`,
+  `isAuthorizedOffChainWithSigner` `false`. The view now recovers directly when the ERC-1271 check
+  fails. This grants nothing new: under EIP-7702 the private key keeps full control of the account
+  (it can transact directly and re-delegate), so its raw signature is authority the key already
+  holds. A signature from any other key is still rejected.
+- **Signature malleability differs between the two views.** `isAuthorizedOffChainWithSigner`
+  rejects a high-`s` signature (OpenZeppelin `ECDSA`); the raw-`ecrecover`
+  `isAuthorizedOffChain` accepts it. Prefer the new view. Locked in by
+  `test_WithSigner_Should_ReturnFalse_When_SignatureIsMalleated`.
+- **`onlyDirectEOA` proves less than its original NatSpec claimed.** Post-Pectra, `msg.sender ==
+  tx.origin` does not imply "no intermediary contract in the call chain": a 7702-delegated EOA has
+  code, so a call routed through a permissive delegate still satisfies the equality. What the
+  guard still guarantees, and what the authorization model needs, is that the authenticated
+  address is exactly the account that signed the transaction. NatSpec, PROJECT.md and the threat
+  model now state this limit.
 - **ERC-6492 is not supported.** Counterfactual (undeployed) wallets cannot be verified on chain;
   the signing account must already have code.
 - **Known gap:** a contract cannot yet *own* a verification method. `createVm` forces

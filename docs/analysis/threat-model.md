@@ -129,11 +129,38 @@ Before v1.4.0, on-chain authentication compared `tx.origin` against the VM's `et
 ### v1.4.0 Mitigation
 
 - **`msg.sender` authentication**: All identity checks now use `msg.sender` — `createDid` (ID entropy + initial VM binding), `reactivateDid`, and `_validateSenderAndTarget` (which feeds `expireVm`, `deactivateDid`, `updateController`, `updateService`, `createVm`).
-- **`onlyDirectEOA` guard**: All 8 authenticated write entry points require `msg.sender == tx.origin`, so the caller must be the transaction's signing EOA with no intermediary contract in the call chain. `tx.origin` survives only inside this equality guard — never as identity.
+- **`onlyDirectEOA` guard**: All 8 authenticated write entry points per variant require `msg.sender == tx.origin`, so the authenticated address is exactly the account that signed the transaction. `tx.origin` survives only inside this equality guard, never as identity.
+
+### Limit of the Guard Under EIP-7702
+
+**The guard does not prove "no intermediary contract is in the call chain."** That was the original
+claim and it stopped being true when EIP-7702 went live with Pectra. A delegated EOA carries code,
+so any call it makes still satisfies `msg.sender == tx.origin`. Verified in this repository against
+the real cheatcode (`vm.signAndAttachDelegation`, `evm_version = 'osaka'`): after delegation the
+account's `code.length` is 23, the `0xef0100 || address` indicator, and guarded writes from it
+succeed. If a delegate executes arbitrary calls for arbitrary callers, a third-party contract can
+reach a guarded entry point through it.
+
+What the guard still guarantees is narrower, and it is the property the authorization model
+actually needs: **the authenticated address is exactly the account that signed the transaction.**
+Pre-v1.4.0 `tx.origin` authentication did not give that, which is what made every contract a user
+touched into a deputy. Choosing a delegate that lets third parties act on your behalf is a decision
+made at the wallet, and no on-chain guard here can override it.
+
+Users who want the strong "no intermediary" property must not delegate to a permissive delegate.
+This is documented rather than mitigated, because mitigating it on-chain would require inspecting
+the delegate's code, which is neither reliable nor forward-compatible.
 
 ### Residual Trade-off
 
-Smart-account/AA callers (multisigs, smart accounts, meta-tx forwarders, ERC-4337 bundlers) are **intentionally blocked on-chain for now** — such calls revert with `DirectEOACallRequired()`. EIP-7702-delegated EOAs continue to work. Signature-based flows can use `isAuthorizedOffChain` (gasless, `ecrecover`-based) or `isAuthorizedOffChainWithSigner`, which additionally accepts **ERC-1271** contract signatures through OpenZeppelin `SignatureChecker`. That path is read-only (a `view` reached by `eth_call` or `staticcall`), so a malicious `isValidSignature` implementation cannot mutate state; a reverting one returns false rather than bubbling. ERC-6492 counterfactual wallets are out of scope: the signing account must already be deployed.
+Smart-account/AA callers (multisigs, smart accounts, meta-tx forwarders, ERC-4337 bundlers) are **intentionally blocked on-chain for now** — such calls revert with `DirectEOACallRequired()`. EIP-7702-delegated EOAs continue to work on write paths, subject to the limit above. Signature-based flows can use `isAuthorizedOffChain` (gasless, `ecrecover`-based) or `isAuthorizedOffChainWithSigner`, which additionally accepts **ERC-1271** contract signatures through OpenZeppelin `SignatureChecker`. That path is read-only (a `view` reached by `eth_call` or `staticcall`), so a malicious `isValidSignature` implementation cannot mutate state; a reverting one returns false rather than bubbling. ERC-6492 counterfactual wallets are out of scope: the signing account must already be deployed.
+
+Two behavioural notes on `isAuthorizedOffChainWithSigner`. First, a 7702-delegated EOA whose
+delegate does not implement `isValidSignature` would otherwise fail, because `SignatureChecker`
+branches on `code.length` and staticcalls a function that does not exist; an ECDSA fallback covers
+it. That grants nothing new, since under EIP-7702 the private key retains full control of the
+account. Second, this view rejects a malleated high-`s` signature while the raw-`ecrecover`
+`isAuthorizedOffChain` accepts it; prefer this view.
 
 ---
 

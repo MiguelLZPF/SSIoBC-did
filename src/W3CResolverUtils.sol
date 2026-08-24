@@ -150,12 +150,6 @@ library W3CResolverUtils {
   }
 
   /**
-   * @dev Removes zero bytes from a byte array, preserving non-zero content.
-   * Returns empty bytes if the first byte is zero.
-   * @param input The byte array to trim.
-   * @return output The trimmed byte array.
-   */
-  /**
    * @dev Strips the filler bytes a 10-byte method segment can carry, so only DID-legal
    * characters reach the DID string.
    *
@@ -190,6 +184,12 @@ library W3CResolverUtils {
     return out;
   }
 
+  /**
+   * @dev Removes zero bytes from a byte array, preserving non-zero content.
+   * Returns empty bytes if the first byte is zero.
+   * @param input The byte array to trim.
+   * @return output The trimmed byte array.
+   */
   function trimBytes(bytes memory input) internal pure returns (bytes memory output) {
     if (input[0] == 0x00) {
       return new bytes(0);

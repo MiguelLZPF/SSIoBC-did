@@ -1486,10 +1486,12 @@ and cannot change any state. Adding ERC-1271 support therefore does not weaken o
 native-signature model: it adds a second read path for verifiers whose signer is a contract.
 
 **Verification.** Enumerating every `external`/`public` function across `DidAggregate`,
-`DidManager` and `DidManagerNative` yields 8 writes (all carrying `onlyDirectEOA`, none taking
-signature material) and 16 views. `ecrecover` and `SignatureChecker` appear only at
-`DidAggregate.sol:245` and `DidAggregate.sol:285`, both inside `view` functions. The resolvers
-contain neither.
+`DidManager` and `DidManagerNative` yields **10 write definitions** and **14 views**. The 10 are
+6 shared ones in `DidAggregate` (`validateVm`, `expireVm`, `deactivateDid`, `reactivateDid`,
+`updateController`, `updateService`) plus `createDid` and `createVm` in each manager, which is
+**8 per deployed variant**. Every one carries `onlyDirectEOA` and none takes signature material.
+`ecrecover`, `ECDSA` and `SignatureChecker` appear only inside the two off-chain `view` functions
+in `DidAggregate`. The resolvers contain none of them.
 
 
 ## Key Technologies

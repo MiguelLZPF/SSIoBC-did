@@ -28,6 +28,7 @@ function packSignature(uint8 v, bytes32 r, bytes32 s) pure returns (bytes memory
 contract AuthorizeOffChainErc1271UnitTest is TestBase {
   address internal user1;
   address internal user2;
+  address internal user3;
 
   bytes32 internal constant MESSAGE_HASH = keccak256("erc1271-challenge-message");
 
@@ -35,8 +36,10 @@ contract AuthorizeOffChainErc1271UnitTest is TestBase {
     _deployDidManager();
     user1 = vm.addr(Fixtures.TEST_PK_1);
     user2 = vm.addr(Fixtures.TEST_PK_2);
+    user3 = vm.addr(Fixtures.TEST_PK_3);
     _setupUser(user1, "User1-PK");
     _setupUser(user2, "User2-PK");
+    _setupUser(user3, "User3-PK");
   }
 
   function _createSelfDid() internal returns (DidTestHelpers.CreateDidResult memory didResult) {
@@ -90,6 +93,7 @@ contract AuthorizeOffChainErc1271UnitTest is TestBase {
       r,
       s
     );
+    assertTrue(legacy, "Anchor: the legacy overload must authorize this signature");
     assertEq(_check(didResult, user1, packSignature(v, r, s)), legacy, "Both overloads must agree");
   }
 
@@ -127,12 +131,27 @@ contract AuthorizeOffChainErc1271UnitTest is TestBase {
   }
 
   /// @notice The raw ecrecover entry point cannot see the ERC-1271 signature at all.
+  /// @dev The control below is what makes this test meaningful: the same signature is rejected by
+  /// the legacy overload BEFORE any code is placed at user1, so the failure is attributable to
+  /// ecrecover recovering user2 rather than to the wallet. The ERC-1271 branch is then shown to
+  /// change nothing for the legacy path, while `test_WithSigner_Should_ReturnTrue_When_Erc1271...`
+  /// shows the new overload does accept it.
   function test_LegacyOverload_Should_ReturnFalse_When_SignerIsErc1271Wallet() public {
     DidTestHelpers.CreateDidResult memory didResult = _createSelfDid();
-    MockERC1271Wallet wallet = new MockERC1271Wallet(user2);
-    vm.etch(user1, address(wallet).code);
 
     (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_2, MESSAGE_HASH);
+    assertFalse(
+      _check(didResult, user1, packSignature(v, r, s)),
+      "Control: before any code exists at user1, user2's signature must not authorize user1"
+    );
+
+    MockERC1271Wallet wallet = new MockERC1271Wallet(user2);
+    vm.etch(user1, address(wallet).code);
+    assertTrue(
+      _check(didResult, user1, packSignature(v, r, s)),
+      "Control: once user1 bears ERC-1271 code approving user2, the new overload authorizes"
+    );
+
     bool legacy = didManager.isAuthorizedOffChain(
       didResult.didInfo.methods,
       didResult.didInfo.id,
@@ -147,44 +166,107 @@ contract AuthorizeOffChainErc1271UnitTest is TestBase {
     assertFalse(legacy, "ecrecover path cannot validate a contract signature");
   }
 
-  /// @notice A wallet rejecting the signature (wrong owner key) does not authorize.
+  /// @notice A wallet rejecting the signature does not authorize.
+  /// @dev Signed with user3's key: neither the wallet's owner (user2) nor the account's own key
+  /// (user1), so neither the ERC-1271 branch nor the EIP-7702 ECDSA fallback can accept it.
   function test_WithSigner_Should_ReturnFalse_When_Erc1271WalletRejectsSignature() public {
     DidTestHelpers.CreateDidResult memory didResult = _createSelfDid();
     MockERC1271Wallet wallet = new MockERC1271Wallet(user2);
     vm.etch(user1, address(wallet).code);
 
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_1, MESSAGE_HASH);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_3, MESSAGE_HASH);
     assertFalse(_check(didResult, user1, packSignature(v, r, s)), "Wallet rejects -> not authorized");
   }
 
   /// @notice A wallet returning a non-magic value does not authorize.
+  /// @dev Signed with user3's key so the EIP-7702 ECDSA fallback cannot mask the wallet's verdict.
   function test_WithSigner_Should_ReturnFalse_When_Erc1271ReturnsWrongMagicValue() public {
     DidTestHelpers.CreateDidResult memory didResult = _createSelfDid();
     MockERC1271AlwaysReject wallet = new MockERC1271AlwaysReject();
     vm.etch(user1, address(wallet).code);
 
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_1, MESSAGE_HASH);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_3, MESSAGE_HASH);
     assertFalse(_check(didResult, user1, packSignature(v, r, s)), "Wrong magic value -> not authorized");
   }
 
-  /// @notice A reverting `isValidSignature` is swallowed, not bubbled — the view returns false.
+  /// @notice A reverting `isValidSignature` is swallowed, not bubbled, and the view returns false.
+  /// @dev Signed with user3's key so the EIP-7702 ECDSA fallback cannot mask the revert.
   function test_WithSigner_Should_ReturnFalse_When_Erc1271Reverts() public {
     DidTestHelpers.CreateDidResult memory didResult = _createSelfDid();
     MockERC1271Reverting wallet = new MockERC1271Reverting();
     vm.etch(user1, address(wallet).code);
 
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_1, MESSAGE_HASH);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_3, MESSAGE_HASH);
     assertFalse(_check(didResult, user1, packSignature(v, r, s)), "Reverting wallet must not bubble up");
   }
 
-  /// @notice A contract without `isValidSignature` does not authorize.
+  /// @notice A contract without `isValidSignature`, signed by an unrelated key, does not authorize.
+  /// @dev The same setup signed by the account's OWN key DOES authorize, via the EIP-7702 ECDSA
+  /// fallback: see `test_WithSigner_Should_ReturnTrue_When_Delegate...`.
   function test_WithSigner_Should_ReturnFalse_When_ContractIsNotAWallet() public {
     DidTestHelpers.CreateDidResult memory didResult = _createSelfDid();
     MockNotAWallet notAWallet = new MockNotAWallet();
     vm.etch(user1, address(notAWallet).code);
 
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_1, MESSAGE_HASH);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_3, MESSAGE_HASH);
     assertFalse(_check(didResult, user1, packSignature(v, r, s)), "Non-wallet contract must not authorize");
+  }
+
+  // ---------------------------------------------------------------------
+  // EIP-7702 ECDSA fallback
+  // ---------------------------------------------------------------------
+
+  /// @notice An EOA delegated to a delegate that does NOT implement ERC-1271 still authorizes
+  /// with its own key. Without the fallback, `SignatureChecker` takes the contract branch,
+  /// staticcalls a function that does not exist, and returns false for a valid signature.
+  /// Reproduced against the real cheatcode before the fallback existed: legacy `true`,
+  /// this view `false`.
+  function test_WithSigner_Should_ReturnTrue_When_DelegateLacksErc1271ButOwnKeySigns() public {
+    DidTestHelpers.CreateDidResult memory didResult = _createSelfDid();
+    MockNotAWallet notAWallet = new MockNotAWallet();
+    vm.etch(user1, address(notAWallet).code);
+    assertGt(user1.code.length, 0, "Precondition: user1 must carry code");
+
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_1, MESSAGE_HASH);
+    assertTrue(
+      _check(didResult, user1, packSignature(v, r, s)), "A 7702-delegated EOA must still authorize with its own key"
+    );
+  }
+
+  /// @notice The fallback does not let an unrelated key through: it recovers and compares.
+  function test_WithSigner_Should_ReturnFalse_When_DelegateLacksErc1271AndForeignKeySigns() public {
+    DidTestHelpers.CreateDidResult memory didResult = _createSelfDid();
+    MockNotAWallet notAWallet = new MockNotAWallet();
+    vm.etch(user1, address(notAWallet).code);
+
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_3, MESSAGE_HASH);
+    assertFalse(_check(didResult, user1, packSignature(v, r, s)), "Foreign key must not pass the fallback");
+  }
+
+  /// @notice Documents the deliberate divergence: this view rejects a malleated (high-`s`)
+  /// signature via OpenZeppelin ECDSA, while the raw-`ecrecover` overload accepts it.
+  function test_WithSigner_Should_ReturnFalse_When_SignatureIsMalleated() public {
+    DidTestHelpers.CreateDidResult memory didResult = _createSelfDid();
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_1, MESSAGE_HASH);
+
+    // secp256k1 group order; the malleated pair is (v flipped, r, n - s)
+    uint256 n = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141;
+    bytes32 sHigh = bytes32(n - uint256(s));
+    uint8 vFlipped = v == 27 ? 28 : 27;
+
+    bool legacy = didManager.isAuthorizedOffChain(
+      didResult.didInfo.methods,
+      didResult.didInfo.id,
+      DEFAULT_VM_ID,
+      didResult.didInfo.id,
+      Fixtures.VM_RELATIONSHIPS_AUTHENTICATION,
+      MESSAGE_HASH,
+      vFlipped,
+      r,
+      sHigh
+    );
+    assertTrue(legacy, "Anchor: the raw ecrecover overload accepts the malleated signature");
+    assertFalse(_check(didResult, user1, packSignature(vFlipped, r, sHigh)), "This view must reject a high-s signature");
   }
 
   // ---------------------------------------------------------------------
@@ -238,6 +320,7 @@ contract AuthorizeOffChainErc1271UnitTest is TestBase {
 contract AuthorizeOffChainErc1271NativeUnitTest is TestBaseNative {
   address internal user1;
   address internal user2;
+  address internal user3;
 
   bytes32 internal constant MESSAGE_HASH = keccak256("erc1271-challenge-message");
 
@@ -245,8 +328,10 @@ contract AuthorizeOffChainErc1271NativeUnitTest is TestBaseNative {
     _deployDidManagerNative();
     user1 = vm.addr(Fixtures.TEST_PK_1);
     user2 = vm.addr(Fixtures.TEST_PK_2);
+    user3 = vm.addr(Fixtures.TEST_PK_3);
     _setupUser(user1, "User1-PK");
     _setupUser(user2, "User2-PK");
+    _setupUser(user3, "User3-PK");
   }
 
   function _createSelfDid() internal returns (DidTestHelpersNative.CreateDidResult memory didResult) {
@@ -293,7 +378,7 @@ contract AuthorizeOffChainErc1271NativeUnitTest is TestBaseNative {
     MockERC1271Wallet wallet = new MockERC1271Wallet(user2);
     vm.etch(user1, address(wallet).code);
 
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_1, MESSAGE_HASH);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_3, MESSAGE_HASH);
     assertFalse(_check(didResult, user1, packSignature(v, r, s)), "Wallet rejects -> not authorized");
   }
 
@@ -302,7 +387,7 @@ contract AuthorizeOffChainErc1271NativeUnitTest is TestBaseNative {
     MockERC1271Reverting wallet = new MockERC1271Reverting();
     vm.etch(user1, address(wallet).code);
 
-    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_1, MESSAGE_HASH);
+    (uint8 v, bytes32 r, bytes32 s) = vm.sign(Fixtures.TEST_PK_3, MESSAGE_HASH);
     assertFalse(_check(didResult, user1, packSignature(v, r, s)), "Reverting wallet must not bubble up");
   }
 

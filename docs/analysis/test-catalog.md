@@ -9,7 +9,7 @@
 - [Unit Tests](#unit-tests)
   - [Authorize.unit.t.sol](#1-authorizeunittsol--28-tests)
   - [AuthorizeOffChain.unit.t.sol](#2-authorizeoffchainunittsol--26-tests)
-  - [AuthorizeOffChainErc1271.unit.t.sol](#3-authorizeoffchainerc1271unittsol--21-tests)
+  - [AuthorizeOffChainErc1271.unit.t.sol](#3-authorizeoffchainerc1271unittsol--24-tests)
   - [DidManager.unit.t.sol](#4-didmanagerunittsol--60-tests)
   - [DidManagerNative.unit.t.sol](#5-didmanagernativeunittsol--72-tests)
   - [DidStringConformance.unit.t.sol](#6-didstringconformanceunittsol--10-tests)
@@ -40,15 +40,15 @@
 
 | Category | Count | Files |
 |----------|------:|------:|
-| Unit Tests | 335 | 11 |
+| Unit Tests | 338 | 11 |
 | Fuzz Tests | 21 | 2 |
 | Integration Tests | 9 | 2 |
 | Invariant Tests | 15 | 2 |
 | Performance Tests | 8 | 1 |
 | Stress Tests | 6 | 1 |
-| **TOTAL** | **394** | **19** |
+| **TOTAL** | **397** | **19** |
 
-> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 356 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 394 run under the CI profiles.
+> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 359 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 397 run under the CI profiles.
 
 ---
 
@@ -119,7 +119,7 @@ Subset of full variant tests adapted for `DidManagerNative`. Tests 1-5 (true/fal
 
 ---
 
-### 3. `AuthorizeOffChainErc1271.unit.t.sol` — 21 tests
+### 3. `AuthorizeOffChainErc1271.unit.t.sol` — 24 tests
 
 **File**: `test/unit/AuthorizeOffChainErc1271.unit.t.sol`
 **Primary target**: `DidAggregate.isAuthorizedOffChainWithSigner()` — ERC-1271-aware off-chain authorization
@@ -129,7 +129,7 @@ The approving mock keeps its owner in an `immutable`, which lives in runtime cod
 storage, so `vm.etch` preserves it. That is what lets these tests simulate an **EIP-7702 delegated
 EOA**: an address validated as a plain EOA that later gains contract code.
 
-#### AuthorizeOffChainErc1271UnitTest (Full W3C variant, 14 tests)
+#### AuthorizeOffChainErc1271UnitTest (Full W3C variant, 17 tests)
 
 | # | Test | What it verifies | Path exercised |
 |---|------|------------------|----------------|
@@ -147,10 +147,15 @@ EOA**: an address validated as a plain EOA that later gains contract code.
 | 12 | `test_RevertWhen_WithSigner_MessageHashIsZero` | Zero message hash reverts `MissingRequiredParameter` | parameter validation |
 | 13 | `test_RevertWhen_WithSigner_SignatureIsEmpty` | Empty signature reverts `MissingRequiredParameter` | parameter validation |
 | 14 | `test_WithSigner_Should_ReturnFalse_When_SignatureLengthIsInvalid` | Malformed (4-byte) signature returns false instead of reverting | `ECDSA.RecoverError.InvalidSignatureLength` |
+| 15 | `test_WithSigner_Should_ReturnTrue_When_DelegateLacksErc1271ButOwnKeySigns` | A 7702-delegated EOA whose delegate has no `isValidSignature` still authorizes with its own key | EIP-7702 ECDSA fallback |
+| 16 | `test_WithSigner_Should_ReturnFalse_When_DelegateLacksErc1271AndForeignKeySigns` | The fallback recovers and compares, so a foreign key is still rejected | EIP-7702 ECDSA fallback |
+| 17 | `test_WithSigner_Should_ReturnFalse_When_SignatureIsMalleated` | High-`s` signature rejected here, **accepted** by the raw-`ecrecover` overload (anchored) | OZ `ECDSA` vs `ecrecover` |
 
 #### AuthorizeOffChainErc1271NativeUnitTest (Ethereum-Native variant, 7 tests)
 
 Mirrors tests 1, 5, 7, 9, 4, 11 and 13 above against `DidManagerNative`.
+
+> The wallet-verdict negatives (7, 8, 9, 10) sign with a **third** key, not the account's own. Signing with the account's own key would be authorized by the EIP-7702 fallback, which would make those tests assert nothing about the wallet.
 
 ---
 
@@ -744,14 +749,14 @@ These files are not test files but support the test infrastructure:
 
 | Production Contract | Test Files Covering It | Approximate Test Count |
 |---------------------|----------------------|----------------------:|
-| **DidAggregate** (shared lifecycle) | Authorize, AuthorizeOffChain, DidManager, DidManagerNative, DirectEOAGuard, DidLifecycle | ~200 |
+| **DidAggregate** (shared lifecycle) | Authorize, AuthorizeOffChain, AuthorizeOffChainErc1271, DidManager, DidManagerNative, DirectEOAGuard, DidLifecycle | ~224 |
 | **VMStorage** (Full W3C VMs) | VMStorage.unit, DidManager.unit, W3CResolver.unit, fuzz, invariant | ~90 |
 | **VMStorageNative** (Native VMs) | DidManagerNative.unit, W3CResolverNative.unit, native fuzz/invariant | ~83 |
 | **ServiceStorage** (services) | ServiceStorage.unit, DidManager.unit, DidLifecycle | ~25 |
-| **W3CResolver** (Full W3C resolution) | W3CResolver.unit | 22 |
-| **W3CResolverNative** (Native resolution) | W3CResolverNative.unit | 27 |
+| **W3CResolver** (Full W3C resolution) | W3CResolver.unit, DidStringConformance.unit | 29 |
+| **W3CResolverNative** (Native resolution) | W3CResolverNative.unit, DidStringConformance.unit | 30 |
 | **W3CResolverBase** (shared resolution) | Both resolver test files | ~49 |
-| **W3CResolverUtils** (shared library) | Both resolver test files | ~10 |
+| **W3CResolverUtils** (shared library) | DidStringConformance.unit (direct), both resolver test files | ~20 |
 | **HashUtils** (hash library) | Indirectly via ALL storage tests | all |
 | **DidManager** (Full W3C wrapper) | DidManager.unit, DirectEOAGuard.unit, fuzz, invariant, integration | ~88 |
 | **DidManagerNative** (Native wrapper) | DidManagerNative.unit, DirectEOAGuard.unit, native fuzz/invariant | ~94 |
@@ -759,7 +764,7 @@ These files are not test files but support the test infrastructure:
 
 ---
 
-**Last Updated**: 2026-06-10
-**Total Test Count**: 363 (325 in the default profile; fuzz/invariant run under CI profiles)
+**Last Updated**: 2026-08-24
+**Total Test Count**: 397 (359 in the default profile; fuzz/invariant run under CI profiles)
 **Test Framework**: Foundry (forge test)
 **Coverage Target**: >90% (enforced in CI/CD)

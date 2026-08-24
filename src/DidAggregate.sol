@@ -7,6 +7,7 @@ import { VMHooks } from "@storage/VMHooks.sol";
 import { Service } from "@types/ServiceTypes.sol";
 import { HashUtils } from "@src/HashUtils.sol";
 import { SignatureChecker } from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {
   Controller,
   EXPIRATION,
@@ -41,11 +42,19 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
   // ═══════════════════════════════════════════════════════════════════
 
   /// @dev Restricts authenticated state-changing entry points to direct EOA calls.
-  /// Passes only when msg.sender is the transaction's signing EOA (msg.sender == tx.origin),
-  /// i.e. no intermediary contract sits in the call chain. This preserves the signature-derived
-  /// identity guarantee while closing the confused-deputy hole: a contract the user calls can
-  /// never act on the user's DID. tx.origin survives ONLY in this equality guard — it is never
-  /// used as an identity source.
+  /// Passes only when msg.sender is the transaction's signing EOA (msg.sender == tx.origin).
+  /// This preserves the signature-derived identity guarantee and closes the confused-deputy hole
+  /// that `tx.origin`-based authentication left open: a separate contract the user calls cannot
+  /// act on the user's DID, because it would be msg.sender and the guard would reject it.
+  /// tx.origin survives ONLY in this equality guard, never as an identity source.
+  ///
+  /// LIMIT (EIP-7702, live since Pectra): the guard does NOT prove "no intermediary contract is
+  /// in the call chain". A delegated EOA carries code, so a call it makes to this contract still
+  /// satisfies msg.sender == tx.origin. If that account's delegate executes arbitrary calls for
+  /// arbitrary callers, a contract can reach a guarded entry point through it. What the guard
+  /// still guarantees is narrower and is the property the authorization model needs: the
+  /// authenticated address is exactly the account that signed the transaction. Choosing a
+  /// delegate that lets third parties act as you is a decision made at the wallet, not here.
   modifier onlyDirectEOA() {
     if (msg.sender != tx.origin) {
       revert DirectEOACallRequired();
@@ -256,7 +265,12 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
   /// OpenZeppelin's `SignatureChecker`: `ecrecover` when `signer` has no code, an
   /// `IERC1271.isValidSignature` staticcall otherwise. Non-reverting for authorization and
   /// signature failures; reverts only on missing parameters. Counterfactual (ERC-6492) wallets
-  /// are NOT supported — the signing account must already be deployed.
+  /// are NOT supported: the signing account must already be deployed.
+  /// @dev EIP-7702: a delegated EOA has code, so the ERC-1271 branch is taken and fails when the
+  /// delegate does not implement `isValidSignature`. An ECDSA fallback covers that case.
+  /// @dev Signature malleability: this path rejects a high-`s` signature (OpenZeppelin `ECDSA`),
+  /// whereas the raw-`ecrecover` {isAuthorizedOffChain} accepts it. The two views therefore
+  /// disagree on a malleated signature; prefer this one.
   /// @param methods The DID methods (three packed 10-byte segments).
   /// @param senderId The sender's DID identifier.
   /// @param senderVmId The sender's verification method identifier.
@@ -282,7 +296,16 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     }
 
     // EOA -> ecrecover; contract -> IERC1271.isValidSignature. Never reverts on a bad signature.
-    if (!SignatureChecker.isValidSignatureNowCalldata(signer, messageHash, signature)) return false;
+    if (!SignatureChecker.isValidSignatureNowCalldata(signer, messageHash, signature)) {
+      // EIP-7702 fallback. A delegated EOA carries code, so SignatureChecker takes the ERC-1271
+      // branch and returns false whenever the delegate does not implement isValidSignature, even
+      // though the account's own key produced a perfectly valid signature. Recovering directly
+      // restores that path. This grants nothing new: under EIP-7702 the private key keeps full
+      // control of the account (it can transact directly and re-delegate at will), so its raw
+      // signature is authority the key already holds.
+      (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecoverCalldata(messageHash, signature);
+      if (err != ECDSA.RecoverError.NoError || recovered != signer) return false;
+    }
 
     // Delegate to shared authorization logic
     return _isAuthorized(methods, senderId, senderVmId, targetId, relationship, signer);
