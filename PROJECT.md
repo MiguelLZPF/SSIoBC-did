@@ -26,6 +26,7 @@ This file is the **single source of truth** for project domain knowledge, refere
 - **4-year expiration** with reuse capability
 - **W3C DID specification compliance**
 - **Smart contract interoperability** (direct on-chain resolution)
+- **Native transaction signature authorization**: every write is authorized by the transaction's own signature. No write function accepts a signature, nonce or domain separator, and no write path performs in-contract signature verification (see [Native Transaction Signature as the Authorization Primitive](#6-native-transaction-signature-as-the-authorization-primitive))
 
 ### Core Technologies
 
@@ -33,7 +34,7 @@ This file is the **single source of truth** for project domain knowledge, refere
 - **EVM**: Osaka (Fusaka hardfork)
 - **Framework**: Foundry (Forge, Cast, Anvil)
 - **Testing**: Forge test framework with >90% coverage requirement
-- **Libraries**: OpenZeppelin (EnumerableSet, Ownable, Strings)
+- **Libraries**: OpenZeppelin (EnumerableSet, Ownable, Strings, SignatureChecker/ECDSA for the ERC-1271 read path)
 - **Network**: Ethereum (EVM-compatible chains)
 
 ## Academic Context & Innovation
@@ -55,6 +56,7 @@ This is a **PhD research project** demonstrating that complete DID document stor
 2. Maintains W3C compliance (vs non-standard approaches)
 3. Enables direct smart contract interoperability
 4. Achieves gas efficiency through hash-based list architecture
+5. Authorizes every state change with the native transaction signature, with no in-contract signature verification, nonce management or replay window on the write path
 
 ### Comparison with Existing Solutions
 
@@ -1414,6 +1416,47 @@ modifier onlyDirectEOA() {
 - **`tx.origin` is never used as identity**: It survives only inside this equality guard; every identity comparison (ID entropy, VM binding, `_isAuthenticated`, `_isVmOwner`) uses `msg.sender`.
 
 **Compatibility**: EIP-7702-delegated EOAs keep working (top-level calls still satisfy `msg.sender == tx.origin`). Calls routed through multisigs, smart accounts, meta-tx forwarders, or ERC-4337 bundlers revert on write paths; signature-based flows use `isAuthorizedOffChain` (EOA, `ecrecover`) or `isAuthorizedOffChainWithSigner` (EOA **and** ERC-1271 contract signers, via OpenZeppelin `SignatureChecker`). A contract cannot yet own a verification method, because `validateVm` requires `msg.sender == vm.ethereumAddress` under `onlyDirectEOA`; the ERC-1271 path therefore covers addresses validated as EOAs that later gained code, which is the EIP-7702 case.
+
+### 6. Native Transaction Signature as the Authorization Primitive
+
+This is a core design property of the system, not an implementation detail. **Every state change
+is authorized by the transaction's own secp256k1 signature.** No write function accepts a
+signature, a nonce, a deadline, or a domain separator. The caller sends an ordinary transaction and
+the EVM recovers the signing address; the contract compares that address to the DID's verification
+method. There is no in-contract signature verification on any write path.
+
+**The v1.4.0 change preserves this property and tightens it.** `tx.origin` and `msg.sender` are
+both derived from the same recovered address. They differ only when an intermediary contract sits
+in the call chain:
+
+| Call shape | `tx.origin` | `msg.sender` |
+|---|---|---|
+| EOA sends the transaction directly | the signer | the signer (identical) |
+| EOA calls contract X, X calls the DID | the signer | X |
+
+Under `tx.origin`, the signature proved "this account signed *a* transaction", not "this account
+requested *this* DID operation". `onlyDirectEOA` forces the two values to be equal, so on every
+successful write the caller **is** the transaction's signer. The signature now proves both facts.
+The authorization primitive is unchanged; the binding between signature and action is stronger.
+
+**Where signature verification does happen.** Two `view` functions, and only those:
+
+| Function | Mutability | Mechanism | Purpose |
+|---|---|---|---|
+| `isAuthorized` | `view` | none (address comparison) | on-chain check by a verifier contract |
+| `isAuthorizedOffChain` | `view` | raw `ecrecover` | gasless proof of control via `eth_call` |
+| `isAuthorizedOffChainWithSigner` | `view` | OZ `SignatureChecker` (`ecrecover` or ERC-1271) | same, for EOA and smart-contract signers |
+
+Both signature-checking functions are read-only and optional. They exist for off-chain verifiers
+and cannot change any state. Adding ERC-1271 support therefore does not weaken or replace the
+native-signature model: it adds a second read path for verifiers whose signer is a contract.
+
+**Verification.** Enumerating every `external`/`public` function across `DidAggregate`,
+`DidManager` and `DidManagerNative` yields 8 writes (all carrying `onlyDirectEOA`, none taking
+signature material) and 16 views. `ecrecover` and `SignatureChecker` appear only at
+`DidAggregate.sol:245` and `DidAggregate.sol:285`, both inside `view` functions. The resolvers
+contain neither.
+
 
 ## Key Technologies
 
