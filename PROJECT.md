@@ -1103,7 +1103,9 @@ DIDs structured as `did:method0:method1:method2:id` with 10-byte method segments
 bytes32 methods = [method0:10bytes][method1:10bytes][method2:10bytes][padding:2bytes]
 ```
 
-**Default**: `"lzpf::main::"`
+**Default**: `DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;")`, rendering as `did:lzpf:main:<id>`.
+
+See [Segment Filler: Why `;` and Not `0x00`](#segment-filler-why--and-not-0x00) for the encoding rule.
 
 ## DID Structure & Concepts
 
@@ -1113,10 +1115,13 @@ bytes32 methods = [method0:10bytes][method1:10bytes][method2:10bytes][padding:2b
 did:method0:method1:method2:id
 ```
 
-**Example**:
+**Example** (as emitted by `W3CResolver.resolve`, id is 64 lowercase hex chars, no `0x`):
 ```
-did:lzpf:main:testnet:0x1234567890abcdef1234567890abcdef12345678
+did:lzpf:main:testnet:b3dd18c0ab4785da044013fdc76315bccbee73617fe09c38b587d64919389f8f
 ```
+
+Empty trailing segments are omitted, so the default methods value renders as
+`did:lzpf:main:<id>` and a single-segment value as `did:lzpf:<id>`.
 
 ### DID Components
 
@@ -1129,7 +1134,36 @@ bytes32 methods = [method0][method1][method2][padding]
                   ├─10bytes─┤─10bytes─┤─10bytes─┤─2bytes─┤
 ```
 
-**Default**: `"lzpf::main::"` (lzpf, empty, main, empty)
+**Default**: `bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;")`, meaning segment 0 = `lzpf`, segment 1 = `main`, segment 2 = empty.
+
+##### Segment Filler: Why `;` and Not `0x00`
+
+Each segment is fixed at 10 bytes, so a shorter name needs a filler. The project uses `;`
+(`0x3B`) rather than `0x00`, for two reasons:
+
+1. **An empty segment becomes expressible.** With `0x00` padding, "this segment is
+   deliberately empty" and "this segment was never set" are the same 10 zero bytes. With `;`
+   they are different values, so the encoding can carry the distinction. Zero-padding cannot.
+2. **The constant stays readable.** `bytes32("lzpf\x00\x00\x00\x00\x00\x00main")` compiles,
+   but nobody can count six escapes by eye. The `;` form shows the three 10-byte fields at a
+   glance and makes an off-by-one obvious in review.
+
+**The filler is internal and never leaves the contract.** W3C DID Core v1.0 section 3.1
+defines `method-char = %x61-7A / DIGIT` and `idchar = ALPHA / DIGIT / "." / "-" / "_" /
+pct-encoded`; neither `;` nor `0x00` is legal in a DID. `W3CResolverUtils.trimMethodSegment`
+strips both from every segment before the DID string is built, and drops a segment that
+becomes empty, so `bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;")` renders as
+`did:lzpf:main:<id>` and not `did:lzpf;;;;;;:main;;;;;;:;;;;;;;;;;:<id>`.
+
+This matters because third-party software cannot know the convention. The `did-resolver`
+npm package, which sits under Veramo, `did-jwt-vc` and the DIF Universal Resolver, matches
+the string against a regex built from the ABNF above. A `;` makes `parse()` return null and
+resolution fails with `invalidDid` before any contract call happens. Nothing downstream could
+strip the filler even if it wanted to.
+
+The transformation is output-only: stored `bytes32` values and every `idHash` are untouched.
+`test/unit/DidStringConformance.unit.t.sol` asserts the emitted syntax against the ABNF and
+includes a negative test proving the checker rejects the unfiltered form.
 
 #### ID (bytes32)
 

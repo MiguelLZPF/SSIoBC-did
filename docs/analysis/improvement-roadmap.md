@@ -101,14 +101,14 @@ What is **missing / weak** (the opportunity surface):
 | 16 | `examples/` + tutorial | Not started | no `examples/` |
 | 17 | Docs site (`forge doc`) | Not started | single CI workflow, no Pages job |
 | 18 | Halmos symbolic verification | Not started | no halmos tests, no CI job |
-| 19 | W3C conformance vectors | Not started | no `test/vectors/` |
+| 19 | W3C conformance vectors | **Partial** | DID *syntax* conformance shipped: `test/unit/DidStringConformance.unit.t.sol` (10 tests) asserts the emitted string against the DID Core v1.0 section 3.1 ABNF, and the `;` filler leak it caught is fixed. Missing: full document-level vectors (`test/vectors/*.json`) and the `w3c/did-test-suite` run |
 | 20 | Mutation testing + Echidna | Not started | — |
 | 21 | Public testnet deploys | Not started | `.deployments.json` still records only private chain 6660 |
 | 22 | ERC draft | Not started | — |
 | 23 | Zenodo / preprint / topics | Not started | `CITATION.cff` exists, no DOI |
 | 24 | Onboarding / devcontainer | Not started | no `Makefile`, no `.devcontainer/`, no `docs/adr/` |
 
-**Score: 2 of 24 partially done, 22 not started.** Only ideas #1 and #3 have touched code so far.
+**Score: 3 of 24 partially done, 21 not started.** Ideas #1, #3 and #19 have touched code so far.
 
 ### Blocking conflict discovered during implementation
 
@@ -156,6 +156,24 @@ Closing the gap needs a signature-based activation path, e.g.
 against `vm.ethereumAddress` through `SignatureChecker`, so any EOA can relay the activation while
 authority stays with the VM's own key. That is a **write**-path security change and is deliberately
 left for an explicit decision rather than folded into #1.
+
+
+### Resolved during #19: the DID string was not spec-valid
+
+Found and fixed 2026-08-24. `DEFAULT_DID_METHODS` pads its 10-byte segments with `;` (`0x3B`),
+a deliberate choice: it makes a deliberately-empty segment distinguishable from an unset one,
+which zero-padding cannot express, and it keeps the constant readable. But `trimBytes` stripped
+only `0x00`, so the filler reached the output:
+
+```
+  did:lzpf;;;;;;:main;;;;;;:;;;;;;;;;;:b3dd18c0ab...
+```
+
+`;` is illegal in both `method-name` and `idchar`, so `did-resolver` (and therefore Veramo,
+`did-jwt-vc` and the DIF Universal Resolver) rejects the string with `invalidDid` before any
+contract call. `W3CResolverUtils.trimMethodSegment` now strips both fillers per segment and
+drops a segment that becomes empty. Output-only: stored `bytes32` values and every `idHash` are
+unchanged. This unblocks #5, #6 and #7, which all depend on the string parsing for third parties.
 
 ### Sub-tasks left over from #3 (v1.4.0)
 
@@ -552,7 +570,7 @@ new contributors. Lowering "time to first passing build" is the strongest predic
 | 5 | Register DID method | 2 | 4 | 3 | **Quick win** | Not started |
 | 9 | EIP-712 signatures | 3 | 3 | 4 | High value | Not started |
 | 14 | Subgraph + Ponder | 3 | 4 | 2 | High value | Not started |
-| 19 | W3C conformance vectors | 3 | 3 | 5 | **Research-critical** | Not started |
+| 19 | W3C conformance vectors | 3 | 3 | 5 | **Research-critical** | Partial |
 | 2 | ERC-7579 DID module | 5 | 4 | 5 | **Flagship** | Not started |
 | 12 | ethr-did benchmark | 3 | 3 | 4 | Research-critical | Not started |
 | 18 | Halmos verification | 3 | 2 | 4 | Research | Not started |

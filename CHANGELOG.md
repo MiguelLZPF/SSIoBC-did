@@ -44,8 +44,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `IDidAuth` gains `isAuthorizedOffChainWithSigner`; existing selectors are unchanged, so this is
   ABI-additive.
-- Contract sizes: DidManager 14,009 B (+868), DidManagerNative 12,401 B (+868), resolvers unchanged.
-- 346 tests passing on the default profile (325 before).
+- Contract sizes: DidManager 14,009 B (+868), DidManagerNative 12,401 B (+868), W3CResolver
+  11,215 B (+368), W3CResolverNative 11,737 B (+368).
+- 356 tests passing on the default profile (325 before), 394 under the CI profile (363 before).
+
+### Fixed
+
+- **The emitted DID string was not a valid W3C DID.** `DEFAULT_DID_METHODS` pads its 10-byte
+  segments with `;` (`0x3B`), but `W3CResolverUtils.trimBytes` only stripped `0x00`, so the
+  filler survived into the output: `did:lzpf;;;;;;:main;;;;;;:;;;;;;;;;;:b3dd18c0…`. W3C DID
+  Core v1.0 section 3.1 allows only `a-z` and `0-9` in `method-name`, and `ALPHA / DIGIT /
+  "." / "-" / "_" / pct-encoded` in `idchar`, so the string was rejected by any ABNF-based
+  parser (`did-resolver`, and therefore Veramo, `did-jwt-vc` and the DIF Universal Resolver)
+  before reaching the contract. New `W3CResolverUtils.trimMethodSegment` strips both fillers
+  per segment and drops a segment that becomes empty. Default methods now render as
+  `did:lzpf:main:<id>`.
+- The `;` filler is deliberate and is kept: it makes a deliberately-empty segment
+  distinguishable from an unset one, which zero-padding cannot express, and keeps the constant
+  readable. The fix is **output-only**: stored `bytes32` values and every `idHash` are
+  unchanged, so no existing DID moves.
+
+### Added (conformance)
+
+- `test/unit/DidStringConformance.unit.t.sol` — 10 tests (7 full W3C + 3 native) asserting the
+  emitted DID string against the W3C DID Core v1.0 section 3.1 ABNF, across default methods,
+  omitted methods, zero-padded methods, one segment, and three segments. Includes a negative
+  test proving the checker rejects the pre-fix output, so the assertion is not vacuous.
 
 ### Notes
 

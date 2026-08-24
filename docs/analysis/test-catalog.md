@@ -12,24 +12,25 @@
   - [AuthorizeOffChainErc1271.unit.t.sol](#3-authorizeoffchainerc1271unittsol--21-tests)
   - [DidManager.unit.t.sol](#4-didmanagerunittsol--60-tests)
   - [DidManagerNative.unit.t.sol](#5-didmanagernativeunittsol--72-tests)
-  - [DirectEOAGuard.unit.t.sol](#6-directeoaguardunittsol--20-tests)
-  - [ServiceStorage.unit.t.sol](#7-servicestorageunittsol--19-tests)
-  - [VMStorage.unit.t.sol](#8-vmstorageunittsol--30-tests)
-  - [W3CResolver.unit.t.sol](#9-w3cresolverunittsol--22-tests)
-  - [W3CResolverNative.unit.t.sol](#10-w3cresolvernativeunittsol--27-tests)
+  - [DidStringConformance.unit.t.sol](#6-didstringconformanceunittsol--10-tests)
+  - [DirectEOAGuard.unit.t.sol](#7-directeoaguardunittsol--20-tests)
+  - [ServiceStorage.unit.t.sol](#8-servicestorageunittsol--19-tests)
+  - [VMStorage.unit.t.sol](#9-vmstorageunittsol--30-tests)
+  - [W3CResolver.unit.t.sol](#10-w3cresolverunittsol--22-tests)
+  - [W3CResolverNative.unit.t.sol](#11-w3cresolvernativeunittsol--27-tests)
 - [Fuzz Tests](#fuzz-tests)
-  - [DidManager.fuzz.t.sol](#11-didmanagerfuzztsol--10-tests)
-  - [DidManagerNative.fuzz.t.sol](#12-didmanagernativefuzztsol--11-tests)
+  - [DidManager.fuzz.t.sol](#12-didmanagerfuzztsol--10-tests)
+  - [DidManagerNative.fuzz.t.sol](#13-didmanagernativefuzztsol--11-tests)
 - [Integration Tests](#integration-tests)
-  - [DidLifecycle.integration.t.sol](#13-didlifecycleintegrationtsol--6-tests)
-  - [KeyAgreementE2E.t.sol](#14-keyagreemente2etsol--3-tests)
+  - [DidLifecycle.integration.t.sol](#14-didlifecycleintegrationtsol--6-tests)
+  - [KeyAgreementE2E.t.sol](#15-keyagreemente2etsol--3-tests)
 - [Invariant Tests](#invariant-tests)
-  - [SystemInvariants.t.sol](#15-systeminvariantstsol--7-invariants)
-  - [NativeSystemInvariants.t.sol](#16-nativesysteminvariantstsol--8-invariants)
+  - [SystemInvariants.t.sol](#16-systeminvariantstsol--7-invariants)
+  - [NativeSystemInvariants.t.sol](#17-nativesysteminvariantstsol--8-invariants)
 - [Performance Tests](#performance-tests)
-  - [GasOptimization.performance.t.sol](#17-gasoptimizationperformancetsol--8-tests)
+  - [GasOptimization.performance.t.sol](#18-gasoptimizationperformancetsol--8-tests)
 - [Stress Tests](#stress-tests)
-  - [StressTest.t.sol](#18-stresstesttsol--6-tests)
+  - [StressTest.t.sol](#19-stresstesttsol--6-tests)
 - [Helper & Fixture Files](#helper--fixture-files)
 - [Coverage by Production Contract](#coverage-by-production-contract)
 
@@ -39,15 +40,15 @@
 
 | Category | Count | Files |
 |----------|------:|------:|
-| Unit Tests | 325 | 10 |
+| Unit Tests | 335 | 11 |
 | Fuzz Tests | 21 | 2 |
 | Integration Tests | 9 | 2 |
 | Invariant Tests | 15 | 2 |
 | Performance Tests | 8 | 1 |
 | Stress Tests | 6 | 1 |
-| **TOTAL** | **384** | **18** |
+| **TOTAL** | **394** | **19** |
 
-> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 346 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 384 run under the CI profiles.
+> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 356 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 394 run under the CI profiles.
 
 ---
 
@@ -301,7 +302,36 @@ Contains all 60 tests from `DidManager.unit.t.sol` adapted for native variant (1
 
 ---
 
-### 6. `DirectEOAGuard.unit.t.sol` — 20 tests
+### 6. `DidStringConformance.unit.t.sol` — 10 tests
+
+**File**: `test/unit/DidStringConformance.unit.t.sol`
+**Primary target**: `W3CResolverUtils.formatDidString()` / `trimMethodSegment()` — W3C DID syntax of the emitted string
+
+The shared `DidAbnf` base implements the W3C DID Core v1.0 section 3.1 grammar in Solidity
+(`method-char = %x61-7A / DIGIT`; `idchar = ALPHA / DIGIT / "." / "-" / "_" / pct-encoded`) and
+reverts with a descriptive reason on any violation. The `;` segment filler used by
+`DEFAULT_DID_METHODS` is legal in storage but illegal in a DID, and nothing asserted the emitted
+syntax before this file existed.
+
+#### DidStringConformanceUnitTest (Full W3C variant, 7 tests)
+
+| # | Test | What it verifies |
+|---|------|------------------|
+| 1 | `test_DidString_Should_BeConformant_When_DefaultMethodsUsed` | `DEFAULT_DID_METHODS` renders exactly `did:lzpf:main:<64 hex>` and passes the ABNF |
+| 2 | `test_DidString_Should_BeConformant_When_MethodsOmitted` | `methods = 0` falls back to the default and still conforms |
+| 3 | `test_DidString_Should_BeConformant_When_ZeroPaddedMethods` | `0x00`-padded methods render identically to `;`-padded ones |
+| 4 | `test_DidString_Should_BeConformant_When_ThreeSegmentsPopulated` | three segments render as `did:lzpf:main:testnet:<id>` |
+| 5 | `test_DidString_Should_BeConformant_When_SingleSegment` | one segment renders as `did:lzpf:<id>`, no empty parts |
+| 6 | `test_DidString_Should_NotContainFiller_When_DefaultMethodsUsed` | no `0x3B` and no `0x00` byte survives into the output |
+| 7 | `test_AbnfChecker_Should_Reject_When_StringContainsFiller` | **negative control**: the checker rejects the pre-fix string `did:lzpf;;;;;;:main;;;;;;:…`, so tests 1-6 are not vacuous |
+
+#### DidStringConformanceNativeUnitTest (Ethereum-Native variant, 3 tests)
+
+Mirrors tests 1, 6 and 4 above against `W3CResolverNative`.
+
+---
+
+### 7. `DirectEOAGuard.unit.t.sol` — 20 tests
 
 **File**: `test/unit/DirectEOAGuard.unit.t.sol`
 **Contracts**: `DirectEOAGuardUnitTest is TestBase` (10), `DirectEOAGuardNativeUnitTest is TestBaseNative` (10)
@@ -342,7 +372,7 @@ Same 10 scenarios as the full variant, targeting `DidManagerNative` with 1-slot 
 
 ---
 
-### 7. `ServiceStorage.unit.t.sol` — 19 tests
+### 8. `ServiceStorage.unit.t.sol` — 19 tests
 
 **File**: `test/unit/ServiceStorage.unit.t.sol`
 **Contract**: `ServiceStorageUnitTest`
@@ -399,7 +429,7 @@ Same 10 scenarios as the full variant, targeting `DidManagerNative` with 1-slot 
 
 ---
 
-### 8. `VMStorage.unit.t.sol` — 30 tests
+### 9. `VMStorage.unit.t.sol` — 30 tests
 
 **File**: `test/unit/VMStorage.unit.t.sol`
 **Contract**: `VMStorageUnitTest`
@@ -477,7 +507,7 @@ Same 10 scenarios as the full variant, targeting `DidManagerNative` with 1-slot 
 
 ---
 
-### 9. `W3CResolver.unit.t.sol` — 22 tests
+### 10. `W3CResolver.unit.t.sol` — 22 tests
 
 **File**: `test/unit/W3CResolver.unit.t.sol`
 **Contract**: `W3CResolverUnitTest`
@@ -510,7 +540,7 @@ Same 10 scenarios as the full variant, targeting `DidManagerNative` with 1-slot 
 
 ---
 
-### 10. `W3CResolverNative.unit.t.sol` — 27 tests
+### 11. `W3CResolverNative.unit.t.sol` — 27 tests
 
 **File**: `test/unit/W3CResolverNative.unit.t.sol`
 **Contract**: `W3CResolverNativeUnitTest`
@@ -552,7 +582,7 @@ Shares 20 tests with W3CResolver (adapted for native), **plus** 7 native-specifi
 
 ## Fuzz Tests
 
-### 11. `DidManager.fuzz.t.sol` — 10 tests
+### 12. `DidManager.fuzz.t.sol` — 10 tests
 
 **File**: `test/fuzz/DidManager.fuzz.t.sol`
 **Contract**: `DidManagerFuzzTest`
@@ -573,7 +603,7 @@ Shares 20 tests with W3CResolver (adapted for native), **plus** 7 native-specifi
 
 ---
 
-### 12. `DidManagerNative.fuzz.t.sol` — 11 tests
+### 13. `DidManagerNative.fuzz.t.sol` — 11 tests
 
 **File**: `test/fuzz/DidManagerNative.fuzz.t.sol`
 **Contract**: `DidManagerNativeFuzzTest`
@@ -589,7 +619,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ## Integration Tests
 
-### 13. `DidLifecycle.integration.t.sol` — 6 tests
+### 14. `DidLifecycle.integration.t.sol` — 6 tests
 
 **File**: `test/integration/DidLifecycle.integration.t.sol`
 **Contract**: `DidLifecycleIntegrationTest`
@@ -606,7 +636,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ---
 
-### 14. `KeyAgreementE2E.t.sol` — 3 tests
+### 15. `KeyAgreementE2E.t.sol` — 3 tests
 
 **File**: `test/integration/KeyAgreementE2E.t.sol`
 **Contract**: `KeyAgreementE2ETest`
@@ -622,7 +652,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ## Invariant Tests
 
-### 15. `SystemInvariants.t.sol` — 7 invariants
+### 16. `SystemInvariants.t.sol` — 7 invariants
 
 **File**: `test/invariant/SystemInvariants.t.sol`
 **Contract**: `SystemInvariantsTest`
@@ -641,7 +671,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ---
 
-### 16. `NativeSystemInvariants.t.sol` — 8 invariants
+### 17. `NativeSystemInvariants.t.sol` — 8 invariants
 
 **File**: `test/invariant/NativeSystemInvariants.t.sol`
 **Contract**: `NativeSystemInvariantsTest`
@@ -657,7 +687,7 @@ Same 7 invariants as above for native variant **plus**:
 
 ## Performance Tests
 
-### 17. `GasOptimization.performance.t.sol` — 8 tests
+### 18. `GasOptimization.performance.t.sol` — 8 tests
 
 **File**: `test/performance/GasOptimization.performance.t.sol`
 **Contract**: `GasOptimizationPerformanceTest`
@@ -679,7 +709,7 @@ Same 7 invariants as above for native variant **plus**:
 
 ## Stress Tests
 
-### 18. `StressTest.t.sol` — 6 tests
+### 19. `StressTest.t.sol` — 6 tests
 
 **File**: `test/stress/StressTest.t.sol`
 **Contract**: `StressTest`

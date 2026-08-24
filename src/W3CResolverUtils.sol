@@ -74,14 +74,14 @@ library W3CResolverUtils {
    * @return did The formatted DID string.
    */
   function formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
-    bytes10 method0 = bytes10(didInput.methods);
-    bytes10 method1 = bytes10(bytes32(uint256(didInput.methods) << 80));
-    bytes10 method2 = bytes10(bytes32(uint256(didInput.methods) << 160));
+    bytes memory method0 = trimMethodSegment(bytes10(didInput.methods));
+    bytes memory method1 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 80)));
+    bytes memory method2 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 160)));
     bytes memory finalEncode = abi.encodePacked("did:", method0, ":");
-    if (method1 != bytes10(0)) {
+    if (method1.length > 0) {
       finalEncode = abi.encodePacked(finalEncode, method1, ":");
     }
-    if (method2 != bytes10(0)) {
+    if (method2.length > 0) {
       finalEncode = abi.encodePacked(finalEncode, method2, ":");
     }
     finalEncode = abi.encodePacked(finalEncode, bytesToHexString(abi.encodePacked(didInput.id)));
@@ -155,6 +155,41 @@ library W3CResolverUtils {
    * @param input The byte array to trim.
    * @return output The trimmed byte array.
    */
+  /**
+   * @dev Strips the filler bytes a 10-byte method segment can carry, so only DID-legal
+   * characters reach the DID string.
+   *
+   * Two filler bytes exist by design:
+   * - `0x00`: Solidity right-pads a short string literal cast to `bytes10`.
+   * - `0x3B` (";"): the project's explicit-empty marker (see `DEFAULT_DID_METHODS` in
+   *   `DidTypes.sol`). It distinguishes "this segment is deliberately empty" from
+   *   "this segment was never set", which zero-padding cannot express.
+   *
+   * Neither is a legal DID character. W3C DID Core v1.0 section 3.1 defines
+   * `method-char = %x61-7A / DIGIT` and `idchar = ALPHA / DIGIT / "." / "-" / "_" /
+   * pct-encoded`, so both fillers must be removed before the segment is emitted.
+   * They remain untouched in storage; this is an output-only transformation.
+   *
+   * @param segment One 10-byte method segment.
+   * @return out The segment with every filler byte removed (may be empty).
+   */
+  function trimMethodSegment(bytes10 segment) internal pure returns (bytes memory out) {
+    bytes memory buffer = new bytes(10);
+    uint256 length = 0;
+    for (uint256 i = 0; i < 10; i++) {
+      bytes1 char = segment[i];
+      if (char != 0x00 && char != 0x3B) {
+        buffer[length] = char;
+        length++;
+      }
+    }
+    out = new bytes(length);
+    for (uint256 i = 0; i < length; i++) {
+      out[i] = buffer[i];
+    }
+    return out;
+  }
+
   function trimBytes(bytes memory input) internal pure returns (bytes memory output) {
     if (input[0] == 0x00) {
       return new bytes(0);
