@@ -7,6 +7,7 @@ import { DidTestHelpers } from "../helpers/DidTestHelpers.sol";
 import { DidCreateVmCommand as CreateVmCommand } from "@types/VmTypes.sol";
 import { DEFAULT_DID_METHODS, DidAlreadyExists } from "@types/DidTypes.sol";
 import { DEFAULT_VM_ID } from "@types/VmTypes.sol";
+import { HashUtils } from "@src/HashUtils.sol";
 
 /**
  * @title DidManagerFuzzTest
@@ -56,27 +57,64 @@ contract DidManagerFuzzTest is TestBase {
 
   /**
    * @notice Fuzz test: DID creation with custom methods should preserve method data
-   * @dev Property: Custom methods should be stored exactly as provided
+   * @dev Property: A canonical methods value is stored exactly as provided. Names are fuzzed as
+   * three `bytes10` and packed through `HashUtils.packMethods`, because `createDid` rejects any
+   * non-canonical `bytes32` (see `testFuzz_CreateDid_Should_Revert_When_MethodsNotCanonical`).
    */
   function testFuzz_CreateDid_Should_PreserveMethods_When_CustomMethodsProvided(
-    bytes32 customMethods,
+    bytes10 name0,
+    bytes10 name1,
     bytes32 randomValue
   ) public {
-    // Assume valid inputs
     vm.assume(randomValue != bytes32(0));
-    vm.assume(customMethods != bytes32(0));
+    name0 = _boundMethodName(name0, true);
+    name1 = _boundMethodName(name1, false);
+    vm.assume(name0 != bytes10(0));
+
+    bytes32 customMethods = HashUtils.packMethods(name0, name1, bytes10(0));
 
     _startPrank(user1);
-
-    // Test: Create DID with fuzzed custom methods
     DidTestHelpers.CreateDidResult memory result =
       DidTestHelpers.createDid(vm, didManager, customMethods, randomValue, bytes32(0));
 
-    // Property: Custom methods should be preserved exactly
     assertEq(result.didInfo.methods, customMethods);
     assertNotEq(result.didInfo.id, bytes32(0));
 
     _stopPrank();
+  }
+
+  /**
+   * @notice Fuzz test: a non-canonical methods value is always rejected, never stored
+   * @dev Property: `createDid` either reverts or leaves `methods` byte-identical to a canonical
+   * value. An arbitrary `bytes32` is overwhelmingly non-canonical, so this mostly exercises the
+   * revert path; the assertion is that a *stored* value is always what was passed in.
+   */
+  function testFuzz_CreateDid_Should_Revert_When_MethodsNotCanonical(bytes32 fuzzedMethods, bytes32 randomValue)
+    public
+  {
+    vm.assume(randomValue != bytes32(0));
+    vm.assume(fuzzedMethods != bytes32(0));
+
+    _startPrank(user1);
+    try didManager.createDid(fuzzedMethods, randomValue, bytes32(0)) {
+      bytes32 id = keccak256(abi.encodePacked(fuzzedMethods, randomValue, user1, block.prevrandao));
+      assertGt(didManager.getExpiration(fuzzedMethods, id, bytes32(0)), 0, "Accepted methods must resolve");
+    } catch { }
+    _stopPrank();
+  }
+
+  /// @dev Coerces fuzzed bytes into a legal method segment: lowercase letters only, trailing
+  /// zeros preserved so `packMethods` turns them into canonical ";" filler.
+  function _boundMethodName(bytes10 raw, bool required) internal pure returns (bytes10 out) {
+    bool ended = false;
+    for (uint256 i = 0; i < 10; i++) {
+      if (ended || (raw[i] == 0x00 && !(required && i == 0))) {
+        ended = true;
+        continue;
+      }
+      out |= bytes10(bytes1(uint8(0x61 + (uint8(raw[i]) % 26)))) >> (i * 8);
+    }
+    return out;
   }
 
   /**

@@ -24,6 +24,13 @@ struct Controller {
 /// string is built, because neither is legal under the W3C DID Core v1.0 ABNF. See PROJECT.md,
 /// "Segment Filler: Why ; and Not 0x00".
 bytes32 constant DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;");
+
+/// @dev The one canonical padding byte for a method segment, ";" (0x3B). Exactly one filler byte
+/// is permitted so that the `bytes32 methods` -> DID-string mapping stays injective: if both 0x00
+/// and ";" were accepted, `"lzpf" + 0x00*6` and `"lzpf" + ";"*6` would be distinct values (distinct
+/// idHash) that render the same DID string, and a DID read from a document could not be decoded
+/// back to the value that produced it. `HashUtils.packMethods` builds a canonical value.
+bytes1 constant METHOD_FILLER = 0x3B;
 uint256 constant EXPIRATION = 126144000; // 4 years in seconds (4 * 365 * 24 * 60 * 60)
 uint8 constant CONTROLLERS_MAX_LENGTH = 5;
 
@@ -39,3 +46,8 @@ error NotAControllerForTargetId();
 error VmRelationshipOutOfRange();
 error DidNotDeactivated();
 error DirectEOACallRequired();
+error MethodNameEmpty();
+error MethodCharInvalid();
+error MethodFillerNotTrailing();
+error MethodSegmentsNotLeftPacked();
+error MethodPaddingMustBeSemicolon();

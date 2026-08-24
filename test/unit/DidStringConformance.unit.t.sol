@@ -6,7 +6,8 @@ import { TestBaseNative } from "@test/helpers/TestBaseNative.sol";
 import { W3CResolver } from "@src/W3CResolver.sol";
 import { W3CResolverNative } from "@src/W3CResolverNative.sol";
 import { W3CDidInput, W3CDidDocument } from "@types/W3CTypes.sol";
-import { DEFAULT_DID_METHODS } from "@types/DidTypes.sol";
+import { HashUtils } from "@src/HashUtils.sol";
+import "@types/DidTypes.sol";
 
 /// @title DidAbnf
 /// @notice Asserts a string satisfies the W3C DID Core v1.0 section 3.1 ABNF:
@@ -125,18 +126,27 @@ contract DidStringConformanceUnitTest is TestBase, DidAbnf {
     _assertConformantDid(_resolve(bytes32(0), id));
   }
 
-  /// @notice Zero-padded methods (no ";" filler) must render identically.
-  function test_DidString_Should_BeConformant_When_ZeroPaddedMethods() public {
-    bytes32 methods = bytes32(bytes10("lzpf")) | (bytes32(bytes10("main")) >> 80);
-    bytes32 id = _create(methods, bytes32("rand-zero"));
+  /// @notice `HashUtils.packMethods` produces exactly the hand-written default constant.
+  function test_PackMethods_Should_MatchDefaultConstant() public pure {
+    assertEq(
+      HashUtils.packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0)),
+      DEFAULT_DID_METHODS,
+      "packMethods must reproduce DEFAULT_DID_METHODS byte for byte"
+    );
+  }
+
+  /// @notice Methods built through the canonical packer resolve and conform.
+  function test_DidString_Should_BeConformant_When_BuiltWithPackMethods() public {
+    bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0));
+    bytes32 id = _create(methods, bytes32("rand-packed"));
     string memory did = _resolve(methods, id);
     _assertConformantDid(did);
-    assertEq(did, string(abi.encodePacked("did:lzpf:main:", _hex(id))), "Zero padding renders the same");
+    assertEq(did, string(abi.encodePacked("did:lzpf:main:", _hex(id))), "packMethods renders the same");
   }
 
   /// @notice All three segments populated renders four colon-separated parts.
   function test_DidString_Should_BeConformant_When_ThreeSegmentsPopulated() public {
-    bytes32 methods = bytes32(bytes10("lzpf")) | (bytes32(bytes10("main")) >> 80) | (bytes32(bytes10("testnet")) >> 160);
+    bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10("main"), bytes10("testnet"));
     bytes32 id = _create(methods, bytes32("rand-three"));
     string memory did = _resolve(methods, id);
     _assertConformantDid(did);
@@ -145,7 +155,7 @@ contract DidStringConformanceUnitTest is TestBase, DidAbnf {
 
   /// @notice A single-segment method renders as did:<name>:<id> with no empty parts.
   function test_DidString_Should_BeConformant_When_SingleSegment() public {
-    bytes32 methods = bytes32(bytes10("lzpf"));
+    bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10(0), bytes10(0));
     bytes32 id = _create(methods, bytes32("rand-single"));
     string memory did = _resolve(methods, id);
     _assertConformantDid(did);
@@ -166,6 +176,143 @@ contract DidStringConformanceUnitTest is TestBase, DidAbnf {
   function test_AbnfChecker_Should_Reject_When_StringContainsFiller() public {
     vm.expectRevert(bytes("did: illegal char in method-name"));
     this.exposedAssertConformantDid("did:lzpf;;;;;;:main;;;;;;:;;;;;;;;;;:b3dd18c0");
+  }
+
+  // ---------------------------------------------------------------------
+  // Write-time rejection: `methods` that could render a non-conformant DID
+  // ---------------------------------------------------------------------
+
+  /// @notice `0x00` padding is rejected. Two fillers would break injectivity: "lzpf" + 0x00*6 and
+  /// "lzpf" + ";"*6 are distinct values that render the same string.
+  function test_RevertWhen_CreateDid_MethodsPaddedWithZeroBytes() public {
+    _startPrank(user1);
+    vm.expectRevert(MethodPaddingMustBeSemicolon.selector);
+    didManager.createDid(bytes32(bytes10("lzpf")), bytes32("r"), bytes32(0));
+    _stopPrank();
+  }
+
+  /// @notice An empty segment 0 would render `did::…` with no method-name.
+  function test_RevertWhen_CreateDid_MethodNameEmpty() public {
+    bytes32 methods = HashUtils.packMethods(bytes10(0), bytes10("main"), bytes10(0));
+    _startPrank(user1);
+    vm.expectRevert(MethodNameEmpty.selector);
+    didManager.createDid(methods, bytes32("r"), bytes32(0));
+    _stopPrank();
+  }
+
+  /// @notice Uppercase is illegal in `method-name` (`method-char = %x61-7A / DIGIT`).
+  function test_RevertWhen_CreateDid_MethodNameHasUppercase() public {
+    bytes32 methods = HashUtils.packMethods(bytes10("LZPF"), bytes10(0), bytes10(0));
+    _startPrank(user1);
+    vm.expectRevert(MethodCharInvalid.selector);
+    didManager.createDid(methods, bytes32("r"), bytes32(0));
+    _stopPrank();
+  }
+
+  /// @notice A ":" would inject an extra segment into the rendered DID.
+  function test_RevertWhen_CreateDid_MethodSegmentContainsColon() public {
+    bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10("a:b"), bytes10(0));
+    _startPrank(user1);
+    vm.expectRevert(MethodCharInvalid.selector);
+    didManager.createDid(methods, bytes32("r"), bytes32(0));
+    _stopPrank();
+  }
+
+  /// @notice A "#" would inject a DID-URL fragment, so a conformant parser would read a
+  /// different base DID than the one the document claims.
+  function test_RevertWhen_CreateDid_MethodSegmentContainsHash() public {
+    bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10("a#b"), bytes10(0));
+    _startPrank(user1);
+    vm.expectRevert(MethodCharInvalid.selector);
+    didManager.createDid(methods, bytes32("r"), bytes32(0));
+    _stopPrank();
+  }
+
+  /// @notice Interior filler is rejected: stripping it would make "l;zpf" and "lzpf" render the
+  /// same DID string while hashing differently.
+  function test_RevertWhen_CreateDid_FillerIsNotTrailing() public {
+    bytes32 methods = bytes32("l;zpf;;;;;main;;;;;;;;;;;;;;;;;;");
+    _startPrank(user1);
+    vm.expectRevert(MethodFillerNotTrailing.selector);
+    didManager.createDid(methods, bytes32("r"), bytes32(0));
+    _stopPrank();
+  }
+
+  /// @notice Segments must be left-packed: ("lzpf","","test") and ("lzpf","test","") would both
+  /// render `did:lzpf:test:<id>` while hashing differently.
+  function test_RevertWhen_CreateDid_SegmentsNotLeftPacked() public {
+    bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10(0), bytes10("test"));
+    _startPrank(user1);
+    vm.expectRevert(MethodSegmentsNotLeftPacked.selector);
+    didManager.createDid(methods, bytes32("r"), bytes32(0));
+    _stopPrank();
+  }
+
+  /// @notice The two unused tail bytes must be canonical filler too.
+  function test_RevertWhen_CreateDid_TailBytesNotFiller() public {
+    // 30 characters, so bytes 30 and 31 are 0x00
+    bytes32 methods = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;");
+    _startPrank(user1);
+    vm.expectRevert(MethodPaddingMustBeSemicolon.selector);
+    didManager.createDid(methods, bytes32("r"), bytes32(0));
+    _stopPrank();
+  }
+
+  /// @notice The resolver refuses to render a non-canonical `methods` even for a DID that was
+  /// never created, because `resolve` formats caller-supplied input without an existence check.
+  function test_RevertWhen_Resolve_MethodsWouldRenderEmptyMethodName() public {
+    bytes32 methods = HashUtils.packMethods(bytes10(0), bytes10("main"), bytes10(0));
+    vm.expectRevert(MethodNameEmpty.selector);
+    resolver.resolve(W3CDidInput({ methods: methods, id: bytes32("nonexistent"), fragment: bytes32(0) }), false);
+  }
+
+  /// @notice Same guard for an illegal character reaching the resolver directly.
+  function test_RevertWhen_Resolve_MethodsContainIllegalCharacter() public {
+    bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10("a#b"), bytes10(0));
+    vm.expectRevert(MethodCharInvalid.selector);
+    resolver.resolve(W3CDidInput({ methods: methods, id: bytes32("nonexistent"), fragment: bytes32(0) }), false);
+  }
+
+  /// @notice Fuzz: `methods` is either rejected at write time, or the DID it produces renders a
+  /// conformant string. There is no third outcome.
+  /// @dev The value is a canonical one with a single fuzzed byte overwritten at a fuzzed index,
+  /// not an arbitrary `bytes32`. Arbitrary bytes are non-canonical almost surely, so the accept
+  /// branch would never run and the test would assert nothing. Single-byte corruption keeps both
+  /// branches live: many mutations land on filler or on an already-legal character.
+  function testFuzz_CreateDid_MethodsAreRejectedOrRenderConformant(uint8 index, bytes1 corruption, bytes32 random)
+    public
+  {
+    vm.assume(random != bytes32(0));
+    uint256 position = index % 32;
+
+    bytes memory buffer = abi.encodePacked(DEFAULT_DID_METHODS);
+    buffer[position] = corruption;
+    bytes32 fuzzedMethods = bytes32(buffer);
+    vm.assume(fuzzedMethods != bytes32(0));
+
+    _startPrank(user1);
+    try didManager.createDid(fuzzedMethods, random, bytes32(0)) {
+      _stopPrank();
+      bytes32 id = keccak256(abi.encodePacked(fuzzedMethods, random, user1, block.prevrandao));
+      // Accepted: the rendered DID must satisfy the ABNF, and must round-trip through resolve.
+      _assertConformantDid(_resolve(fuzzedMethods, id));
+    } catch {
+      _stopPrank();
+      // Rejected: the resolver must refuse it too, so no path can render it.
+      _assertRejectedByResolver(fuzzedMethods);
+    }
+  }
+
+  /// @dev A value `createDid` rejects must also be unrenderable, otherwise the two layers could
+  /// disagree and a caller could get a non-conformant string out of `resolve`.
+  function _assertRejectedByResolver(bytes32 methods) internal {
+    try resolver.resolve(W3CDidInput({ methods: methods, id: bytes32("probe"), fragment: bytes32(0) }), false) returns (
+      W3CDidDocument memory doc
+    ) {
+      // Rendering is allowed only when the reason for write-time rejection is one the string
+      // layer cannot see (a non-filler tail byte, which never reaches the rendered segments).
+      _assertConformantDid(doc.id);
+    } catch { }
   }
 
   /// @dev External wrapper so `vm.expectRevert` can observe the failure.
@@ -217,7 +364,7 @@ contract DidStringConformanceNativeUnitTest is TestBaseNative, DidAbnf {
   }
 
   function test_Native_DidString_Should_BeConformant_When_ThreeSegmentsPopulated() public {
-    bytes32 methods = bytes32(bytes10("lzpf")) | (bytes32(bytes10("main")) >> 80) | (bytes32(bytes10("testnet")) >> 160);
+    bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10("main"), bytes10("testnet"));
     bytes32 id = _create(methods, bytes32("rand-native-3"));
     _assertConformantDid(_resolve(methods, id));
   }

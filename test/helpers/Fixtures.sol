@@ -20,7 +20,8 @@ library Fixtures {
   bytes10 internal constant CUSTOM_DID_METHOD_0 = bytes10("custom0;;;");
   bytes10 internal constant CUSTOM_DID_METHOD_1 = bytes10("custom1;;;");
   bytes10 internal constant CUSTOM_DID_METHOD_2 = bytes10("custom2;;;");
-  bytes32 internal constant CUSTOM_DID_METHODS = bytes32("custom0;;;custom1;;;custom2;;;");
+  // 32 chars: three 10-byte segments plus the two canonical ";;" tail bytes
+  bytes32 internal constant CUSTOM_DID_METHODS = bytes32("custom0;;;custom1;;;custom2;;;;;");
 
   // DID IDs and Random values
   bytes32 internal constant EMPTY_DID_ID = bytes32(0);

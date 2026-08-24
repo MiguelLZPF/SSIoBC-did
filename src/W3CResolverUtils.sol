@@ -2,7 +2,16 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { W3CService, W3CDidInput } from "@types/W3CTypes.sol";
-import { Controller, CONTROLLERS_MAX_LENGTH, DEFAULT_DID_METHODS } from "@types/DidTypes.sol";
+import {
+  Controller,
+  CONTROLLERS_MAX_LENGTH,
+  DEFAULT_DID_METHODS,
+  METHOD_FILLER,
+  MethodNameEmpty,
+  MethodCharInvalid,
+  MethodFillerNotTrailing,
+  MethodSegmentsNotLeftPacked
+} from "@types/DidTypes.sol";
 import { Service } from "@types/ServiceTypes.sol";
 
 error DidInputRequired();
@@ -74,9 +83,10 @@ library W3CResolverUtils {
    * @return did The formatted DID string.
    */
   function formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
-    bytes memory method0 = trimMethodSegment(bytes10(didInput.methods));
-    bytes memory method1 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 80)));
-    bytes memory method2 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 160)));
+    bytes memory method0 = trimMethodSegment(bytes10(didInput.methods), true);
+    bytes memory method1 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 80)), false);
+    bytes memory method2 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 160)), false);
+    if (method1.length == 0 && method2.length > 0) revert MethodSegmentsNotLeftPacked();
     bytes memory finalEncode = abi.encodePacked("did:", method0, ":");
     if (method1.length > 0) {
       finalEncode = abi.encodePacked(finalEncode, method1, ":");
@@ -164,22 +174,38 @@ library W3CResolverUtils {
    * pct-encoded`, so both fillers must be removed before the segment is emitted.
    * They remain untouched in storage; this is an output-only transformation.
    *
+   * Trailing-only: filler after a name byte reverts, because stripping interior filler would make
+   * two distinct `methods` values render the same string. Illegal characters revert too, so the
+   * emitted DID is conformant even when `resolve` is handed a `methods` that was never stored.
+   *
    * @param segment One 10-byte method segment.
-   * @return out The segment with every filler byte removed (may be empty).
+   * @param isMethodName True for segment 0, which must be non-empty and `[a-z0-9]` only.
+   * @return out The segment with its trailing filler removed (may be empty when not the name).
    */
-  function trimMethodSegment(bytes10 segment) internal pure returns (bytes memory out) {
-    bytes memory buffer = new bytes(10);
+  function trimMethodSegment(bytes10 segment, bool isMethodName) internal pure returns (bytes memory out) {
     uint256 length = 0;
+    bool inFiller = false;
     for (uint256 i = 0; i < 10; i++) {
       bytes1 char = segment[i];
-      if (char != 0x00 && char != 0x3B) {
-        buffer[length] = char;
-        length++;
+      if (char == METHOD_FILLER || char == 0x00) {
+        inFiller = true;
+        continue;
       }
+      // Filler is a trailing run only. Anything after it means the value was never canonical,
+      // which `DidAggregate._validateMethods` prevents at write time but a caller can still
+      // hand straight to `resolve`.
+      if (inFiller) revert MethodFillerNotTrailing();
+      bool legal = (char >= 0x61 && char <= 0x7A) || (char >= 0x30 && char <= 0x39); // a-z 0-9
+      if (!isMethodName) {
+        legal = legal || (char >= 0x41 && char <= 0x5A) || char == 0x2E || char == 0x2D || char == 0x5F;
+      }
+      if (!legal) revert MethodCharInvalid();
+      length++;
     }
+    if (isMethodName && length == 0) revert MethodNameEmpty();
     out = new bytes(length);
     for (uint256 i = 0; i < length; i++) {
-      out[i] = buffer[i];
+      out[i] = segment[i];
     }
     return out;
   }

@@ -28,6 +28,7 @@ contract DidManagerNative is IDidManagerNative, VMStorageNative, DidAggregate {
     if (methods == bytes32(0)) {
       methods = DEFAULT_DID_METHODS;
     }
+    _validateMethods(methods);
     bytes32 id = keccak256(abi.encodePacked(methods, random, msg.sender, block.prevrandao));
     bytes32 idHash = HashUtils.calculateIdHash(methods, id);
     if (!_isExpired(idHash)) {

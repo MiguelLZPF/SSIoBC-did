@@ -1155,6 +1155,34 @@ strips both from every segment before the DID string is built, and drops a segme
 becomes empty, so `bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;")` renders as
 `did:lzpf:main:<id>` and not `did:lzpf;;;;;;:main;;;;;;:;;;;;;;;;;:<id>`.
 
+**Canonical form is enforced at `createDid`.** `DidAggregate._validateMethods` rejects any value
+that could render a non-conformant or ambiguous DID string:
+
+| # | Rule | Defect it closes |
+|---|------|------------------|
+| 1 | Segment 0 non-empty | `did::main:<id>`, an empty `method-name` |
+| 2 | Segment 0 is `[a-z0-9]` | `method-char = %x61-7A / DIGIT` |
+| 3 | Segments 1 and 2 are `[a-zA-Z0-9.-_]` | a `:` injects a segment, a `#` injects a fragment so a parser reads a different base DID |
+| 4 | Filler trailing only | `"l;zpf"` and `"lzpf"` render alike but hash differently |
+| 5 | Filler is exactly `;` | `"lzpf" + 0x00*6` and `"lzpf" + ";"*6` render alike but hash differently |
+| 6 | Segments left-packed | `("lzpf","","test")` and `("lzpf","test","")` both render `did:lzpf:test:<id>` |
+| 7 | Tail bytes 30-31 are filler | same class as 5 |
+
+Together these make the mapping **injective**: a DID string decodes back to exactly one `methods`.
+
+Rule 5 has a cost worth knowing: `bytes32(bytes10("lzpf"))`, the natural Solidity idiom, pads with
+`0x00` and is rejected with `MethodPaddingMustBeSemicolon()`. Use
+`HashUtils.packMethods(bytes10,bytes10,bytes10)`, which converts `0x00` padding to canonical `;`
+and fills the tail. `packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0))` equals
+`DEFAULT_DID_METHODS` byte for byte.
+
+`W3CResolverUtils.trimMethodSegment` enforces the same rules at render time. That second layer is
+required rather than defensive: `resolve` performs no existence check, so a caller can hand it a
+`methods` that was never stored and still receive a formatted string.
+
+Cost: `createDid` gas rose from 277,889 to 291,072 mean, +13,183 (+4.7%), measured with
+`forge test --gas-report`. Once per DID.
+
 This matters because third-party software cannot know the convention. The `did-resolver`
 npm package, which sits under Veramo, `did-jwt-vc` and the DIF Universal Resolver, matches
 the string against a regex built from the ABNF above. A `;` makes `parse()` return null and

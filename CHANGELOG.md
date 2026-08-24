@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Table of Contents
 
-- [Unreleased](#unreleased)
+- [1.5.0 — 2026-08-24](#150--2026-08-24)
 - [1.4.0 — 2026-06-10](#140--2026-06-10)
 - [1.3.1 — 2026-03-10](#131--2026-03-10)
 - [1.3.0 — 2026-03-08](#130--2026-03-08)
@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [0.8.0 — 2024-07-06](#080--2024-07-06)
 - [0.6.0 — 2024-04-21](#060--2024-04-21)
 
-## [Unreleased]
+## [1.5.0] — 2026-08-24
 
 ### Added
 
@@ -46,11 +46,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `IDidAuth` gains `isAuthorizedOffChainWithSigner`; existing selectors are unchanged, so this is
   ABI-additive.
-- Contract sizes: DidManager 14,089 B (+948), DidManagerNative 12,481 B (+948), W3CResolver
-  11,215 B (+368), W3CResolverNative 11,737 B (+368). EIP-170 limit is 24,576 B.
-- 359 tests passing on the default profile (325 before), 397 under the CI profile (363 before).
+- Contract sizes: DidManager 14,789 B (+1,648), DidManagerNative 13,181 B (+1,648), W3CResolver
+  11,522 B (+675), W3CResolverNative 12,044 B (+675). EIP-170 limit is 24,576 B.
+- `createDid` gas: 277,889 -> 291,072 mean, **+13,183 (+4.7%)**, the cost of validating `methods`.
+  Measured with `forge test --gas-report` against the pre-change tree. One-time per DID.
+- 370 tests passing on the default profile (325 before), 411 under the CI profile (363 before).
 
 ### Fixed
+
+- **`methods` is now validated at `createDid`, so a non-conformant DID string cannot be produced.**
+  The previous fix stripped the `;` filler but left three holes, each found independently by two
+  reviewers: segment 0 was emitted unguarded so an all-filler segment rendered `did::main:<id>`
+  with an empty `method-name`; no character set was enforced, so a `:` injected an extra segment,
+  a `#` injected a DID-URL fragment that makes a parser read a different base DID, and uppercase
+  passed through; and filler was stripped from anywhere in a segment, so `"l;zpf"` and `"lzpf"`
+  rendered identically while hashing differently.
+
+  `DidAggregate._validateMethods` now enforces six rules at the one point where `methods` enters
+  storage: segment 0 non-empty and `[a-z0-9]`; segments 1 and 2 `[a-zA-Z0-9.-_]`; filler trailing
+  only; filler exactly `;` (`METHOD_FILLER`), so `0x00` padding is rejected; segments left-packed;
+  and the two tail bytes canonical. Together these make the `bytes32 methods` to DID-string
+  mapping **injective**, so a DID string decodes back to exactly one `methods`.
+
+  `W3CResolverUtils.trimMethodSegment` enforces the same rules at render time. That second layer is
+  necessary, not belt and braces: `resolve` has no existence check, so a caller can hand it a
+  `methods` that was never stored and still get a formatted string back.
+
+  New errors in `DidTypes.sol`: `MethodNameEmpty`, `MethodCharInvalid`, `MethodFillerNotTrailing`,
+  `MethodSegmentsNotLeftPacked`, `MethodPaddingMustBeSemicolon`.
+
+- **`HashUtils.packMethods(bytes10,bytes10,bytes10)`** builds a canonical value. Needed because
+  `bytes32(bytes10("lzpf"))` pads with `0x00` and is now rejected; the helper converts that to the
+  canonical `;` form. `packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0))` reproduces
+  `DEFAULT_DID_METHODS` byte for byte, asserted by a test.
+
 
 - **The emitted DID string was not a valid W3C DID.** `DEFAULT_DID_METHODS` pads its 10-byte
   segments with `;` (`0x3B`), but `W3CResolverUtils.trimBytes` only stripped `0x00`, so the
@@ -105,6 +134,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.0] — 2026-06-10
 
 ### ⚠️ BREAKING
+
+- **`createDid` rejects a non-canonical `methods`.** `bytes32(bytes10("name"))`, the natural
+  Solidity idiom, pads with `0x00` and now reverts `MethodPaddingMustBeSemicolon()`. Use
+  `HashUtils.packMethods`. `DEFAULT_DID_METHODS` is already canonical, so DIDs created with the
+  default (or with `methods = 0`) are unaffected and no `idHash` moves.
+
+### ⚠️ BREAKING (1.4.0, never released separately)
 
 - **Authentication identity migrated from `tx.origin` to `msg.sender`** across all write operations:
   - `createDid` (both variants): ID entropy now `keccak256(methods, random, msg.sender, block.prevrandao)`, initial VM `ethereumAddress` and validation now bound to `msg.sender`
