@@ -1155,8 +1155,8 @@ strips both from every segment before the DID string is built, and drops a segme
 becomes empty, so `bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;")` renders as
 `did:lzpf:main:<id>` and not `did:lzpf;;;;;;:main;;;;;;:;;;;;;;;;;:<id>`.
 
-**Canonical form is enforced at `createDid`.** `DidAggregate._validateMethods` rejects any value
-that could render a non-conformant or ambiguous DID string:
+**Canonical form is enforced in the renderer, not on write.** `W3CResolverUtils.checkMethods`
+rejects any value that could render a non-conformant or ambiguous DID string:
 
 | # | Rule | Defect it closes |
 |---|------|------------------|
@@ -1168,20 +1168,28 @@ that could render a non-conformant or ambiguous DID string:
 | 6 | Segments left-packed | `("lzpf","","test")` and `("lzpf","test","")` both render `did:lzpf:test:<id>` |
 | 7 | Tail bytes 30-31 are filler | same class as 5 |
 
-Together these make the mapping **injective**: a DID string decodes back to exactly one `methods`.
+Together these make the mapping **injective over every value that has a string at all**: a DID
+string decodes back to exactly one `methods`.
 
-Rule 5 has a cost worth knowing: `bytes32(bytes10("lzpf"))`, the natural Solidity idiom, pads with
-`0x00` and is rejected with `MethodPaddingMustBeSemicolon()`. Use
-`HashUtils.packMethods(bytes10,bytes10,bytes10)`, which converts `0x00` padding to canonical `;`
-and fills the tail. `packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0))` equals
-`DEFAULT_DID_METHODS` byte for byte.
+**Why the renderer and not `createDid`.** All seven DID-string construction sites in the codebase
+go through `formatDidString`, which calls `checkMethods`. There is no second path. So a value that
+cannot pass the renderer has no string representation, and the injectivity guarantee is already
+complete without touching the write path. Write-time validation was implemented first and then
+reverted: it cost **+13,183 gas on every `createDid`** and bought only an earlier error message.
+The measured cost of the current design is **+2 gas** on `createDid`; the whole expense sits in the
+resolvers, which grew by 834 bytes each.
 
-`W3CResolverUtils.trimMethodSegment` enforces the same rules at render time. That second layer is
-required rather than defensive: `resolve` performs no existence check, so a caller can hand it a
-`methods` that was never stored and still receive a formatted string.
+The trade is that a malformed `methods` produces a DID that exists on chain, works for
+`isAuthorized`, and can never be resolved into a document. That is self-inflicted and affects only
+the creator's own DID. Two things soften it:
 
-Cost: `createDid` gas rose from 277,889 to 291,072 mean, +13,183 (+4.7%), measured with
-`forge test --gas-report`. Once per DID.
+- `HashUtils.packMethods(bytes10,bytes10,bytes10)` builds a canonical value, converting the `0x00`
+  padding of `bytes32(bytes10("lzpf"))` into canonical `;` and filling the tail.
+  `packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0))` equals `DEFAULT_DID_METHODS` byte for
+  byte.
+- `W3CResolverBase.checkMethods(bytes32) external pure` is a free preflight. A client calls it via
+  `eth_call` before sending the creation transaction, at zero gas. It runs the same code path as
+  rendering, and a fuzz test asserts the two never disagree.
 
 This matters because third-party software cannot know the convention. The `did-resolver`
 npm package, which sits under Veramo, `did-jwt-vc` and the DIF Universal Resolver, matches

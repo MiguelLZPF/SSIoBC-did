@@ -7,6 +7,7 @@ import {
   CONTROLLERS_MAX_LENGTH,
   DEFAULT_DID_METHODS,
   METHOD_FILLER,
+  MethodPaddingMustBeSemicolon,
   MethodNameEmpty,
   MethodCharInvalid,
   MethodFillerNotTrailing,
@@ -82,11 +83,54 @@ library W3CResolverUtils {
    * @param didInput The DID input with methods, id, and optional fragment.
    * @return did The formatted DID string.
    */
-  function formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
-    bytes memory method0 = trimMethodSegment(bytes10(didInput.methods), true);
-    bytes memory method1 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 80)), false);
-    bytes memory method2 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 160)), false);
+  /**
+   * @dev Splits `methods` into its three rendered segments, reverting if the value could not
+   * produce a W3C-conformant or unambiguous DID string.
+   *
+   * This is the ONLY layer that enforces the method character rules. `createDid` deliberately
+   * does not validate `methods`, because validating there costs every user gas (measured at
+   * +13,183 on `createDid`) and buys nothing: every DID string in the system is built by
+   * `formatDidString`, which calls this, so a value that cannot pass here has no string
+   * representation at all. The consequence is that a malformed `methods` produces a DID that
+   * exists on chain and works for `isAuthorized` but can never be resolved into a document.
+   * `W3CResolverBase.checkMethods` is a free `pure` preflight for clients that want to catch
+   * that before sending a transaction.
+   *
+   * Rules, each closing a concrete defect:
+   * 1. Segment 0 non-empty, else the string starts `did::` with an empty `method-name`.
+   * 2. Segment 0 is `[a-z0-9]` (`method-char = %x61-7A / DIGIT`).
+   * 3. Segments 1 and 2 are `[a-zA-Z0-9.-_]` (`idchar`, minus pct-encoded), so a ":" cannot
+   *    inject a segment and a "#" cannot inject a fragment that makes a parser read a
+   *    different base DID.
+   * 4. Filler is a trailing run only; interior filler would let "l;zpf" and "lzpf" render alike.
+   * 5. Filler is exactly ";"; 0x00 padding would render alike for the same reason.
+   * 6. Segments are left-packed, else ("lzpf","","test") and ("lzpf","test","") both render
+   *    `did:lzpf:test:<id>`.
+   * 7. The two unused tail bytes are ";;", which the rendered segments never expose.
+   *
+   * Together these make the `bytes32 methods` to DID-string mapping injective over every value
+   * that has a string at all, so a DID string decodes back to exactly one `methods`.
+   *
+   * @param methods The packed methods value.
+   * @return method0 Segment 0, the DID `method-name`.
+   * @return method1 Segment 1, possibly empty.
+   * @return method2 Segment 2, possibly empty.
+   */
+  function checkMethods(bytes32 methods)
+    internal
+    pure
+    returns (bytes memory method0, bytes memory method1, bytes memory method2)
+  {
+    method0 = trimMethodSegment(bytes10(methods), true);
+    method1 = trimMethodSegment(bytes10(bytes32(uint256(methods) << 80)), false);
+    method2 = trimMethodSegment(bytes10(bytes32(uint256(methods) << 160)), false);
     if (method1.length == 0 && method2.length > 0) revert MethodSegmentsNotLeftPacked();
+    if (uint16(uint256(methods)) != 0x3B3B) revert MethodPaddingMustBeSemicolon();
+    return (method0, method1, method2);
+  }
+
+  function formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
+    (bytes memory method0, bytes memory method1, bytes memory method2) = checkMethods(didInput.methods);
     bytes memory finalEncode = abi.encodePacked("did:", method0, ":");
     if (method1.length > 0) {
       finalEncode = abi.encodePacked(finalEncode, method1, ":");
@@ -187,10 +231,13 @@ library W3CResolverUtils {
     bool inFiller = false;
     for (uint256 i = 0; i < 10; i++) {
       bytes1 char = segment[i];
-      if (char == METHOD_FILLER || char == 0x00) {
+      if (char == METHOD_FILLER) {
         inFiller = true;
         continue;
       }
+      // Only ";" is canonical filler. Accepting 0x00 too would let "lzpf" + 0x00*6 and
+      // "lzpf" + ";"*6, two distinct values with distinct idHash, render the same DID string.
+      if (char == 0x00) revert MethodPaddingMustBeSemicolon();
       // Filler is a trailing run only. Anything after it means the value was never canonical,
       // which `DidAggregate._validateMethods` prevents at write time but a caller can still
       // hand straight to `resolve`.

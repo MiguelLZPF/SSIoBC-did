@@ -18,13 +18,7 @@ import {
   NotAControllerForTargetId,
   DidNotDeactivated,
   VmRelationshipOutOfRange,
-  DirectEOACallRequired,
-  METHOD_FILLER,
-  MethodNameEmpty,
-  MethodCharInvalid,
-  MethodFillerNotTrailing,
-  MethodSegmentsNotLeftPacked,
-  MethodPaddingMustBeSemicolon
+  DirectEOACallRequired
 } from "@types/DidTypes.sol";
 
 /// @title DidAggregate
@@ -449,68 +443,6 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
   // ═══════════════════════════════════════════════════════════════════
   // Parameter Validation Helpers
   // ═══════════════════════════════════════════════════════════════════
-
-  /**
-   * @dev Validates that `methods` can only ever render a W3C-conformant DID string.
-   *
-   * `methods` is three 10-byte segments plus two tail bytes. Segment 0 becomes the DID
-   * `method-name`, segments 1 and 2 become colon-separated groups of the `method-specific-id`.
-   * W3C DID Core v1.0 section 3.1 defines `method-char = %x61-7A / DIGIT` and
-   * `idchar = ALPHA / DIGIT / "." / "-" / "_" / pct-encoded`; pct-encoding is not accepted here
-   * because no method segment needs it and accepting a bare "%" would admit an invalid string.
-   *
-   * Six rules, each closing a concrete defect:
-   * 1. Segment 0 is non-empty, else the string starts `did::` with an empty method-name.
-   * 2. Segment 0 uses `[a-z0-9]` only.
-   * 3. Segments 1 and 2 use `[a-zA-Z0-9.-_]` only, so a ":" cannot inject a segment and a "#"
-   *    cannot inject a DID-URL fragment that makes a parser read a different base DID.
-   * 4. Filler appears only as a trailing run. Interior filler is stripped at render time, so
-   *    `"l;zpf"` and `"lzpf"` would render identically while hashing differently.
-   * 5. The filler byte is exactly ";" (`METHOD_FILLER`); `0x00` padding is rejected for the same
-   *    injectivity reason. Use `HashUtils.packMethods` to build a canonical value.
-   * 6. Segments are left-packed. Without this, `("lzpf","","test")` and `("lzpf","test","")` both
-   *    render `did:lzpf:test:<id>` while hashing differently.
-   *
-   * Together these make the `methods` -> DID-string mapping injective, so a DID string can be
-   * decoded back to exactly one `methods`. Called only from `createDid`, the sole point where
-   * `methods` enters storage; every other entry point looks up an existing `idHash` and fails
-   * naturally on a value that was never stored.
-   *
-   * @param methods The packed methods value to validate.
-   */
-  function _validateMethods(bytes32 methods) internal pure {
-    bool previousSegmentEmpty = false;
-    for (uint256 segment = 0; segment < 3; segment++) {
-      uint256 nameLength = 0;
-      bool inFiller = false;
-      for (uint256 i = 0; i < 10; i++) {
-        bytes1 char = methods[segment * 10 + i];
-        if (char == METHOD_FILLER) {
-          inFiller = true;
-          continue;
-        }
-        if (char == 0x00) revert MethodPaddingMustBeSemicolon();
-        if (inFiller) revert MethodFillerNotTrailing();
-        bool legal = (char >= 0x61 && char <= 0x7A) || (char >= 0x30 && char <= 0x39); // a-z 0-9
-        if (segment != 0) {
-          // idchar additionally allows A-Z, ".", "-" and "_"
-          legal = legal || (char >= 0x41 && char <= 0x5A) || char == 0x2E || char == 0x2D || char == 0x5F;
-        }
-        if (!legal) revert MethodCharInvalid();
-        nameLength++;
-      }
-      if (segment == 0) {
-        if (nameLength == 0) revert MethodNameEmpty();
-      } else {
-        if (previousSegmentEmpty && nameLength != 0) revert MethodSegmentsNotLeftPacked();
-        previousSegmentEmpty = nameLength == 0;
-      }
-    }
-    // The two unused tail bytes must also be canonical filler.
-    if (methods[30] != METHOD_FILLER || methods[31] != METHOD_FILLER) {
-      revert MethodPaddingMustBeSemicolon();
-    }
-  }
 
   /// @dev Validates that methods, senderId, and targetId are non-zero.
   function _validateTripleParams(bytes32 methods, bytes32 senderId, bytes32 targetId) internal pure {

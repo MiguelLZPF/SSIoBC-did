@@ -12,15 +12,15 @@
   - [AuthorizeOffChainErc1271.unit.t.sol](#3-authorizeoffchainerc1271unittsol--24-tests)
   - [DidManager.unit.t.sol](#4-didmanagerunittsol--60-tests)
   - [DidManagerNative.unit.t.sol](#5-didmanagernativeunittsol--72-tests)
-  - [DidStringConformance.unit.t.sol](#6-didstringconformanceunittsol--22-tests)
+  - [DidStringConformance.unit.t.sol](#6-didstringconformanceunittsol--24-tests)
   - [DirectEOAGuard.unit.t.sol](#7-directeoaguardunittsol--20-tests)
   - [ServiceStorage.unit.t.sol](#8-servicestorageunittsol--19-tests)
   - [VMStorage.unit.t.sol](#9-vmstorageunittsol--30-tests)
   - [W3CResolver.unit.t.sol](#10-w3cresolverunittsol--22-tests)
   - [W3CResolverNative.unit.t.sol](#11-w3cresolvernativeunittsol--27-tests)
 - [Fuzz Tests](#fuzz-tests)
-  - [DidManager.fuzz.t.sol](#12-didmanagerfuzztsol--11-tests)
-  - [DidManagerNative.fuzz.t.sol](#13-didmanagernativefuzztsol--12-tests)
+  - [DidManager.fuzz.t.sol](#12-didmanagerfuzztsol--10-tests)
+  - [DidManagerNative.fuzz.t.sol](#13-didmanagernativefuzztsol--11-tests)
 - [Integration Tests](#integration-tests)
   - [DidLifecycle.integration.t.sol](#14-didlifecycleintegrationtsol--6-tests)
   - [KeyAgreementE2E.t.sol](#15-keyagreemente2etsol--3-tests)
@@ -40,15 +40,15 @@
 
 | Category | Count | Files |
 |----------|------:|------:|
-| Unit Tests | 350 | 11 |
-| Fuzz Tests | 23 | 2 |
+| Unit Tests | 352 | 11 |
+| Fuzz Tests | 21 | 2 |
 | Integration Tests | 9 | 2 |
 | Invariant Tests | 15 | 2 |
 | Performance Tests | 8 | 1 |
 | Stress Tests | 6 | 1 |
 | **TOTAL** | **411** | **19** |
 
-> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 370 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 411 run under the CI profiles.
+> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 372 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 411 run under the CI profiles.
 
 ---
 
@@ -307,7 +307,7 @@ Contains all 60 tests from `DidManager.unit.t.sol` adapted for native variant (1
 
 ---
 
-### 6. `DidStringConformance.unit.t.sol` — 22 tests
+### 6. `DidStringConformance.unit.t.sol` — 24 tests
 
 **File**: `test/unit/DidStringConformance.unit.t.sol`
 **Primary target**: `W3CResolverUtils.formatDidString()` / `trimMethodSegment()` — W3C DID syntax of the emitted string
@@ -318,7 +318,7 @@ reverts with a descriptive reason on any violation. The `;` segment filler used 
 `DEFAULT_DID_METHODS` is legal in storage but illegal in a DID, and nothing asserted the emitted
 syntax before this file existed.
 
-#### DidStringConformanceUnitTest (Full W3C variant, 19 tests)
+#### DidStringConformanceUnitTest (Full W3C variant, 21 tests)
 
 | # | Test | What it verifies |
 |---|------|------------------|
@@ -330,15 +330,16 @@ syntax before this file existed.
 | 6 | `test_DidString_Should_NotContainFiller_When_DefaultMethodsUsed` | no `0x3B` and no `0x00` byte survives into the output |
 | 7 | `test_AbnfChecker_Should_Reject_When_StringContainsFiller` | **negative control**: the checker rejects the pre-fix string `did:lzpf;;;;;;:main;;;;;;:…`, so tests 1-6 are not vacuous |
 
-Tests 8 to 19 cover the write-time validator and the render-time guard: `packMethods` reproduces
-`DEFAULT_DID_METHODS`; `0x00` padding, an empty method name, uppercase, `:`, `#`, interior filler,
-non-left-packed segments and a non-filler tail are each rejected with their specific error; the
-resolver refuses a non-canonical `methods` even for a DID that was never created; and a fuzz test
-asserts the only two possible outcomes.
+Tests 8 to 21 drive `W3CResolverBase.checkMethods`, the free `pure` preflight that runs the same
+code path as rendering: `packMethods` reproduces `DEFAULT_DID_METHODS`; `0x00` padding, an empty
+method name, uppercase, `:`, `#`, interior filler, non-left-packed segments and a non-filler tail
+are each rejected with their specific error; `bytes32(0)` and canonical values are accepted; the
+resolver itself refuses a non-canonical `methods` even for a DID that was never created.
 
 The fuzz test corrupts **one byte at a fuzzed index** of a canonical value rather than fuzzing a
 raw `bytes32`. Arbitrary bytes are non-canonical almost surely, so the accept branch would never
-run and the test would assert nothing.
+run and the test would assert nothing. It also asserts the preflight and the resolver **fail with
+the identical error**, so a client cannot pass the preflight and still get an unresolvable DID.
 
 #### DidStringConformanceNativeUnitTest (Ethereum-Native variant, 3 tests)
 
@@ -597,7 +598,7 @@ Shares 20 tests with W3CResolver (adapted for native), **plus** 7 native-specifi
 
 ## Fuzz Tests
 
-### 12. `DidManager.fuzz.t.sol` — 11 tests
+### 12. `DidManager.fuzz.t.sol` — 10 tests
 
 **File**: `test/fuzz/DidManager.fuzz.t.sol`
 **Contract**: `DidManagerFuzzTest`
@@ -618,7 +619,7 @@ Shares 20 tests with W3CResolver (adapted for native), **plus** 7 native-specifi
 
 ---
 
-### 13. `DidManagerNative.fuzz.t.sol` — 12 tests
+### 13. `DidManagerNative.fuzz.t.sol` — 11 tests
 
 **File**: `test/fuzz/DidManagerNative.fuzz.t.sol`
 **Contract**: `DidManagerNativeFuzzTest`
@@ -775,6 +776,6 @@ These files are not test files but support the test infrastructure:
 ---
 
 **Last Updated**: 2026-08-24
-**Total Test Count**: 411 (370 in the default profile; fuzz/invariant run under CI profiles)
+**Total Test Count**: 411 (372 in the default profile; fuzz/invariant run under CI profiles)
 **Test Framework**: Foundry (forge test)
 **Coverage Target**: >90% (enforced in CI/CD)

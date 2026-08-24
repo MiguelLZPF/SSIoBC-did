@@ -179,83 +179,76 @@ contract DidStringConformanceUnitTest is TestBase, DidAbnf {
   }
 
   // ---------------------------------------------------------------------
-  // Write-time rejection: `methods` that could render a non-conformant DID
+  // Render-time rejection: `methods` that could render a non-conformant DID
+  //
+  // `createDid` deliberately does not validate `methods`. Enforcement lives in the renderer,
+  // the single choke point every DID string passes through, and `checkMethods` exposes exactly
+  // the same checks as a free `pure` preflight. These tests drive the preflight; the two
+  // `Resolve` tests below prove the resolver itself rejects the same values.
   // ---------------------------------------------------------------------
 
-  /// @notice `0x00` padding is rejected. Two fillers would break injectivity: "lzpf" + 0x00*6 and
-  /// "lzpf" + ";"*6 are distinct values that render the same string.
-  function test_RevertWhen_CreateDid_MethodsPaddedWithZeroBytes() public {
-    _startPrank(user1);
+  /// @notice `0x00` padding is rejected. Two fillers would break injectivity: "lzpf" + 0x00*6
+  /// and "lzpf" + ";"*6 are distinct values that would render the same string.
+  function test_RevertWhen_CheckMethods_PaddedWithZeroBytes() public {
     vm.expectRevert(MethodPaddingMustBeSemicolon.selector);
-    didManager.createDid(bytes32(bytes10("lzpf")), bytes32("r"), bytes32(0));
-    _stopPrank();
+    resolver.checkMethods(bytes32(bytes10("lzpf")));
   }
 
-  /// @notice An empty segment 0 would render `did::…` with no method-name.
-  function test_RevertWhen_CreateDid_MethodNameEmpty() public {
-    bytes32 methods = HashUtils.packMethods(bytes10(0), bytes10("main"), bytes10(0));
-    _startPrank(user1);
+  /// @notice An empty segment 0 would render `did::...` with no method-name.
+  function test_RevertWhen_CheckMethods_MethodNameEmpty() public {
     vm.expectRevert(MethodNameEmpty.selector);
-    didManager.createDid(methods, bytes32("r"), bytes32(0));
-    _stopPrank();
+    resolver.checkMethods(HashUtils.packMethods(bytes10(0), bytes10("main"), bytes10(0)));
   }
 
   /// @notice Uppercase is illegal in `method-name` (`method-char = %x61-7A / DIGIT`).
-  function test_RevertWhen_CreateDid_MethodNameHasUppercase() public {
-    bytes32 methods = HashUtils.packMethods(bytes10("LZPF"), bytes10(0), bytes10(0));
-    _startPrank(user1);
+  function test_RevertWhen_CheckMethods_MethodNameHasUppercase() public {
     vm.expectRevert(MethodCharInvalid.selector);
-    didManager.createDid(methods, bytes32("r"), bytes32(0));
-    _stopPrank();
+    resolver.checkMethods(HashUtils.packMethods(bytes10("LZPF"), bytes10(0), bytes10(0)));
   }
 
   /// @notice A ":" would inject an extra segment into the rendered DID.
-  function test_RevertWhen_CreateDid_MethodSegmentContainsColon() public {
-    bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10("a:b"), bytes10(0));
-    _startPrank(user1);
+  function test_RevertWhen_CheckMethods_SegmentContainsColon() public {
     vm.expectRevert(MethodCharInvalid.selector);
-    didManager.createDid(methods, bytes32("r"), bytes32(0));
-    _stopPrank();
+    resolver.checkMethods(HashUtils.packMethods(bytes10("lzpf"), bytes10("a:b"), bytes10(0)));
   }
 
   /// @notice A "#" would inject a DID-URL fragment, so a conformant parser would read a
   /// different base DID than the one the document claims.
-  function test_RevertWhen_CreateDid_MethodSegmentContainsHash() public {
-    bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10("a#b"), bytes10(0));
-    _startPrank(user1);
+  function test_RevertWhen_CheckMethods_SegmentContainsHash() public {
     vm.expectRevert(MethodCharInvalid.selector);
-    didManager.createDid(methods, bytes32("r"), bytes32(0));
-    _stopPrank();
+    resolver.checkMethods(HashUtils.packMethods(bytes10("lzpf"), bytes10("a#b"), bytes10(0)));
   }
 
-  /// @notice Interior filler is rejected: stripping it would make "l;zpf" and "lzpf" render the
-  /// same DID string while hashing differently.
-  function test_RevertWhen_CreateDid_FillerIsNotTrailing() public {
-    bytes32 methods = bytes32("l;zpf;;;;;main;;;;;;;;;;;;;;;;;;");
-    _startPrank(user1);
+  /// @notice Interior filler is rejected: stripping it would make "l;zpf" and "lzpf" render
+  /// the same DID string while hashing differently.
+  function test_RevertWhen_CheckMethods_FillerIsNotTrailing() public {
     vm.expectRevert(MethodFillerNotTrailing.selector);
-    didManager.createDid(methods, bytes32("r"), bytes32(0));
-    _stopPrank();
+    resolver.checkMethods(bytes32("l;zpf;;;;;main;;;;;;;;;;;;;;;;;;"));
   }
 
   /// @notice Segments must be left-packed: ("lzpf","","test") and ("lzpf","test","") would both
   /// render `did:lzpf:test:<id>` while hashing differently.
-  function test_RevertWhen_CreateDid_SegmentsNotLeftPacked() public {
-    bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10(0), bytes10("test"));
-    _startPrank(user1);
+  function test_RevertWhen_CheckMethods_SegmentsNotLeftPacked() public {
     vm.expectRevert(MethodSegmentsNotLeftPacked.selector);
-    didManager.createDid(methods, bytes32("r"), bytes32(0));
-    _stopPrank();
+    resolver.checkMethods(HashUtils.packMethods(bytes10("lzpf"), bytes10(0), bytes10("test")));
   }
 
-  /// @notice The two unused tail bytes must be canonical filler too.
-  function test_RevertWhen_CreateDid_TailBytesNotFiller() public {
-    // 30 characters, so bytes 30 and 31 are 0x00
-    bytes32 methods = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;");
-    _startPrank(user1);
+  /// @notice The two unused tail bytes must be canonical filler too. They never reach the
+  /// rendered segments, so only this whole-value check can catch them.
+  function test_RevertWhen_CheckMethods_TailBytesNotFiller() public {
     vm.expectRevert(MethodPaddingMustBeSemicolon.selector);
-    didManager.createDid(methods, bytes32("r"), bytes32(0));
-    _stopPrank();
+    resolver.checkMethods(bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;"));
+  }
+
+  /// @notice `bytes32(0)` is accepted, because `createDid` substitutes the canonical default.
+  function test_CheckMethods_Should_Accept_When_MethodsAreZero() public view {
+    resolver.checkMethods(bytes32(0));
+  }
+
+  /// @notice The canonical default and anything built by `packMethods` pass.
+  function test_CheckMethods_Should_Accept_When_Canonical() public view {
+    resolver.checkMethods(DEFAULT_DID_METHODS);
+    resolver.checkMethods(HashUtils.packMethods(bytes10("lzpf"), bytes10("main"), bytes10("testnet")));
   }
 
   /// @notice The resolver refuses to render a non-canonical `methods` even for a DID that was
@@ -273,46 +266,38 @@ contract DidStringConformanceUnitTest is TestBase, DidAbnf {
     resolver.resolve(W3CDidInput({ methods: methods, id: bytes32("nonexistent"), fragment: bytes32(0) }), false);
   }
 
-  /// @notice Fuzz: `methods` is either rejected at write time, or the DID it produces renders a
-  /// conformant string. There is no third outcome.
+  /// @notice Fuzz: for any `methods`, either the preflight rejects it, or the DID it produces
+  /// renders a conformant string. There is no third outcome, and the preflight never disagrees
+  /// with the resolver.
   /// @dev The value is a canonical one with a single fuzzed byte overwritten at a fuzzed index,
   /// not an arbitrary `bytes32`. Arbitrary bytes are non-canonical almost surely, so the accept
   /// branch would never run and the test would assert nothing. Single-byte corruption keeps both
   /// branches live: many mutations land on filler or on an already-legal character.
-  function testFuzz_CreateDid_MethodsAreRejectedOrRenderConformant(uint8 index, bytes1 corruption, bytes32 random)
+  function testFuzz_Methods_ArePreflightRejectedOrRenderConformant(uint8 index, bytes1 corruption, bytes32 random)
     public
   {
     vm.assume(random != bytes32(0));
-    uint256 position = index % 32;
-
     bytes memory buffer = abi.encodePacked(DEFAULT_DID_METHODS);
-    buffer[position] = corruption;
+    buffer[index % 32] = corruption;
     bytes32 fuzzedMethods = bytes32(buffer);
     vm.assume(fuzzedMethods != bytes32(0));
 
-    _startPrank(user1);
-    try didManager.createDid(fuzzedMethods, random, bytes32(0)) {
-      _stopPrank();
-      bytes32 id = keccak256(abi.encodePacked(fuzzedMethods, random, user1, block.prevrandao));
-      // Accepted: the rendered DID must satisfy the ABNF, and must round-trip through resolve.
-      _assertConformantDid(_resolve(fuzzedMethods, id));
-    } catch {
-      _stopPrank();
-      // Rejected: the resolver must refuse it too, so no path can render it.
-      _assertRejectedByResolver(fuzzedMethods);
-    }
-  }
+    // createDid never validates methods, so it must accept whatever it is handed.
+    // _create does its own prank.
+    bytes32 id = _create(fuzzedMethods, random);
 
-  /// @dev A value `createDid` rejects must also be unrenderable, otherwise the two layers could
-  /// disagree and a caller could get a non-conformant string out of `resolve`.
-  function _assertRejectedByResolver(bytes32 methods) internal {
-    try resolver.resolve(W3CDidInput({ methods: methods, id: bytes32("probe"), fragment: bytes32(0) }), false) returns (
-      W3CDidDocument memory doc
-    ) {
-      // Rendering is allowed only when the reason for write-time rejection is one the string
-      // layer cannot see (a non-filler tail byte, which never reaches the rendered segments).
-      _assertConformantDid(doc.id);
-    } catch { }
+    try resolver.checkMethods(fuzzedMethods) {
+      // Preflight accepted, so resolution must succeed and the string must satisfy the ABNF.
+      _assertConformantDid(_resolve(fuzzedMethods, id));
+    } catch (bytes memory preflightError) {
+      // Preflight rejected, so the resolver must reject it identically. A disagreement would
+      // mean a client could pass the preflight and still get an unresolvable DID, or vice versa.
+      try resolver.resolve(W3CDidInput({ methods: fuzzedMethods, id: id, fragment: bytes32(0) }), false) {
+        fail("Preflight rejected a value the resolver accepted");
+      } catch (bytes memory resolveError) {
+        assertEq(keccak256(preflightError), keccak256(resolveError), "Preflight and resolver must fail identically");
+      }
+    }
   }
 
   /// @dev External wrapper so `vm.expectRevert` can observe the failure.

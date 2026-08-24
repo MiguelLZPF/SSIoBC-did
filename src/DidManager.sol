@@ -29,7 +29,6 @@ contract DidManager is IDidManagerFull, VMStorage, DidAggregate {
     if (methods == bytes32(0)) {
       methods = DEFAULT_DID_METHODS;
     }
-    _validateMethods(methods);
     //* Implementation
     bytes32 id = keccak256(abi.encodePacked(methods, random, msg.sender, block.prevrandao));
     bytes32 idHash = HashUtils.calculateIdHash(methods, id);

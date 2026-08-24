@@ -172,9 +172,11 @@ only `0x00`, so the filler reached the output:
 `;` is illegal in both `method-name` and `idchar`, so `did-resolver` (and therefore Veramo,
 `did-jwt-vc` and the DIF Universal Resolver) rejects the string with `invalidDid` before any
 contract call. The first fix (strip the filler) was incomplete; two independent reviews found three remaining
-holes. `createDid` now validates `methods` against six rules and `trimMethodSegment` enforces the
-same at render time, which is required because `resolve` has no existence check. The mapping from
-`bytes32 methods` to DID string is now injective. `HashUtils.packMethods` builds a canonical value.
+holes. `W3CResolverUtils.checkMethods` now enforces seven rules at render time, the single choke
+point every DID string passes through, which makes the `bytes32 methods` to string mapping
+injective. Enforcement deliberately does NOT sit in `createDid`: that version was built first and
+reverted, because it cost +13,183 gas on every DID and added no guarantee. `HashUtils.packMethods`
+builds a canonical value and `W3CResolverBase.checkMethods` is a free `pure` preflight.
 `DEFAULT_DID_METHODS` was already canonical, so no existing DID moves. This unblocks #5, #6 and #7,
 which all depend on the string parsing for third parties.
 

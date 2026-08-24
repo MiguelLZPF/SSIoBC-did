@@ -46,38 +46,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `IDidAuth` gains `isAuthorizedOffChainWithSigner`; existing selectors are unchanged, so this is
   ABI-additive.
-- Contract sizes: DidManager 14,789 B (+1,648), DidManagerNative 13,181 B (+1,648), W3CResolver
-  11,522 B (+675), W3CResolverNative 12,044 B (+675). EIP-170 limit is 24,576 B.
-- `createDid` gas: 277,889 -> 291,072 mean, **+13,183 (+4.7%)**, the cost of validating `methods`.
-  Measured with `forge test --gas-report` against the pre-change tree. One-time per DID.
-- 370 tests passing on the default profile (325 before), 411 under the CI profile (363 before).
+- Contract sizes: DidManager 14,089 B (+948), DidManagerNative 12,481 B (+948), W3CResolver
+  11,681 B (+834), W3CResolverNative 12,203 B (+834). EIP-170 limit is 24,576 B. The whole cost of
+  the DID-string work sits in the resolvers, which is where it belongs.
+- `createDid` gas: 277,889 -> 277,891 mean, **+2**. Measured with `forge test --gas-report` against
+  the pre-change tree; the write path is untouched by the character rules.
+- 372 tests passing on the default profile (325 before), 411 under the CI profile (363 before).
 
 ### Fixed
 
-- **`methods` is now validated at `createDid`, so a non-conformant DID string cannot be produced.**
-  The previous fix stripped the `;` filler but left three holes, each found independently by two
-  reviewers: segment 0 was emitted unguarded so an all-filler segment rendered `did::main:<id>`
-  with an empty `method-name`; no character set was enforced, so a `:` injected an extra segment,
-  a `#` injected a DID-URL fragment that makes a parser read a different base DID, and uppercase
-  passed through; and filler was stripped from anywhere in a segment, so `"l;zpf"` and `"lzpf"`
-  rendered identically while hashing differently.
+- **The DID string can no longer be non-conformant or ambiguous.** The previous fix stripped the
+  `;` filler but left three holes, each found independently by two reviewers: segment 0 was
+  emitted unguarded so an all-filler segment rendered `did::main:<id>` with an empty
+  `method-name`; no character set was enforced, so a `:` injected an extra segment, a `#` injected
+  a DID-URL fragment that makes a parser read a different base DID, and uppercase passed through;
+  and filler was stripped from anywhere in a segment, so `"l;zpf"` and `"lzpf"` rendered
+  identically while hashing differently.
 
-  `DidAggregate._validateMethods` now enforces six rules at the one point where `methods` enters
-  storage: segment 0 non-empty and `[a-z0-9]`; segments 1 and 2 `[a-zA-Z0-9.-_]`; filler trailing
-  only; filler exactly `;` (`METHOD_FILLER`), so `0x00` padding is rejected; segments left-packed;
-  and the two tail bytes canonical. Together these make the `bytes32 methods` to DID-string
-  mapping **injective**, so a DID string decodes back to exactly one `methods`.
+  `W3CResolverUtils.checkMethods` now enforces seven rules: segment 0 non-empty and `[a-z0-9]`;
+  segments 1 and 2 `[a-zA-Z0-9.-_]`; filler trailing only; filler exactly `;` (`0x00` padding
+  rejected); segments left-packed; and the two tail bytes canonical. Together these make the
+  `bytes32 methods` to DID-string mapping **injective** over every value that has a string at all,
+  so a DID string decodes back to exactly one `methods`.
 
-  `W3CResolverUtils.trimMethodSegment` enforces the same rules at render time. That second layer is
-  necessary, not belt and braces: `resolve` has no existence check, so a caller can hand it a
-  `methods` that was never stored and still get a formatted string back.
+  **Enforcement lives only in the renderer, not in `createDid`.** Every DID string in the system is
+  built by `formatDidString`, which calls `checkMethods`, so a value that cannot pass there has no
+  string representation at all and the guarantee is already complete. Validating on write was
+  implemented first and then reverted: it cost **+13,183 gas on every `createDid`** (measured) and
+  bought nothing except an earlier error message.
 
-  New errors in `DidTypes.sol`: `MethodNameEmpty`, `MethodCharInvalid`, `MethodFillerNotTrailing`,
-  `MethodSegmentsNotLeftPacked`, `MethodPaddingMustBeSemicolon`.
+- **`W3CResolverBase.checkMethods(bytes32) external pure`** is the free preflight that replaces it.
+  A client calls it via `eth_call` at zero cost before sending a creation transaction. It runs
+  exactly the same code path as rendering, and a fuzz test asserts the two never disagree.
 
 - **`HashUtils.packMethods(bytes10,bytes10,bytes10)`** builds a canonical value. Needed because
-  `bytes32(bytes10("lzpf"))` pads with `0x00` and is now rejected; the helper converts that to the
-  canonical `;` form. `packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0))` reproduces
+  `bytes32(bytes10("lzpf"))` pads with `0x00`, which no longer renders; the helper converts that to
+  the canonical `;` form. `packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0))` reproduces
   `DEFAULT_DID_METHODS` byte for byte, asserted by a test.
 
 
@@ -135,10 +139,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### ⚠️ BREAKING
 
-- **`createDid` rejects a non-canonical `methods`.** `bytes32(bytes10("name"))`, the natural
-  Solidity idiom, pads with `0x00` and now reverts `MethodPaddingMustBeSemicolon()`. Use
-  `HashUtils.packMethods`. `DEFAULT_DID_METHODS` is already canonical, so DIDs created with the
-  default (or with `methods = 0`) are unaffected and no `idHash` moves.
+- **A DID whose `methods` is not canonical can no longer be resolved.** `createDid` still accepts
+  any value, but `resolve` reverts on one that could not render a valid DID string. In practice
+  that means `bytes32(bytes10("name"))`, the natural Solidity idiom, yields an unresolvable DID
+  because it pads with `0x00`. Use `HashUtils.packMethods`, and call
+  `W3CResolverBase.checkMethods` first if you want to find out before spending gas.
+  `DEFAULT_DID_METHODS` is already canonical, so DIDs created with the default (or with
+  `methods = 0`) are unaffected and no `idHash` moves.
 
 ### ⚠️ BREAKING (1.4.0, never released separately)
 
