@@ -36,6 +36,14 @@ jobs:
   build:
     name: Build & Size Check
     runs-on: ubuntu-latest
+    container:
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
+      # actions/checkout (incl. submodules) and every JS action work normally.
+      # To bump: change the digest and the trailing comment together.
+      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
+      options: --user root
     permissions:
       contents: read
     steps:
@@ -43,10 +51,13 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1.7.0
-        with:
-          version: v1.5.1
+      - name: Verify pinned toolchain
+        run: |
+          forge --version
+          echo "### Toolchain" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          forge --version >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Compile contracts
         run: forge build --sizes 2>&1 | tee contract-sizes.txt
@@ -83,6 +94,14 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
+    container:
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
+      # actions/checkout (incl. submodules) and every JS action work normally.
+      # To bump: change the digest and the trailing comment together.
+      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
+      options: --user root
     needs: build
     timeout-minutes: 10
     permissions:
@@ -93,11 +112,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1.7.0
-        with:
-          version: v1.5.1
 
       - name: Restore build cache
         uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
@@ -114,6 +128,14 @@ jobs:
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
+    container:
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
+      # actions/checkout (incl. submodules) and every JS action work normally.
+      # To bump: change the digest and the trailing comment together.
+      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
+      options: --user root
     needs: build
     timeout-minutes: 10
     permissions:
@@ -125,11 +147,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1.7.0
-        with:
-          version: v1.5.1
 
       - name: Restore build cache
         uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
@@ -144,7 +161,8 @@ jobs:
 
       - name: Filter coverage to source contracts
         run: |
-          sudo apt-get install -y -qq lcov > /dev/null 2>&1
+          apt-get update -qq > /dev/null 2>&1
+          apt-get install -y -qq lcov bc > /dev/null 2>&1
           lcov --remove lcov.info \
             'test/*' 'script/*' 'lib/*' \
             --output-file lcov-filtered.info \
@@ -184,6 +202,14 @@ jobs:
   quality:
     name: Format & Lint
     runs-on: ubuntu-latest
+    container:
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
+      # actions/checkout (incl. submodules) and every JS action work normally.
+      # To bump: change the digest and the trailing comment together.
+      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
+      options: --user root
     needs: build
     permissions:
       contents: read
@@ -191,11 +217,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1.7.0
-        with:
-          version: v1.5.1
 
       - name: Check formatting
         run: forge fmt --check
@@ -206,6 +227,9 @@ jobs:
   # ─── Job 5: Slither Security Scan ──────────────────────────────────
   security:
     name: Security Scan
+    # Deliberately NOT containerised. crytic/slither-action is a Docker action, and a Docker
+    # action cannot run inside a container job. Slither brings its own solc, so it does not
+    # depend on the Foundry toolchain and is unaffected by the pin.
     runs-on: ubuntu-latest
     needs: build
     if: ${{ !inputs.skip-security && (github.event_name != 'pull_request' || github.event.pull_request.user.login != 'dependabot[bot]') }}
@@ -236,6 +260,14 @@ jobs:
   gas-diff:
     name: Gas Diff
     runs-on: ubuntu-latest
+    container:
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
+      # actions/checkout (incl. submodules) and every JS action work normally.
+      # To bump: change the digest and the trailing comment together.
+      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
+      options: --user root
     needs: build
     if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
     timeout-minutes: 30
@@ -249,11 +281,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1.7.0
-        with:
-          version: v1.5.1
 
       - name: Restore build cache
         uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
@@ -288,6 +315,14 @@ jobs:
   thorough:
     name: Thorough Property Tests
     runs-on: ubuntu-latest
+    container:
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
+      # actions/checkout (incl. submodules) and every JS action work normally.
+      # To bump: change the digest and the trailing comment together.
+      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
+      options: --user root
     needs: build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     timeout-minutes: 30
@@ -299,11 +334,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           submodules: recursive
-
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@8789b3e21e6c11b2697f5eb56eddae542f746c10 # v1.7.0
-        with:
-          version: v1.5.1
 
       - name: Restore build cache
         uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4

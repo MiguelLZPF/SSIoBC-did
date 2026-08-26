@@ -215,7 +215,22 @@ Two Foundry CI profiles in `foundry.toml`:
 - `ci`: Fast (fuzz=256, invariant runs=64/depth=32) — PRs finish in <5 min
 - `ci_thorough`: Deep (fuzz=1000, invariant runs=256/depth=64) — main merges only
 
-Foundry version pinned to `v1.5.1`. Dependabot keeps action versions updated weekly.
+**Toolchain is pinned by container digest, not by installer.** The six Foundry jobs run inside
+`ghcr.io/foundry-rs/foundry@sha256:3a70bfa9…` (v1.5.1), the same build developers run locally.
+Nothing is downloaded at job time.
+
+This replaced `foundry-rs/foundry-toolchain`, which downloads and executes a fresh `foundryup`
+installer on every run. Pinning that action by SHA pins the wrapper, **not the installer it
+fetches**, so an upstream change to `foundryup` broke a pinned workflow on 2026-08-26 with
+`cannot execute binary file`, two days after the identical workflow was green. A CI that
+reassembles its toolchain from the live internet cannot back the reproducibility claim that
+`docs/metrics/` gas and size numbers depend on.
+
+The `security` job is intentionally not containerised: `crytic/slither-action` is a Docker action
+and cannot run inside a container job. It ships its own solc and does not use Foundry.
+
+To bump the toolchain, change the digest and its trailing version comment together, in all six
+jobs. Dependabot keeps the remaining action versions updated weekly.
 
 ## Security Guidelines
 
