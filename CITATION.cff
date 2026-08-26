@@ -28,7 +28,7 @@ abstract: >-
   framework. Stores complete DID documents on-chain for direct resolution without
   off-chain indexing.
 version: "1.5.0"
-date-released: "2026-08-24"
+date-released: "2026-08-26"
 preferred-citation:
   type: conference-paper
   title: "Towards full Digital Sovereignty on-chain enabled by smart contract-based DID management"

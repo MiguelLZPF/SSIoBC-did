@@ -12,7 +12,7 @@
   - [AuthorizeOffChainErc1271.unit.t.sol](#3-authorizeoffchainerc1271unittsol--24-tests)
   - [DidManager.unit.t.sol](#4-didmanagerunittsol--60-tests)
   - [DidManagerNative.unit.t.sol](#5-didmanagernativeunittsol--72-tests)
-  - [DidStringConformance.unit.t.sol](#6-didstringconformanceunittsol--24-tests)
+  - [DidStringConformance.unit.t.sol](#6-didstringconformanceunittsol--23-tests)
   - [DirectEOAGuard.unit.t.sol](#7-directeoaguardunittsol--20-tests)
   - [ServiceStorage.unit.t.sol](#8-servicestorageunittsol--19-tests)
   - [VMStorage.unit.t.sol](#9-vmstorageunittsol--30-tests)
@@ -40,15 +40,15 @@
 
 | Category | Count | Files |
 |----------|------:|------:|
-| Unit Tests | 352 | 11 |
+| Unit Tests | 351 | 11 |
 | Fuzz Tests | 21 | 2 |
 | Integration Tests | 9 | 2 |
 | Invariant Tests | 15 | 2 |
 | Performance Tests | 8 | 1 |
 | Stress Tests | 6 | 1 |
-| **TOTAL** | **411** | **19** |
+| **TOTAL** | **410** | **19** |
 
-> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 372 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 411 run under the CI profiles.
+> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 371 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 410 run under the CI profiles.
 
 ---
 
@@ -307,7 +307,7 @@ Contains all 60 tests from `DidManager.unit.t.sol` adapted for native variant (1
 
 ---
 
-### 6. `DidStringConformance.unit.t.sol` — 24 tests
+### 6. `DidStringConformance.unit.t.sol` — 23 tests
 
 **File**: `test/unit/DidStringConformance.unit.t.sol`
 **Primary target**: `W3CResolverUtils.formatDidString()` / `trimMethodSegment()` — W3C DID syntax of the emitted string
@@ -318,7 +318,7 @@ reverts with a descriptive reason on any violation. The `;` segment filler used 
 `DEFAULT_DID_METHODS` is legal in storage but illegal in a DID, and nothing asserted the emitted
 syntax before this file existed.
 
-#### DidStringConformanceUnitTest (Full W3C variant, 21 tests)
+#### DidStringConformanceUnitTest (Full W3C variant, 20 tests)
 
 | # | Test | What it verifies |
 |---|------|------------------|
@@ -333,13 +333,17 @@ syntax before this file existed.
 Tests 8 to 21 drive `W3CResolverBase.checkMethods`, the free `pure` preflight that runs the same
 code path as rendering: `packMethods` reproduces `DEFAULT_DID_METHODS`; `0x00` padding, an empty
 method name, uppercase, `:`, `#`, interior filler, non-left-packed segments and a non-filler tail
-are each rejected with their specific error; `bytes32(0)` and canonical values are accepted; the
-resolver itself refuses a non-canonical `methods` even for a DID that was never created.
+are each rejected with their specific error; and `bytes32(0)` and canonical values are accepted.
+One test asserts the opposite of what a reader might expect: `resolve` does **not** revert on a
+non-canonical `methods`, it renders it verbatim. That choice is deliberate (see the Validation
+Scope and Trust Boundary section of `CLAUDE.md`) and the test exists so it has to be broken before
+it can be changed by accident.
 
 The fuzz test corrupts **one byte at a fuzzed index** of a canonical value rather than fuzzing a
 raw `bytes32`. Arbitrary bytes are non-canonical almost surely, so the accept branch would never
-run and the test would assert nothing. It also asserts the preflight and the resolver **fail with
-the identical error**, so a client cannot pass the preflight and still get an unresolvable DID.
+run and the test would assert nothing. The property asserted is one-directional by design:
+whatever the preflight accepts renders conformantly. The reverse does not hold, because a value
+the preflight rejects still renders.
 
 #### DidStringConformanceNativeUnitTest (Ethereum-Native variant, 3 tests)
 
@@ -775,7 +779,7 @@ These files are not test files but support the test infrastructure:
 
 ---
 
-**Last Updated**: 2026-08-24
-**Total Test Count**: 411 (372 in the default profile; fuzz/invariant run under CI profiles)
+**Last Updated**: 2026-08-26
+**Total Test Count**: 410 (371 in the default profile; fuzz/invariant run under CI profiles)
 **Test Framework**: Foundry (forge test)
 **Coverage Target**: >90% (enforced in CI/CD)

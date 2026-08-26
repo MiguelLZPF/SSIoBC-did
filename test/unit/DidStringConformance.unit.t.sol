@@ -179,12 +179,13 @@ contract DidStringConformanceUnitTest is TestBase, DidAbnf {
   }
 
   // ---------------------------------------------------------------------
-  // Render-time rejection: `methods` that could render a non-conformant DID
+  // The preflight: `checkMethods`
   //
-  // `createDid` deliberately does not validate `methods`. Enforcement lives in the renderer,
-  // the single choke point every DID string passes through, and `checkMethods` exposes exactly
-  // the same checks as a free `pure` preflight. These tests drive the preflight; the two
-  // `Resolve` tests below prove the resolver itself rejects the same values.
+  // Nothing in the contract enforces these rules. `createDid` accepts any `methods` and
+  // `resolve` renders whatever it holds. `checkMethods` is a free `pure` service so the SDK,
+  // the reference implementation or any client can enforce conformance itself. The property
+  // that matters, asserted by the fuzz test below, is: whatever the preflight accepts renders
+  // a conformant DID string.
   // ---------------------------------------------------------------------
 
   /// @notice `0x00` padding is rejected. Two fillers would break injectivity: "lzpf" + 0x00*6
@@ -251,31 +252,27 @@ contract DidStringConformanceUnitTest is TestBase, DidAbnf {
     resolver.checkMethods(HashUtils.packMethods(bytes10("lzpf"), bytes10("main"), bytes10("testnet")));
   }
 
-  /// @notice The resolver refuses to render a non-canonical `methods` even for a DID that was
-  /// never created, because `resolve` formats caller-supplied input without an existence check.
-  function test_RevertWhen_Resolve_MethodsWouldRenderEmptyMethodName() public {
-    bytes32 methods = HashUtils.packMethods(bytes10(0), bytes10("main"), bytes10(0));
-    vm.expectRevert(MethodNameEmpty.selector);
-    resolver.resolve(W3CDidInput({ methods: methods, id: bytes32("nonexistent"), fragment: bytes32(0) }), false);
-  }
-
-  /// @notice Same guard for an illegal character reaching the resolver directly.
-  function test_RevertWhen_Resolve_MethodsContainIllegalCharacter() public {
+  /// @notice The resolver deliberately does NOT reject a non-canonical `methods`. It renders what
+  /// it holds. This test exists so the choice is explicit and a future change has to break it.
+  function test_Resolve_Should_NotRevert_When_MethodsAreNonCanonical() public {
     bytes32 methods = HashUtils.packMethods(bytes10("lzpf"), bytes10("a#b"), bytes10(0));
+    bytes32 id = _create(methods, bytes32("rand-noncanonical"));
+    string memory did = _resolve(methods, id);
+    assertEq(did, string(abi.encodePacked("did:lzpf:a#b:", _hex(id))), "Resolve renders it verbatim");
+
+    // ...and the preflight is what tells a client the value was bad.
     vm.expectRevert(MethodCharInvalid.selector);
-    resolver.resolve(W3CDidInput({ methods: methods, id: bytes32("nonexistent"), fragment: bytes32(0) }), false);
+    resolver.checkMethods(methods);
   }
 
-  /// @notice Fuzz: for any `methods`, either the preflight rejects it, or the DID it produces
-  /// renders a conformant string. There is no third outcome, and the preflight never disagrees
-  /// with the resolver.
-  /// @dev The value is a canonical one with a single fuzzed byte overwritten at a fuzzed index,
-  /// not an arbitrary `bytes32`. Arbitrary bytes are non-canonical almost surely, so the accept
-  /// branch would never run and the test would assert nothing. Single-byte corruption keeps both
-  /// branches live: many mutations land on filler or on an already-legal character.
-  function testFuzz_Methods_ArePreflightRejectedOrRenderConformant(uint8 index, bytes1 corruption, bytes32 random)
-    public
-  {
+  /// @notice Fuzz: whatever the preflight accepts renders a conformant DID string.
+  /// @dev This is the whole contract between the two layers. The reverse does not hold and is
+  /// not asserted: a value the preflight rejects still renders, by design, because the contract
+  /// does not withhold data it holds over a format opinion.
+  /// The value is a canonical one with a single fuzzed byte overwritten at a fuzzed index, not an
+  /// arbitrary `bytes32`. Arbitrary bytes are non-canonical almost surely, so the accept branch
+  /// would never run and the test would assert nothing.
+  function testFuzz_Methods_PreflightAcceptedImpliesConformant(uint8 index, bytes1 corruption, bytes32 random) public {
     vm.assume(random != bytes32(0));
     bytes memory buffer = abi.encodePacked(DEFAULT_DID_METHODS);
     buffer[index % 32] = corruption;
@@ -283,20 +280,13 @@ contract DidStringConformanceUnitTest is TestBase, DidAbnf {
     vm.assume(fuzzedMethods != bytes32(0));
 
     // createDid never validates methods, so it must accept whatever it is handed.
-    // _create does its own prank.
     bytes32 id = _create(fuzzedMethods, random);
 
     try resolver.checkMethods(fuzzedMethods) {
-      // Preflight accepted, so resolution must succeed and the string must satisfy the ABNF.
       _assertConformantDid(_resolve(fuzzedMethods, id));
-    } catch (bytes memory preflightError) {
-      // Preflight rejected, so the resolver must reject it identically. A disagreement would
-      // mean a client could pass the preflight and still get an unresolvable DID, or vice versa.
-      try resolver.resolve(W3CDidInput({ methods: fuzzedMethods, id: id, fragment: bytes32(0) }), false) {
-        fail("Preflight rejected a value the resolver accepted");
-      } catch (bytes memory resolveError) {
-        assertEq(keccak256(preflightError), keccak256(resolveError), "Preflight and resolver must fail identically");
-      }
+    } catch {
+      // Rejected by the preflight. The resolver still renders, which is the point of the design;
+      // asserting anything about the string here would contradict it.
     }
   }
 

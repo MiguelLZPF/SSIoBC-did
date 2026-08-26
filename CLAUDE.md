@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [Essential Commands](#essential-commands)
 - [Project Knowledge Reference](#project-knowledge-reference)
 - [Development Guidelines](#development-guidelines)
+- [Validation Scope and Trust Boundary](#validation-scope-and-trust-boundary)
 - [Security Guidelines](#security-guidelines)
 - [File References](#file-references)
 
@@ -218,6 +219,44 @@ Two Foundry CI profiles in `foundry.toml`:
 - `ci_thorough`: Deep (fuzz=1000, invariant runs=256/depth=64) — main merges only
 
 Foundry version pinned to `v1.5.1`. Dependabot keeps action versions updated weekly.
+
+## Validation Scope and Trust Boundary
+
+**On-chain code validates only what can attack the system or corrupt state it does not own.
+Format, encoding and presentation correctness are delegated to external systems: the SDK, the
+reference implementation, and the `examples/`.**
+
+A smart contract is not an API and cannot afford to check what an API would. Three reasons:
+
+1. **Users pay forever.** Validating the `bytes32 methods` character set inside `createDid` cost
+   **+13,183 gas (+4.7%)** on every DID ever created. Measured, not estimated. The gas table in
+   `docs/metrics/` is a published artifact, so a cosmetic check worsens a headline number.
+2. **It is unamendable.** No proxies, no upgrades. A format rule baked into a contract cannot
+   follow a spec that moves, and DID 1.1 / VC 2.0 are on the roadmap.
+3. **A contract must not withhold data it holds.** Reverting in `resolve` because the stored
+   format is disliked is a denial of service against the DID's own owner.
+
+### The test to apply before adding any `revert` to `src/`
+
+> Can a malformed value here let someone act on a DID they do not control, or corrupt state that
+> is not theirs?
+
+If **no**, it does not belong on chain. Malformed input that harms only the caller is acceptable:
+a DID with a nonsense `methods` exists, works for `isAuthorized`, and simply has no valid W3C
+string. That is the caller's problem and the SDK's job to prevent.
+
+### When a check is useful but not security-relevant
+
+Ship it as an **`external pure` helper** callable via `eth_call` at zero gas, never as an enforced
+guard. `W3CResolverBase.checkMethods(bytes32)` is the reference example: it enforces all seven
+canonical-`methods` rules, and **nothing in the contract calls it**.
+
+Document the delegation in NatSpec, so the absence of a check reads as a decision, not an
+oversight.
+
+**Precedent**: ENS specifies name normalisation (UTS-46, ENSIP-15) as a *client* responsibility and
+does not enforce it on chain, for these same reasons. ERC-721 `tokenURI` and ERC-20
+`name`/`symbol` are likewise unvalidated.
 
 ## Security Guidelines
 

@@ -1171,35 +1171,49 @@ rejects any value that could render a non-conformant or ambiguous DID string:
 Together these make the mapping **injective over every value that has a string at all**: a DID
 string decodes back to exactly one `methods`.
 
-**Why the renderer and not `createDid`.** All seven DID-string construction sites in the codebase
-go through `formatDidString`, which calls `checkMethods`. There is no second path. So a value that
-cannot pass the renderer has no string representation, and the injectivity guarantee is already
-complete without touching the write path. Write-time validation was implemented first and then
-reverted: it cost **+13,183 gas on every `createDid`** and bought only an earlier error message.
-The measured cost of the current design is **+2 gas** on `createDid`; the whole expense sits in the
-resolvers, which grew by 834 bytes each.
+**Why nothing enforces this on chain.** These rules are conformance, not security. Verified: `id`
+is `keccak256(methods, random, msg.sender, prevrandao)`, so two DIDs cannot be made to render the
+same full string without a 256-bit preimage, and the hex `id` is appended after every method
+segment, so an injected `#` cannot make the rendered prefix equal another party's DID. A malformed
+`methods` therefore harms only the account that chose it.
 
-The trade is that a malformed `methods` produces a DID that exists on chain, works for
-`isAuthorized`, and can never be resolved into a document. That is self-inflicted and affects only
-the creator's own DID. Two things soften it:
+So the rules live in a helper nothing calls. `createDid` accepts any `methods`; `resolve` renders
+whatever it holds; `W3CResolverBase.checkMethods(bytes32)` is an `external pure` preflight a client
+invokes via `eth_call` at zero gas. Conformance is guaranteed by the SDK, the reference
+implementation and the examples, not by the contracts. See the Validation Scope and Trust Boundary
+section of `CLAUDE.md` for the rule and the reasoning.
 
-- `HashUtils.packMethods(bytes10,bytes10,bytes10)` builds a canonical value, converting the `0x00`
-  padding of `bytes32(bytes10("lzpf"))` into canonical `;` and filling the tail.
-  `packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0))` equals `DEFAULT_DID_METHODS` byte for
-  byte.
-- `W3CResolverBase.checkMethods(bytes32) external pure` is a free preflight. A client calls it via
-  `eth_call` before sending the creation transaction, at zero gas. It runs the same code path as
-  rendering, and a fuzz test asserts the two never disagree.
+Two earlier designs were built and reverted, both recorded here so the choice is not relitigated:
 
-This matters because third-party software cannot know the convention. The `did-resolver`
-npm package, which sits under Veramo, `did-jwt-vc` and the DIF Universal Resolver, matches
-the string against a regex built from the ABNF above. A `;` makes `parse()` return null and
-resolution fails with `invalidDid` before any contract call happens. Nothing downstream could
-strip the filler even if it wanted to.
+| Attempt | What it did | Why it was dropped |
+|---|---|---|
+| Validate in `createDid` | reverted on a non-canonical `methods` | +13,183 gas (+4.7%) on every DID, for an earlier error message |
+| Validate in `formatDidString` | `resolve` reverted on a non-canonical `methods` | the contract refused to render data it holds, and baked an unamendable format policy into an immutable system |
 
-The transformation is output-only: stored `bytes32` values and every `idHash` are untouched.
-`test/unit/DidStringConformance.unit.t.sol` asserts the emitted syntax against the ABNF and
-includes a negative test proving the checker rejects the unfiltered form.
+**What the renderer actually does.** `W3CResolverUtils.trimMethodSegment` removes a trailing run
+of `0x00` and `;` from each segment and passes everything else through untouched. It rejects
+nothing. So `bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;")` renders `did:lzpf:main:<id>`, and a
+`methods` carrying an illegal character renders that character verbatim.
+
+**Why the cleanup still happens at all.** Third-party software cannot know the convention. The
+`did-resolver` npm package, which sits under Veramo, `did-jwt-vc` and the DIF Universal Resolver,
+matches the string against a regex built from the ABNF above. A `;` reaching the output makes
+`parse()` return null and resolution fails with `invalidDid` before any contract call happens.
+Trimming the filler is not a validation decision, it is part of decoding the packed representation
+into the one the format defines. Rejecting a character, by contrast, would be a policy decision,
+which is why the renderer does not do it.
+
+**Building a canonical value.** `HashUtils.packMethods(bytes10,bytes10,bytes10)` converts the
+`0x00` padding of `bytes32(bytes10("lzpf"))` into canonical `;` and fills the tail.
+`packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0))` equals `DEFAULT_DID_METHODS` byte for
+byte, asserted by a test. Clients should build `methods` with it, or call
+`W3CResolverBase.checkMethods` before sending a creation transaction.
+
+All of this is output-only: stored `bytes32` values and every `idHash` are untouched.
+`test/unit/DidStringConformance.unit.t.sol` asserts the emitted syntax against the ABNF, asserts
+that whatever the preflight accepts renders conformantly, and includes an explicit test that
+`resolve` does **not** revert on a non-canonical value, so the deliberate choice has to be broken
+before it can be changed by accident.
 
 #### ID (bytes32)
 
