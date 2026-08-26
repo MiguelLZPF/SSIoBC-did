@@ -44,12 +44,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **`onlyDirectEOA` reshaped into a thin modifier over an internal function.** A modifier body is
+  inlined at every use site, so the guard existed 10 times in the deployed bytecode. Moving the
+  check into `_requireDirectEOA()` saves **158 bytes per manager** and costs ~22 gas per guarded
+  call, which is the right side of `optimizer_runs = 200`. Byte-identical to removing the modifier
+  entirely, while keeping the precondition visible in each function signature. Same pattern as
+  OpenZeppelin `Ownable._checkOwner`. The convention is now recorded in `CLAUDE.md`.
+
 - `IDidAuth` gains `isAuthorizedOffChainWithSigner`; existing selectors are unchanged, so this is
   ABI-additive.
-- Contract sizes: DidManager 14,089 B (+948), DidManagerNative 12,481 B (+948), W3CResolver
+- Contract sizes: DidManager 13,931 B (+790), DidManagerNative 12,323 B (+790), W3CResolver
   11,845 B (+998), W3CResolverNative 12,367 B (+998). EIP-170 limit is 24,576 B. The whole cost of
   the DID-string work sits in the resolvers, on the read path, where nobody pays gas for it.
-- `createDid` gas: 277,889 -> 277,891 mean, **+2**. Measured with `forge test --gas-report` against
+- `createDid` gas: 277,889 -> 277,915 mean, **+26**. Measured with `forge test --gas-report` against
   the pre-change tree; the write path is untouched.
 - 371 tests passing on the default profile (325 before), 410 under the CI profile (363 before).
 

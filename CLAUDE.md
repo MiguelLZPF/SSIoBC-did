@@ -140,6 +140,15 @@ did:method0:method1:method2:id
 - **Errors**: Custom errors instead of require strings (gas optimization)
 - **Coverage**: >90% required
 - **Natspec**: Required for all public/external functions
+- **Modifiers**: keep the body to a single call into an `internal` function
+  (`modifier onlyDirectEOA() { _requireDirectEOA(); _; }`). A modifier body is **inlined at every
+  use site**, so logic written directly in it is duplicated once per guarded function. Measured
+  here with 10 use sites: inlining cost **+158 bytes per manager** and saved only ~22 gas per
+  call, which is the wrong side of `optimizer_runs = 200`. The thin-modifier form is
+  byte-identical to having no modifier at all, and still shows the precondition in the function
+  signature where a reader and a static analyser will see it. Same pattern as OpenZeppelin
+  `Ownable._checkOwner`. Never put a `revert`, a loop, or storage reads directly in a modifier
+  body.
 
 ### Testing Patterns
 

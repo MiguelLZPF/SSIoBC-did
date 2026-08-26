@@ -1486,11 +1486,21 @@ require(condition, "Invalid DID");  // String storage expensive (~96+ bytes each
 All 8 authenticated write entry points per variant (`createDid`, `createVm`, `validateVm`, `expireVm`, `deactivateDid`, `reactivateDid`, `updateController`, `updateService`) are protected by the `onlyDirectEOA` modifier in `DidAggregate`:
 
 ```solidity
-modifier onlyDirectEOA() {
+function _requireDirectEOA() internal view {
   if (msg.sender != tx.origin) revert DirectEOACallRequired();
+}
+
+modifier onlyDirectEOA() {
+  _requireDirectEOA();
   _;
 }
 ```
+
+The check lives in the internal function, not the modifier body, because a modifier body is
+inlined at every use site. With 10 use sites, writing the logic inline cost **+158 bytes per
+manager** for ~22 gas saved per call, the wrong trade under `optimizer_runs = 200`. The thin
+modifier is byte-identical to having no modifier and keeps the precondition in the signature.
+Same shape as OpenZeppelin `Ownable._checkOwner`.
 
 **What it does**: The call passes only when `msg.sender` IS the transaction's signing EOA — i.e., no intermediary contract sits anywhere in the call chain.
 
