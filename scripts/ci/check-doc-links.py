@@ -230,6 +230,13 @@ def exists(root: pathlib.Path, doc: pathlib.PurePosixPath, target: str) -> bool:
     decoded = urllib.parse.unquote(target)
     if decoded != target:
         reads.append(decoded)
+    # An extensionless link is how Docusaurus and every other markdown site
+    # cross-references a sibling page: `./tesla-model-y` is `tesla-model-y.md`.
+    # Nine such links in one repo were reported as rot. Again this only ever
+    # ACCEPTS more, so a target that resolves under no reading still fails.
+    for r in list(reads):
+        if not pathlib.PurePosixPath(r).suffix:
+            reads += [r + ".md", r.rstrip("/") + "/index.md"]
     candidates = [base / t for t in reads for base in (root / doc.parent, root)]
     for c in candidates:
         try:
@@ -462,6 +469,11 @@ def selftest() -> int:
 
         v = doc("See [x](real.md#a-section)\n")
         check("anchor suffix stripped", not v)
+
+        v = doc("See [x](real) and [y](../docs/real)\n")
+        check("extensionless link resolves to the .md", not v)
+        v = doc("See [x](no-such-page)\n")
+        check("extensionless link to nothing still fails", any(c == "link" for c, _, _ in v))
 
         (root / "docs" / "a real file.md").write_text("# spaced\n")
         v = doc("See [x](a%20real%20file.md)\n")
