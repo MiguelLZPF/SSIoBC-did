@@ -51,6 +51,21 @@ repos:
         name: Check for merge conflicts
       - id: mixed-line-ending
         name: Fix mixed line endings
+  # Documentation references must resolve
+  - repo: local
+    hooks:
+      - id: check-doc-links
+        name: Check documentation references resolve
+        entry: scripts/ci/check-doc-links.py
+        language: system
+        files: \.md$
+      - id: check-doc-placement
+        name: Check document placement and naming
+        entry: scripts/ci/check-doc-placement.py
+        language: system
+        files: \.md$
+        pass_filenames: false
+
 
 # Configuration
 default_language_version:

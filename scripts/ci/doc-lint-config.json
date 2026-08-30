@@ -1,0 +1,79 @@
+{
+  "doc_roots": [
+    "docs",
+    ".claude",
+    ".github"
+  ],
+  "readme_only_roots": [
+    "script",
+    "scripts",
+    "src",
+    "test"
+  ],
+  "root_allowlist": [
+    "README.md",
+    "CLAUDE.md",
+    "PROJECT.md",
+    "MEMORY.md",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md",
+    "LICENSE.md"
+  ],
+  "harness_roots": [
+    ".claude",
+    ".github"
+  ],
+  "harness_names": [
+    "SKILL.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "MEMORY.md",
+    "README.md",
+    "PULL_REQUEST_TEMPLATE.md",
+    "ISSUE_TEMPLATE.md",
+    "WORKFLOWS.md"
+  ],
+  "exclude_globs": [
+    "lib/**",
+    "node_modules/**",
+    "vendor/**",
+    "third_party/**",
+    "target/**",
+    "out/**",
+    "cache/**",
+    "typechain-types/**",
+    "artifacts/**",
+    "broadcast/**"
+  ],
+  "toc_line_threshold": 100,
+  "index_row_max": 1000,
+  "index_files": [
+    "CLAUDE.md"
+  ],
+  "link_scope_prefixes": [
+    "docs/",
+    ".claude/",
+    ".github/"
+  ],
+  "link_scope_files": [
+    "README.md",
+    "CLAUDE.md",
+    "PROJECT.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CODE_OF_CONDUCT.md"
+  ],
+  "path_prefixes": [
+    ".claude",
+    ".github",
+    "docs",
+    "script",
+    "scripts",
+    "src",
+    "test"
+  ]
+}

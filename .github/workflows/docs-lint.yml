@@ -1,0 +1,44 @@
+name: Docs Lint
+
+# Link rot happens when the TARGET moves, which a changed-files trigger cannot
+# see. Hence the weekly full sweep alongside the per-push run.
+on:
+  push:
+    paths:
+      - '**/*.md'
+      - 'scripts/ci/check-doc-*.py'
+      - 'scripts/ci/doc-lint-config.json'
+      - '.github/workflows/docs-lint.yml'
+  pull_request:
+    paths:
+      - '**/*.md'
+      - 'scripts/ci/check-doc-*.py'
+      - 'scripts/ci/doc-lint-config.json'
+      - '.github/workflows/docs-lint.yml'
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the commit-hash pass resolves cited SHAs against the
+          # object database, and a shallow clone has almost none of them.
+          fetch-depth: 0
+          submodules: false
+
+      - name: Documentation references resolve
+        run: python3 scripts/ci/check-doc-links.py --all
+
+      - name: Document placement and naming
+        run: python3 scripts/ci/check-doc-placement.py --all
