@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [Essential Commands](#essential-commands)
 - [Project Knowledge Reference](#project-knowledge-reference)
 - [Development Guidelines](#development-guidelines)
+- [Validation Scope and Trust Boundary](#validation-scope-and-trust-boundary)
 - [Security Guidelines](#security-guidelines)
 - [File References](#file-references)
 
@@ -98,7 +99,7 @@ did:method0:method1:method2:id
 ```
 
 - **Methods**: bytes32 with three 10-byte segments (default: "lzpf::main::")
-- **ID**: Generated from `keccak256(methods, random, tx.origin, block.prevrandao)`
+- **ID**: Generated from `keccak256(methods, random, msg.sender, block.prevrandao)`
 - **Hash**: `keccak256(methods, id)` for storage indexing
 
 ### Key Design Patterns
@@ -111,6 +112,8 @@ did:method0:method1:method2:id
 - **Abstract Storage**: Modular VMStorage/VMStorageNative and ServiceStorage (in src/storage/)
 - **Storage Caching**: Direct storage reads with early exit (e.g., _isControllerFor, _isExpired)
 - **Resolution-time Derivation**: W3CResolverNative derives VM fields at query time (zero extra storage)
+- **onlyDirectEOA Guard**: all authenticated writes require msg.sender == tx.origin (direct EOA calls; tx.origin never used as identity)
+- **ERC-1271 signers**: `isAuthorizedOffChainWithSigner` verifies EOA *and* contract signatures via OZ `SignatureChecker` (read path only; ERC-6492 unsupported)
 
 **See PROJECT.md for complete details**
 
@@ -137,6 +140,15 @@ did:method0:method1:method2:id
 - **Errors**: Custom errors instead of require strings (gas optimization)
 - **Coverage**: >90% required
 - **Natspec**: Required for all public/external functions
+- **Modifiers**: keep the body to a single call into an `internal` function
+  (`modifier onlyDirectEOA() { _requireDirectEOA(); _; }`). A modifier body is **inlined at every
+  use site**, so logic written directly in it is duplicated once per guarded function. Measured
+  here with 10 use sites: inlining cost **+158 bytes per manager** and saved only ~22 gas per
+  call, which is the wrong side of `optimizer_runs = 200`. The thin-modifier form is
+  byte-identical to having no modifier at all, and still shows the precondition in the function
+  signature where a reader and a static analyser will see it. Same pattern as OpenZeppelin
+  `Ownable._checkOwner`. Never put a `revert`, a loop, or storage reads directly in a modifier
+  body.
 
 ### Testing Patterns
 
@@ -217,6 +229,44 @@ Two Foundry CI profiles in `foundry.toml`:
 
 Foundry version pinned to `v1.5.1`. Dependabot keeps action versions updated weekly.
 
+## Validation Scope and Trust Boundary
+
+**On-chain code validates only what can attack the system or corrupt state it does not own.
+Format, encoding and presentation correctness are delegated to external systems: the SDK, the
+reference implementation, and the `examples/`.**
+
+A smart contract is not an API and cannot afford to check what an API would. Three reasons:
+
+1. **Users pay forever.** Validating the `bytes32 methods` character set inside `createDid` cost
+   **+13,183 gas (+4.7%)** on every DID ever created. Measured, not estimated. The gas table in
+   `docs/metrics/` is a published artifact, so a cosmetic check worsens a headline number.
+2. **It is unamendable.** No proxies, no upgrades. A format rule baked into a contract cannot
+   follow a spec that moves, and DID 1.1 / VC 2.0 are on the roadmap.
+3. **A contract must not withhold data it holds.** Reverting in `resolve` because the stored
+   format is disliked is a denial of service against the DID's own owner.
+
+### The test to apply before adding any `revert` to `src/`
+
+> Can a malformed value here let someone act on a DID they do not control, or corrupt state that
+> is not theirs?
+
+If **no**, it does not belong on chain. Malformed input that harms only the caller is acceptable:
+a DID with a nonsense `methods` exists, works for `isAuthorized`, and simply has no valid W3C
+string. That is the caller's problem and the SDK's job to prevent.
+
+### When a check is useful but not security-relevant
+
+Ship it as an **`external pure` helper** callable via `eth_call` at zero gas, never as an enforced
+guard. `W3CResolverBase.checkMethods(bytes32)` is the reference example: it enforces all seven
+canonical-`methods` rules, and **nothing in the contract calls it**.
+
+Document the delegation in NatSpec, so the absence of a check reads as a decision, not an
+oversight.
+
+**Precedent**: ENS specifies name normalisation (UTS-46, ENSIP-15) as a *client* responsibility and
+does not enforce it on chain, for these same reasons. ERC-721 `tokenURI` and ERC-20
+`name`/`symbol` are likewise unvalidated.
+
 ## Security Guidelines
 
 ### DID/SSI Project Security Considerations
@@ -277,5 +327,68 @@ When developing or reviewing smart contracts for this DID/SSI project, the follo
 
 ---
 
-**Last Updated**: 2026-04-13
+**Last Updated**: 2026-06-10
 **Architecture**: Simplified 2-file system (CLAUDE.md + PROJECT.md)
+
+# context-mode — MANDATORY routing rules
+
+You have context-mode MCP tools available. These rules are NOT optional — they protect your context window from flooding. A single unrouted command can dump 56 KB into context and waste the entire session.
+
+## BLOCKED commands — do NOT attempt these
+
+### curl / wget — BLOCKED
+Any Bash command containing `curl` or `wget` is intercepted and replaced with an error message. Do NOT retry.
+Instead use:
+- `ctx_fetch_and_index(url, source)` to fetch and index web pages
+- `ctx_execute(language: "javascript", code: "const r = await fetch(...)")` to run HTTP calls in sandbox
+
+### Inline HTTP — BLOCKED
+Any Bash command containing `fetch('http`, `requests.get(`, `requests.post(`, `http.get(`, or `http.request(` is intercepted and replaced with an error message. Do NOT retry with Bash.
+Instead use:
+- `ctx_execute(language, code)` to run HTTP calls in sandbox — only stdout enters context
+
+### WebFetch — BLOCKED
+WebFetch calls are denied entirely. The URL is extracted and you are told to use `ctx_fetch_and_index` instead.
+Instead use:
+- `ctx_fetch_and_index(url, source)` then `ctx_search(queries)` to query the indexed content
+
+## REDIRECTED tools — use sandbox equivalents
+
+### Bash (>20 lines output)
+Bash is ONLY for: `git`, `mkdir`, `rm`, `mv`, `cd`, `ls`, `npm install`, `pip install`, and other short-output commands.
+For everything else, use:
+- `ctx_batch_execute(commands, queries)` — run multiple commands + search in ONE call
+- `ctx_execute(language: "shell", code: "...")` — run in sandbox, only stdout enters context
+
+### Read (for analysis)
+If you are reading a file to **Edit** it → Read is correct (Edit needs content in context).
+If you are reading to **analyze, explore, or summarize** → use `ctx_execute_file(path, language, code)` instead. Only your printed summary enters context. The raw file content stays in the sandbox.
+
+### Grep (large results)
+Grep results can flood context. Use `ctx_execute(language: "shell", code: "grep ...")` to run searches in sandbox. Only your printed summary enters context.
+
+## Tool selection hierarchy
+
+1. **GATHER**: `ctx_batch_execute(commands, queries)` — Primary tool. Runs all commands, auto-indexes output, returns search results. ONE call replaces 30+ individual calls.
+2. **FOLLOW-UP**: `ctx_search(queries: ["q1", "q2", ...])` — Query indexed content. Pass ALL questions as array in ONE call.
+3. **PROCESSING**: `ctx_execute(language, code)` | `ctx_execute_file(path, language, code)` — Sandbox execution. Only stdout enters context.
+4. **WEB**: `ctx_fetch_and_index(url, source)` then `ctx_search(queries)` — Fetch, chunk, index, query. Raw HTML never enters context.
+5. **INDEX**: `ctx_index(content, source)` — Store content in FTS5 knowledge base for later search.
+
+## Subagent routing
+
+When spawning subagents (Agent/Task tool), the routing block is automatically injected into their prompt. Bash-type subagents are upgraded to general-purpose so they have access to MCP tools. You do NOT need to manually instruct subagents about context-mode.
+
+## Output constraints
+
+- Keep responses under 500 words.
+- Write artifacts (code, configs, PRDs) to FILES — never return them as inline text. Return only: file path + 1-line description.
+- When indexing content, use descriptive source labels so others can `ctx_search(source: "label")` later.
+
+## ctx commands
+
+| Command | Action |
+|---------|--------|
+| `ctx stats` | Call the `ctx_stats` MCP tool and display the full output verbatim |
+| `ctx doctor` | Call the `ctx_doctor` MCP tool, run the returned shell command, display as checklist |
+| `ctx upgrade` | Call the `ctx_upgrade` MCP tool, run the returned shell command, display as checklist |

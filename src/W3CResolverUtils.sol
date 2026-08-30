@@ -2,7 +2,17 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { W3CService, W3CDidInput } from "@types/W3CTypes.sol";
-import { Controller, CONTROLLERS_MAX_LENGTH, DEFAULT_DID_METHODS } from "@types/DidTypes.sol";
+import {
+  Controller,
+  CONTROLLERS_MAX_LENGTH,
+  DEFAULT_DID_METHODS,
+  METHOD_FILLER,
+  MethodPaddingMustBeSemicolon,
+  MethodNameEmpty,
+  MethodCharInvalid,
+  MethodFillerNotTrailing,
+  MethodSegmentsNotLeftPacked
+} from "@types/DidTypes.sol";
 import { Service } from "@types/ServiceTypes.sol";
 
 error DidInputRequired();
@@ -73,15 +83,70 @@ library W3CResolverUtils {
    * @param didInput The DID input with methods, id, and optional fragment.
    * @return did The formatted DID string.
    */
+  /**
+   * @dev Reverts unless `methods` is canonical, i.e. unless it renders a W3C-conformant and
+   * unambiguous DID string. **Nothing in the contract calls this on a state-changing or
+   * rendering path.** It exists so a client can check, for free, before it commits.
+   *
+   * Rules, each closing a concrete rendering defect:
+   * 1. Segment 0 non-empty, else the string starts `did::` with an empty `method-name`.
+   * 2. Segment 0 is `[a-z0-9]` (`method-char = %x61-7A / DIGIT`).
+   * 3. Segments 1 and 2 are `[a-zA-Z0-9.-_]` (`idchar`, minus pct-encoded), so a ":" cannot
+   *    inject a segment and a "#" cannot inject a fragment.
+   * 4. Filler is a trailing run only; interior filler would let "l;zpf" and "lzpf" render alike.
+   * 5. Filler is exactly ";"; `0x00` padding would render alike for the same reason.
+   * 6. Segments are left-packed, else ("lzpf","","test") and ("lzpf","test","") both render
+   *    `did:lzpf:test:<id>`.
+   * 7. The two unused tail bytes are ";;", which the rendered segments never expose.
+   *
+   * Rules 4 to 7 are about injectivity: without them several distinct `bytes32` values render the
+   * same string while hashing differently, so a DID read from a document cannot be decoded back
+   * to the value that produced it. None of the seven is a security property. `id` is
+   * `keccak256(methods, random, msg.sender, prevrandao)`, so two DIDs cannot be made to render
+   * the same full string without a 256-bit preimage, and the hex `id` is appended after every
+   * segment, so an injected "#" cannot make the prefix equal another party's DID.
+   *
+   * @param methods The packed methods value to check.
+   */
+  function checkMethods(bytes32 methods) internal pure {
+    bool previousSegmentEmpty = false;
+    for (uint256 segment = 0; segment < 3; segment++) {
+      uint256 nameLength = 0;
+      bool inFiller = false;
+      for (uint256 i = 0; i < 10; i++) {
+        bytes1 char = methods[segment * 10 + i];
+        if (char == METHOD_FILLER) {
+          inFiller = true;
+          continue;
+        }
+        if (char == 0x00) revert MethodPaddingMustBeSemicolon();
+        if (inFiller) revert MethodFillerNotTrailing();
+        bool legal = (char >= 0x61 && char <= 0x7A) || (char >= 0x30 && char <= 0x39); // a-z 0-9
+        if (segment != 0) {
+          legal = legal || (char >= 0x41 && char <= 0x5A) || char == 0x2E || char == 0x2D || char == 0x5F;
+        }
+        if (!legal) revert MethodCharInvalid();
+        nameLength++;
+      }
+      if (segment == 0) {
+        if (nameLength == 0) revert MethodNameEmpty();
+      } else {
+        if (previousSegmentEmpty && nameLength != 0) revert MethodSegmentsNotLeftPacked();
+        previousSegmentEmpty = nameLength == 0;
+      }
+    }
+    if (uint16(uint256(methods)) != 0x3B3B) revert MethodPaddingMustBeSemicolon();
+  }
+
   function formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
-    bytes10 method0 = bytes10(didInput.methods);
-    bytes10 method1 = bytes10(bytes32(uint256(didInput.methods) << 80));
-    bytes10 method2 = bytes10(bytes32(uint256(didInput.methods) << 160));
+    bytes memory method0 = trimMethodSegment(bytes10(didInput.methods));
+    bytes memory method1 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 80)));
+    bytes memory method2 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 160)));
     bytes memory finalEncode = abi.encodePacked("did:", method0, ":");
-    if (method1 != bytes10(0)) {
+    if (method1.length > 0) {
       finalEncode = abi.encodePacked(finalEncode, method1, ":");
     }
-    if (method2 != bytes10(0)) {
+    if (method2.length > 0) {
       finalEncode = abi.encodePacked(finalEncode, method2, ":");
     }
     finalEncode = abi.encodePacked(finalEncode, bytesToHexString(abi.encodePacked(didInput.id)));
@@ -147,6 +212,35 @@ library W3CResolverUtils {
     }
 
     return strings;
+  }
+
+  /**
+   * @dev Strips the trailing filler from a 10-byte method segment.
+   *
+   * Deliberately permissive. It removes a trailing run of `0x00` (Solidity's right-pad for a
+   * short literal) and ";" (`METHOD_FILLER`, the project's explicit-empty marker), and passes
+   * everything else through untouched. It does NOT reject an illegal character, an empty
+   * segment 0, or interior filler.
+   *
+   * That is a deliberate trust-boundary decision, not an oversight. See
+   * `checkMethods` for the rules and `W3CResolverBase.checkMethods` for the free preflight
+   * clients use to enforce them. A contract that refused to render a document it holds would be
+   * taking a permanent position on a format that is expected to change (DID 1.1), in a system
+   * with no upgrade path, to prevent a problem that harms only the caller who caused it.
+   *
+   * @param segment One 10-byte method segment.
+   * @return out The segment with its trailing filler removed (may be empty).
+   */
+  function trimMethodSegment(bytes10 segment) internal pure returns (bytes memory out) {
+    uint256 length = 10;
+    while (length > 0 && (segment[length - 1] == METHOD_FILLER || segment[length - 1] == 0x00)) {
+      length--;
+    }
+    out = new bytes(length);
+    for (uint256 i = 0; i < length; i++) {
+      out[i] = segment[i];
+    }
+    return out;
   }
 
   /**

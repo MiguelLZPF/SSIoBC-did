@@ -26,6 +26,7 @@ This file is the **single source of truth** for project domain knowledge, refere
 - **4-year expiration** with reuse capability
 - **W3C DID specification compliance**
 - **Smart contract interoperability** (direct on-chain resolution)
+- **Native transaction signature authorization**: every write is authorized by the transaction's own signature. No write function accepts a signature, nonce or domain separator, and no write path performs in-contract signature verification (see [Native Transaction Signature as the Authorization Primitive](#6-native-transaction-signature-as-the-authorization-primitive))
 
 ### Core Technologies
 
@@ -33,7 +34,7 @@ This file is the **single source of truth** for project domain knowledge, refere
 - **EVM**: Osaka (Fusaka hardfork)
 - **Framework**: Foundry (Forge, Cast, Anvil)
 - **Testing**: Forge test framework with >90% coverage requirement
-- **Libraries**: OpenZeppelin (EnumerableSet, Ownable, Strings)
+- **Libraries**: OpenZeppelin (EnumerableSet, Ownable, Strings, SignatureChecker/ECDSA for the ERC-1271 read path)
 - **Network**: Ethereum (EVM-compatible chains)
 
 ## Academic Context & Innovation
@@ -55,6 +56,7 @@ This is a **PhD research project** demonstrating that complete DID document stor
 2. Maintains W3C compliance (vs non-standard approaches)
 3. Enables direct smart contract interoperability
 4. Achieves gas efficiency through hash-based list architecture
+5. Authorizes every state change with the native transaction signature, with no in-contract signature verification, nonce management or replay window on the write path
 
 ### Comparison with Existing Solutions
 
@@ -459,7 +461,7 @@ flowchart TB
         └──────────┴──────────┴──────────┴────┘"]
 
         ID["id (bytes32)
-        keccak256(methods, random, tx.origin, prevrandao)"]
+        keccak256(methods, random, msg.sender, prevrandao)"]
 
         Hash["didHash (bytes32)
         keccak256(methods, id)"]
@@ -622,7 +624,7 @@ sequenceDiagram
 
     Note over User,Chain: DID Creation Flow
     User->>DM: createDid(methods, random, vmId)
-    DM->>DM: Generate ID = keccak256(methods, random, tx.origin, prevrandao)
+    DM->>DM: Generate ID = keccak256(methods, random, msg.sender, prevrandao)
     DM->>DM: Calculate didHash = keccak256(methods, id)
     DM->>VMS: _createVm(vmCommand)
     VMS->>VMS: Store VM (expiration=0, unvalidated)
@@ -652,6 +654,8 @@ sequenceDiagram
         DM-->>User: Revert with error
     end
 ```
+
+> **Note (v1.4.0)**: All authenticated write entry points additionally enforce the `onlyDirectEOA` guard (`msg.sender == tx.origin`), so the authenticated `msg.sender` is always the transaction's signing EOA. See [Key Design Patterns](#key-design-patterns) → Direct-EOA Authentication Guard.
 
 ### Controller Delegation Model
 
@@ -1099,7 +1103,9 @@ DIDs structured as `did:method0:method1:method2:id` with 10-byte method segments
 bytes32 methods = [method0:10bytes][method1:10bytes][method2:10bytes][padding:2bytes]
 ```
 
-**Default**: `"lzpf::main::"`
+**Default**: `DEFAULT_DID_METHODS = bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;")`, rendering as `did:lzpf:main:<id>`.
+
+See [Segment Filler: Why `;` and Not `0x00`](#segment-filler-why--and-not-0x00) for the encoding rule.
 
 ## DID Structure & Concepts
 
@@ -1109,10 +1115,13 @@ bytes32 methods = [method0:10bytes][method1:10bytes][method2:10bytes][padding:2b
 did:method0:method1:method2:id
 ```
 
-**Example**:
+**Example** (as emitted by `W3CResolver.resolve`, id is 64 lowercase hex chars, no `0x`):
 ```
-did:lzpf:main:testnet:0x1234567890abcdef1234567890abcdef12345678
+did:lzpf:main:testnet:b3dd18c0ab4785da044013fdc76315bccbee73617fe09c38b587d64919389f8f
 ```
+
+Empty trailing segments are omitted, so the default methods value renders as
+`did:lzpf:main:<id>` and a single-segment value as `did:lzpf:<id>`.
 
 ### DID Components
 
@@ -1125,7 +1134,86 @@ bytes32 methods = [method0][method1][method2][padding]
                   ├─10bytes─┤─10bytes─┤─10bytes─┤─2bytes─┤
 ```
 
-**Default**: `"lzpf::main::"` (lzpf, empty, main, empty)
+**Default**: `bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;")`, meaning segment 0 = `lzpf`, segment 1 = `main`, segment 2 = empty.
+
+##### Segment Filler: Why `;` and Not `0x00`
+
+Each segment is fixed at 10 bytes, so a shorter name needs a filler. The project uses `;`
+(`0x3B`) rather than `0x00`, for two reasons:
+
+1. **An empty segment becomes expressible.** With `0x00` padding, "this segment is
+   deliberately empty" and "this segment was never set" are the same 10 zero bytes. With `;`
+   they are different values, so the encoding can carry the distinction. Zero-padding cannot.
+2. **The constant stays readable.** `bytes32("lzpf\x00\x00\x00\x00\x00\x00main")` compiles,
+   but nobody can count six escapes by eye. The `;` form shows the three 10-byte fields at a
+   glance and makes an off-by-one obvious in review.
+
+**The filler is internal and never leaves the contract.** W3C DID Core v1.0 section 3.1
+defines `method-char = %x61-7A / DIGIT` and `idchar = ALPHA / DIGIT / "." / "-" / "_" /
+pct-encoded`; neither `;` nor `0x00` is legal in a DID. `W3CResolverUtils.trimMethodSegment`
+strips both from every segment before the DID string is built, and drops a segment that
+becomes empty, so `bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;")` renders as
+`did:lzpf:main:<id>` and not `did:lzpf;;;;;;:main;;;;;;:;;;;;;;;;;:<id>`.
+
+**Canonical form is enforced in the renderer, not on write.** `W3CResolverUtils.checkMethods`
+rejects any value that could render a non-conformant or ambiguous DID string:
+
+| # | Rule | Defect it closes |
+|---|------|------------------|
+| 1 | Segment 0 non-empty | `did::main:<id>`, an empty `method-name` |
+| 2 | Segment 0 is `[a-z0-9]` | `method-char = %x61-7A / DIGIT` |
+| 3 | Segments 1 and 2 are `[a-zA-Z0-9.-_]` | a `:` injects a segment, a `#` injects a fragment so a parser reads a different base DID |
+| 4 | Filler trailing only | `"l;zpf"` and `"lzpf"` render alike but hash differently |
+| 5 | Filler is exactly `;` | `"lzpf" + 0x00*6` and `"lzpf" + ";"*6` render alike but hash differently |
+| 6 | Segments left-packed | `("lzpf","","test")` and `("lzpf","test","")` both render `did:lzpf:test:<id>` |
+| 7 | Tail bytes 30-31 are filler | same class as 5 |
+
+Together these make the mapping **injective over every value that has a string at all**: a DID
+string decodes back to exactly one `methods`.
+
+**Why nothing enforces this on chain.** These rules are conformance, not security. Verified: `id`
+is `keccak256(methods, random, msg.sender, prevrandao)`, so two DIDs cannot be made to render the
+same full string without a 256-bit preimage, and the hex `id` is appended after every method
+segment, so an injected `#` cannot make the rendered prefix equal another party's DID. A malformed
+`methods` therefore harms only the account that chose it.
+
+So the rules live in a helper nothing calls. `createDid` accepts any `methods`; `resolve` renders
+whatever it holds; `W3CResolverBase.checkMethods(bytes32)` is an `external pure` preflight a client
+invokes via `eth_call` at zero gas. Conformance is guaranteed by the SDK, the reference
+implementation and the examples, not by the contracts. See the Validation Scope and Trust Boundary
+section of `CLAUDE.md` for the rule and the reasoning.
+
+Two earlier designs were built and reverted, both recorded here so the choice is not relitigated:
+
+| Attempt | What it did | Why it was dropped |
+|---|---|---|
+| Validate in `createDid` | reverted on a non-canonical `methods` | +13,183 gas (+4.7%) on every DID, for an earlier error message |
+| Validate in `formatDidString` | `resolve` reverted on a non-canonical `methods` | the contract refused to render data it holds, and baked an unamendable format policy into an immutable system |
+
+**What the renderer actually does.** `W3CResolverUtils.trimMethodSegment` removes a trailing run
+of `0x00` and `;` from each segment and passes everything else through untouched. It rejects
+nothing. So `bytes32("lzpf;;;;;;main;;;;;;;;;;;;;;;;;;")` renders `did:lzpf:main:<id>`, and a
+`methods` carrying an illegal character renders that character verbatim.
+
+**Why the cleanup still happens at all.** Third-party software cannot know the convention. The
+`did-resolver` npm package, which sits under Veramo, `did-jwt-vc` and the DIF Universal Resolver,
+matches the string against a regex built from the ABNF above. A `;` reaching the output makes
+`parse()` return null and resolution fails with `invalidDid` before any contract call happens.
+Trimming the filler is not a validation decision, it is part of decoding the packed representation
+into the one the format defines. Rejecting a character, by contrast, would be a policy decision,
+which is why the renderer does not do it.
+
+**Building a canonical value.** `HashUtils.packMethods(bytes10,bytes10,bytes10)` converts the
+`0x00` padding of `bytes32(bytes10("lzpf"))` into canonical `;` and fills the tail.
+`packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0))` equals `DEFAULT_DID_METHODS` byte for
+byte, asserted by a test. Clients should build `methods` with it, or call
+`W3CResolverBase.checkMethods` before sending a creation transaction.
+
+All of this is output-only: stored `bytes32` values and every `idHash` are untouched.
+`test/unit/DidStringConformance.unit.t.sol` asserts the emitted syntax against the ABNF, asserts
+that whatever the preflight accepts renders conformantly, and includes an explicit test that
+`resolve` does **not** revert on a non-canonical value, so the deliberate choice has to be broken
+before it can be changed by accident.
 
 #### ID (bytes32)
 
@@ -1136,7 +1224,7 @@ bytes32 id = keccak256(
     abi.encodePacked(
         methods,
         random,
-        tx.origin,
+        msg.sender,
         block.prevrandao
     )
 );
@@ -1145,7 +1233,7 @@ bytes32 id = keccak256(
 **Inputs**:
 - `methods` - The DID method bytes
 - `random` - User-provided randomness
-- `tx.origin` - Transaction originator
+- `msg.sender` - Calling account (the signing EOA, since `onlyDirectEOA` enforces `msg.sender == tx.origin`)
 - `block.prevrandao` - Block randomness (post-merge)
 
 **Uniqueness**: Cryptographically guaranteed through Keccak256
@@ -1153,7 +1241,7 @@ bytes32 id = keccak256(
 **Predictability trade-off**: `block.prevrandao` is a RANDAO mix, not a secure random oracle. Validators can influence it within a 2^128 bias window. For DID systems this is acceptable because:
 1. DID ID collision requires a full Keccak256 preimage, not just RANDAO control
 2. The user-provided `random` value (e.g., UUIDv4) is the primary entropy source
-3. `tx.origin` binds the ID to a specific account, preventing cross-account replay
+3. `msg.sender` binds the ID to a specific account, preventing cross-account replay
 4. Worst case: a validator front-runs to claim a *specific* DID ID — mitigated by the user choosing `random` off-chain before broadcasting
 
 #### Hash (bytes32)
@@ -1392,6 +1480,79 @@ require(condition, "Invalid DID");  // String storage expensive (~96+ bytes each
 ```
 
 **Gas Savings**: ~50-100 gas per error, ~280-300 bytes bytecode reduction from eliminating require strings
+
+### 5. Direct-EOA Authentication Guard (v1.4.0)
+
+All 8 authenticated write entry points per variant (`createDid`, `createVm`, `validateVm`, `expireVm`, `deactivateDid`, `reactivateDid`, `updateController`, `updateService`) are protected by the `onlyDirectEOA` modifier in `DidAggregate`:
+
+```solidity
+function _requireDirectEOA() internal view {
+  if (msg.sender != tx.origin) revert DirectEOACallRequired();
+}
+
+modifier onlyDirectEOA() {
+  _requireDirectEOA();
+  _;
+}
+```
+
+The check lives in the internal function, not the modifier body, because a modifier body is
+inlined at every use site. With 10 use sites, writing the logic inline cost **+158 bytes per
+manager** for ~22 gas saved per call, the wrong trade under `optimizer_runs = 200`. The thin
+modifier is byte-identical to having no modifier and keeps the precondition in the signature.
+Same shape as OpenZeppelin `Ownable._checkOwner`.
+
+**What it does**: The call passes only when `msg.sender` IS the transaction's signing EOA — i.e., no intermediary contract sits anywhere in the call chain.
+
+**Why**:
+- **Closes the confused-deputy hole**: Pre-v1.4.0 authentication compared `tx.origin`, so any contract a user called could act on that user's DID mid-transaction. All identity checks now use `msg.sender`, and intermediary contracts revert with `DirectEOACallRequired()`.
+- **Preserves the signature-derived identity guarantee**: The equality check ensures the authenticated address is exactly the account that signed the transaction.
+- **`tx.origin` is never used as identity**: It survives only inside this equality guard; every identity comparison (ID entropy, VM binding, `_isAuthenticated`, `_isVmOwner`) uses `msg.sender`.
+
+**Compatibility**: EIP-7702-delegated EOAs keep working (top-level calls still satisfy `msg.sender == tx.origin`). Calls routed through multisigs, smart accounts, meta-tx forwarders, or ERC-4337 bundlers revert on write paths; signature-based flows use `isAuthorizedOffChain` (EOA, `ecrecover`) or `isAuthorizedOffChainWithSigner` (EOA **and** ERC-1271 contract signers, via OpenZeppelin `SignatureChecker`). A contract cannot yet own a verification method, because `validateVm` requires `msg.sender == vm.ethereumAddress` under `onlyDirectEOA`; the ERC-1271 path therefore covers addresses validated as EOAs that later gained code, which is the EIP-7702 case.
+
+### 6. Native Transaction Signature as the Authorization Primitive
+
+This is a core design property of the system, not an implementation detail. **Every state change
+is authorized by the transaction's own secp256k1 signature.** No write function accepts a
+signature, a nonce, a deadline, or a domain separator. The caller sends an ordinary transaction and
+the EVM recovers the signing address; the contract compares that address to the DID's verification
+method. There is no in-contract signature verification on any write path.
+
+**The v1.4.0 change preserves this property and tightens it.** `tx.origin` and `msg.sender` are
+both derived from the same recovered address. They differ only when an intermediary contract sits
+in the call chain:
+
+| Call shape | `tx.origin` | `msg.sender` |
+|---|---|---|
+| EOA sends the transaction directly | the signer | the signer (identical) |
+| EOA calls contract X, X calls the DID | the signer | X |
+
+Under `tx.origin`, the signature proved "this account signed *a* transaction", not "this account
+requested *this* DID operation". `onlyDirectEOA` forces the two values to be equal, so on every
+successful write the caller **is** the transaction's signer. The signature now proves both facts.
+The authorization primitive is unchanged; the binding between signature and action is stronger.
+
+**Where signature verification does happen.** Two `view` functions, and only those:
+
+| Function | Mutability | Mechanism | Purpose |
+|---|---|---|---|
+| `isAuthorized` | `view` | none (address comparison) | on-chain check by a verifier contract |
+| `isAuthorizedOffChain` | `view` | raw `ecrecover` | gasless proof of control via `eth_call` |
+| `isAuthorizedOffChainWithSigner` | `view` | OZ `SignatureChecker` (`ecrecover` or ERC-1271) | same, for EOA and smart-contract signers |
+
+Both signature-checking functions are read-only and optional. They exist for off-chain verifiers
+and cannot change any state. Adding ERC-1271 support therefore does not weaken or replace the
+native-signature model: it adds a second read path for verifiers whose signer is a contract.
+
+**Verification.** Enumerating every `external`/`public` function across `DidAggregate`,
+`DidManager` and `DidManagerNative` yields **10 write definitions** and **14 views**. The 10 are
+6 shared ones in `DidAggregate` (`validateVm`, `expireVm`, `deactivateDid`, `reactivateDid`,
+`updateController`, `updateService`) plus `createDid` and `createVm` in each manager, which is
+**8 per deployed variant**. Every one carries `onlyDirectEOA` and none takes signature material.
+`ecrecover`, `ECDSA` and `SignatureChecker` appear only inside the two off-chain `view` functions
+in `DidAggregate`. The resolvers contain none of them.
+
 
 ## Key Technologies
 

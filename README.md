@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.33-363636.svg)](https://soliditylang.org/)
-[![Tests](https://img.shields.io/badge/Tests-317_passing-brightgreen.svg)](#quick-start)
+[![Tests](https://img.shields.io/badge/Tests-410_passing-brightgreen.svg)](#quick-start)
 [![Coverage](https://img.shields.io/badge/Coverage->90%25-brightgreen.svg)](#quick-start)
 [![W3C DID Core](https://img.shields.io/badge/W3C-DID_Core_v1.0-005A9C.svg)](https://www.w3.org/TR/did-core/)
 
@@ -105,7 +105,7 @@ did:method0:method1:method2:id
 ```
 
 1. Call `createDid` with method identifiers and a random value (defaults provided if omitted)
-2. A unique DID ID is generated from `keccak256(methods, random, tx.origin, block.prevrandao)`
+2. A unique DID ID is generated from `keccak256(methods, random, msg.sender, block.prevrandao)`
 3. The initial verification method is created and linked to the DID
 4. The VM owner validates it by calling `validateVm` (proves address ownership)
 5. The DID document can be resolved via the W3CResolver contract

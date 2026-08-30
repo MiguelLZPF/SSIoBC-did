@@ -6,6 +6,7 @@
 - [DID ID Predictability](#did-id-predictability)
 - [Front-Running Risk](#front-running-risk)
 - [Controller Delegation Attacks](#controller-delegation-attacks)
+- [Intermediary-Contract Impersonation (Confused Deputy)](#intermediary-contract-impersonation-confused-deputy)
 - [Privacy Considerations](#privacy-considerations)
 - [Deployment-Time Risks](#deployment-time-risks)
 - [Denial of Service](#denial-of-service)
@@ -44,12 +45,12 @@ The system uses **no proxies or upgradability patterns**, which provides:
 
 DID IDs are generated from:
 ```solidity
-keccak256(abi.encodePacked(methods, random, tx.origin, block.prevrandao))
+keccak256(abi.encodePacked(methods, random, msg.sender, block.prevrandao))
 ```
 
 ### Analysis
 
-- **`tx.origin`**: Deterministic per sender, provides uniqueness across accounts
+- **`msg.sender`**: Deterministic per sender, provides uniqueness across accounts (always the signing EOA, since `onlyDirectEOA` enforces `msg.sender == tx.origin`)
 - **`random`**: User-provided randomness, adds entropy if chosen well
 - **`block.prevrandao`**: Pseudo-random from beacon chain, known to validators ~1 slot ahead
 
@@ -116,6 +117,50 @@ Controllers can perform operations on behalf of a DID. Potential attack vectors:
 - **Vector**: Two controllers race to remove each other
 - **Impact**: Transaction ordering determines outcome
 - **Mitigation**: This is expected behavior in multi-party governance
+
+---
+
+## Intermediary-Contract Impersonation (Confused Deputy)
+
+### Pre-v1.4.0 Vulnerability
+
+Before v1.4.0, on-chain authentication compared `tx.origin` against the VM's `ethereumAddress`. Because `tx.origin` is the transaction's originating EOA regardless of call depth, **any contract a user interacted with** (a phishing dApp, a malicious token, a compromised protocol) could call the DID contracts mid-transaction and pass authentication as that user — a classic confused-deputy / `tx.origin` phishing hole.
+
+### v1.4.0 Mitigation
+
+- **`msg.sender` authentication**: All identity checks now use `msg.sender` — `createDid` (ID entropy + initial VM binding), `reactivateDid`, and `_validateSenderAndTarget` (which feeds `expireVm`, `deactivateDid`, `updateController`, `updateService`, `createVm`).
+- **`onlyDirectEOA` guard**: All 8 authenticated write entry points per variant require `msg.sender == tx.origin`, so the authenticated address is exactly the account that signed the transaction. `tx.origin` survives only inside this equality guard, never as identity.
+
+### Limit of the Guard Under EIP-7702
+
+**The guard does not prove "no intermediary contract is in the call chain."** That was the original
+claim and it stopped being true when EIP-7702 went live with Pectra. A delegated EOA carries code,
+so any call it makes still satisfies `msg.sender == tx.origin`. Verified in this repository against
+the real cheatcode (`vm.signAndAttachDelegation`, `evm_version = 'osaka'`): after delegation the
+account's `code.length` is 23, the `0xef0100 || address` indicator, and guarded writes from it
+succeed. If a delegate executes arbitrary calls for arbitrary callers, a third-party contract can
+reach a guarded entry point through it.
+
+What the guard still guarantees is narrower, and it is the property the authorization model
+actually needs: **the authenticated address is exactly the account that signed the transaction.**
+Pre-v1.4.0 `tx.origin` authentication did not give that, which is what made every contract a user
+touched into a deputy. Choosing a delegate that lets third parties act on your behalf is a decision
+made at the wallet, and no on-chain guard here can override it.
+
+Users who want the strong "no intermediary" property must not delegate to a permissive delegate.
+This is documented rather than mitigated, because mitigating it on-chain would require inspecting
+the delegate's code, which is neither reliable nor forward-compatible.
+
+### Residual Trade-off
+
+Smart-account/AA callers (multisigs, smart accounts, meta-tx forwarders, ERC-4337 bundlers) are **intentionally blocked on-chain for now** — such calls revert with `DirectEOACallRequired()`. EIP-7702-delegated EOAs continue to work on write paths, subject to the limit above. Signature-based flows can use `isAuthorizedOffChain` (gasless, `ecrecover`-based) or `isAuthorizedOffChainWithSigner`, which additionally accepts **ERC-1271** contract signatures through OpenZeppelin `SignatureChecker`. That path is read-only (a `view` reached by `eth_call` or `staticcall`), so a malicious `isValidSignature` implementation cannot mutate state; a reverting one returns false rather than bubbling. ERC-6492 counterfactual wallets are out of scope: the signing account must already be deployed.
+
+Two behavioural notes on `isAuthorizedOffChainWithSigner`. First, a 7702-delegated EOA whose
+delegate does not implement `isValidSignature` would otherwise fail, because `SignatureChecker`
+branches on `code.length` and staticcalls a function that does not exist; an ECDSA fallback covers
+it. That grants nothing new, since under EIP-7702 the private key retains full control of the
+account. Second, this view rejects a malleated high-`s` signature while the raw-`ecrecover`
+`isAuthorizedOffChain` accepts it; prefer this view.
 
 ---
 
@@ -206,6 +251,7 @@ The `TooManyVerificationMethods` error prevents creating more than 255 VMs per D
 |--------|----------|------------|
 | DID ID predictability | LOW | Adequate entropy from keccak256 inputs |
 | Front-running | LOW | Authentication required for all mutations |
+| Confused deputy (intermediary-contract impersonation) | HIGH (pre-v1.4.0, fixed) | `msg.sender` auth + `onlyDirectEOA` guard (v1.4.0) |
 | Malicious controller | MEDIUM | Trust model, max 5 controllers |
 | Privacy exposure | MEDIUM | Don't store PII, use off-chain for sensitive data |
 | Resolver manipulation | HIGH (if exploited) | Verify deployment addresses, bytecode hashes |

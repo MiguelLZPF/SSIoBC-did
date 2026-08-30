@@ -15,19 +15,20 @@ import { HashUtils } from "@src/HashUtils.sol";
 /// All shared logic lives in DidAggregate.
 contract DidManagerNative is IDidManagerNative, VMStorageNative, DidAggregate {
   /// @dev Creates a new Ethereum-native DID with a single-slot Verification Method.
-  /// Generates a unique ID from keccak256(methods, random, tx.origin, block.prevrandao).
-  /// The initial VM is created with authentication relationship and tx.origin as ethereumAddress.
+  /// Generates a unique ID from keccak256(methods, random, msg.sender, block.prevrandao).
+  /// The initial VM is created with authentication relationship and msg.sender as ethereumAddress.
+  /// Direct EOA calls only (onlyDirectEOA): msg.sender must be the transaction's signing EOA.
   /// @param methods The DID methods (bytes32 with three 10-byte segments). Uses DEFAULT_DID_METHODS if zero.
   /// @param random A random bytes32 value for unique ID generation. Must be non-zero.
   /// @param vmId The identifier for the initial Verification Method.
-  function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external virtual {
+  function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external virtual onlyDirectEOA {
     if (random == bytes32(0)) {
       revert MissingRequiredParameter();
     }
     if (methods == bytes32(0)) {
       methods = DEFAULT_DID_METHODS;
     }
-    bytes32 id = keccak256(abi.encodePacked(methods, random, tx.origin, block.prevrandao));
+    bytes32 id = keccak256(abi.encodePacked(methods, random, msg.sender, block.prevrandao));
     bytes32 idHash = HashUtils.calculateIdHash(methods, id);
     if (!_isExpired(idHash)) {
       revert DidAlreadyExists();
@@ -38,18 +39,18 @@ contract DidManagerNative is IDidManagerNative, VMStorageNative, DidAggregate {
       CreateVmCommand({
         didHash: idHash,
         id: vmId,
-        ethereumAddress: tx.origin,
+        ethereumAddress: msg.sender,
         relationships: bytes1(0x01), // Authentication
         publicKeyMultibase: "" // No keyAgreement on default VM
       })
     );
-    _validateVm(positionHash, 0, tx.origin);
+    _validateVm(positionHash, 0, msg.sender);
     updateExpiration({ idHash: idHash, forceExpire: false });
     emit DidCreated(id, idHash);
   }
 
   /// @dev Creates a new native Verification Method (VM).
-  function createVm(DidCreateVmCommandNative memory command) external {
+  function createVm(DidCreateVmCommandNative memory command) external onlyDirectEOA {
     _validateTripleParams(command.methods, command.senderId, command.targetId);
     if (command.relationships == bytes1(0)) revert MissingRequiredParameter();
     (, bytes32 targetIdHash) = _validateSenderAndTarget({
