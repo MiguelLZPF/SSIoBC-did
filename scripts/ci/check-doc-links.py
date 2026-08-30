@@ -215,6 +215,23 @@ def gitignored(root: pathlib.Path, doc: pathlib.PurePosixPath, target: str) -> b
     return False
 
 
+def escapes_repo(doc: pathlib.PurePosixPath, target: str) -> bool:
+    """True when the target points outside the repository.
+
+    `../../SSIoBC-did/docs/x.md` resolves on a machine where the sibling repo
+    happens to be checked out and nowhere else, so a locally generated baseline
+    cannot record it and CI fails on a reference the author saw working. That is
+    a verdict about the checkout rather than about the document, so it is not
+    ours to give: the same reason ciphertext and gitignored artifacts are
+    skipped. Measured 2026-08-30, when four such links passed locally and failed
+    in Actions on the first run.
+    """
+    for cand in (str(doc.parent / target), target):
+        if not os.path.normpath(cand).startswith(".."):
+            return False
+    return True
+
+
 def exists(root: pathlib.Path, doc: pathlib.PurePosixPath, target: str) -> bool:
     """Accept a target that resolves either beside the doc or from the repo root.
 
@@ -271,7 +288,7 @@ def scan(cfg: dict, root: pathlib.Path, path: str):
                 if target.startswith(("http://", "https://", "mailto:", "#", "~", "/")):
                     continue
                 t = strip_anchor(target)
-                if skippable(t):
+                if skippable(t) or escapes_repo(doc, t):
                     continue
                 if not exists(root, doc, t) and not gitignored(root, doc, t):
                     yield (
@@ -286,7 +303,7 @@ def scan(cfg: dict, root: pathlib.Path, path: str):
             if skippable(token) or not repo_path.match(token):
                 continue
             t = strip_anchor(token).rstrip(".,;:")
-            if not t:
+            if not t or escapes_repo(doc, t):
                 continue
             if not exists(root, doc, t) and not gitignored(root, doc, t):
                 yield (
@@ -469,6 +486,9 @@ def selftest() -> int:
 
         v = doc("See [x](real.md#a-section)\n")
         check("anchor suffix stripped", not v)
+
+        v = doc("See [x](../../other-repo/docs/x.md)\n")
+        check("link escaping the repo is skipped, not judged", not v)
 
         v = doc("See [x](real) and [y](../docs/real)\n")
         check("extensionless link resolves to the .md", not v)
