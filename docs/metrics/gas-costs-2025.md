@@ -1,8 +1,9 @@
 # Gas Cost Analysis for SSIoBC DID Manager (2025)
 
-**Document Version:** 1.2
+**Document Version:** 1.3
 **Analysis Date:** February 5, 2026
 **Contract Version:** v1.1.0 (bytecode optimization)
+**Last Comparative Update:** September 6, 2026 (v1.5.0 entry added; see Comparative Analysis)
 **Purpose:** Economic feasibility analysis for PhD research validation
 
 ## Table of Contents
@@ -256,6 +257,18 @@ At 2025 average conditions (2.7 Gwei, €2,633.18/ETH):
 - Update Service: 198,389 gas → €1.41 (**5% reduction** from v1.0.2)
 - Deployment: 4,858,000 gas → €34.53 (**12% reduction** from v1.0.1)
 
+**v1.5.0 Analysis (September 2026, at the same 2025 baseline used throughout this document: 2.7 Gwei, €2,633.18/ETH, for direct comparability with the entries above):**
+- Gas Price: 2.7 Gwei (baseline held constant; see note below)
+- ETH Price: €2,633.18 (baseline held constant; see note below)
+- Create DID (DidManager, median): 284,029 gas → €2.02
+- Create DID (DidManagerNative, median): 212,330 gas → €1.51
+- Deactivate DID (median): 51,757 gas → €0.37
+- Update Controller (median): 41,563 gas → €0.30
+- Update Service (median): 215,271 gas → €1.53
+- Deployment (DidManager + W3CResolver, formula per Methodology above, using v1.5.0 initcode sizes 13,959 B and 11,989 B): 5,253,600 gas → €37.35
+
+**Note:** this entry reuses the document's original 2025 average market assumptions (2.7 Gwei, €2,633.18/ETH) rather than live 2026 prices, for direct comparability with the v1.0/v1.0.1/v1.1.0 entries above, exactly as this document's existing convention already does across entries spanning multiple actual dates. No live 2026 ETH or gas price was looked up for this entry. Gas figures are from `FOUNDRY_PROFILE=ci forge test --gas-report --no-match-path "test/{stress,performance}/*"`; contract sizes are from `forge build --sizes` (default profile).
+
 **Key Observations:**
 1. **CreateDID gas decreased:** 313,898 → 283,522 gas (10% reduction in v1.0.1)
    - Continued optimization from VMStorage improvements
@@ -424,12 +437,13 @@ CreateDID:
 
 ---
 
-**Note:** This document captures the v1.1.0 gas analysis snapshot. For v1.2.x changes (dual-variant architecture, isAuthorized()), see [gas-consumption-history.md](./gas-consumption-history.md) and [contract-size-history.md](./contract-size-history.md). The v1.2.x additions are view functions and architecture changes that do not materially affect per-operation gas costs documented here.
+**Note:** This document captures the v1.1.0 gas analysis snapshot as its baseline, with later versions (v1.0.1 through v1.5.0) appended above at the same fixed 2025 market assumptions for comparability. For the full measured gas tables and contract sizes at each version, see [gas-consumption-history.md](./gas-consumption-history.md) and [contract-size-history.md](./contract-size-history.md). v1.2.2 through v1.3.1, and v1.4.0 (never tagged; folded into v1.5.0 per CHANGELOG.md), are not measured anywhere in this document.
 
 **Document Maintenance:**
 - Next update: When significant gas cost changes occur or new features are added
 - Version history: Track in git commits
-- Cross-references: See `docs/analysis/coverage-history.md` for test coverage metrics
+- Last comparative entry added: v1.5.0 (September 6, 2026), reusing the 2025 baseline assumptions above
+- Cross-references: See `docs/metrics/test-coverage-history.md` for test coverage metrics
 
 **Related Documentation:**
 - Contract architecture: See main paper "SSIoBC – Decentralized Identifiers [X.XX].md"

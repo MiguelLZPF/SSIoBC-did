@@ -37,7 +37,69 @@ This document tracks gas consumption evolution across SSIoBC-did versions, provi
 - [v0.7.0 Test & Gas Report](../assets/screenshots/gas-consumption/Test%20&%20Gas%20v0.7.0.png)
 - [v0.8.0 Test & Gas Report](../assets/screenshots/gas-consumption/Test%20&%20Gas%20v0.8.0.png)
 
+### v1.5.0 Gas Snapshot (September 2026)
+
+Measured with `FOUNDRY_PROFILE=ci forge test --gas-report --no-match-path "test/{stress,performance}/*"`, the exact command the `gas-diff` CI job runs. 396 tests executed.
+
+#### DidManager (Full W3C variant)
+```
+| Function                        | Min    | Avg     | Median  | Max       | Calls |
+|----------------------------------|--------|---------|---------|-----------|-------|
+| createDid                       | 22,120 | 276,115 | 284,029 | 284,405   | 8,534 |
+| createVm                        | 30,040 | 178,694 | 271,506 | 336,681   | 5,546 |
+| deactivateDid                   | 24,480 | 45,888  | 51,757  | 56,760    | 30    |
+| reactivateDid                   | 24,480 | 47,848  | 59,130  | 68,701    | 14    |
+| updateController                | 27,480 | 54,330  | 41,563  | 98,308    | 3,862 |
+| updateService                   | 29,030 | 203,892 | 215,271 | 2,007,937 | 55    |
+| validateVm                      | 28,814 | 35,513  | 35,551  | 35,551    | 556   |
+| isVmRelationship                | 688    | 17,748  | 17,770  | 22,156    | 3,162 |
+| isAuthorized                    | 752    | 28,985  | 30,190  | 34,583    | 279   |
+| isAuthorizedOffChain            | 719    | 32,179  | 33,706  | 38,100    | 282   |
+| isAuthorizedOffChainWithSigner  | 876    | 16,206  | 9,784   | 38,139    | 18    |
+```
+
+#### DidManagerNative
+```
+| Function                        | Min     | Avg     | Median  | Max     | Calls |
+|----------------------------------|---------|---------|---------|---------|-------|
+| createDid                       | 22,120  | 206,994 | 212,330 | 212,706 | 9,216 |
+| createVm                        | 27,360  | 141,704 | 186,333 | 254,662 | 6,654 |
+| deactivateDid                   | 24,480  | 35,326  | 35,161  | 42,846  | 20    |
+| reactivateDid                   | 22,680  | 34,079  | 28,355  | 56,982  | 12    |
+| updateController                | 29,885  | 43,367  | 29,933  | 86,678  | 4,562 |
+| updateService                   | 203,481 | 213,634 | 203,637 | 248,705 | 9     |
+| validateVm                      | 28,544  | 33,341  | 33,354  | 33,354  | 1,053 |
+| isVmRelationship                | 666     | 6,021   | 6,029   | 6,029   | 1,801 |
+| isAuthorized                    | 730     | 13,514  | 18,264  | 22,657  | 1,558 |
+| isAuthorizedOffChain            | 719     | 21,314  | 21,802  | 21,802  | 266   |
+| isAuthorizedOffChainWithSigner  | 876     | 12,446  | 12,338  | 26,234  | 7     |
+```
+
+#### Resolvers
+```
+| Contract          | Function       | Min     | Avg     | Median  | Max       | Calls |
+|-------------------|----------------|---------|---------|---------|-----------|-------|
+| W3CResolver       | resolve        | 350,625 | 446,164 | 358,972 | 1,205,212 | 43    |
+| W3CResolver       | resolveService | 646     | 23,251  | 17,279  | 51,828    | 3     |
+| W3CResolver       | resolveVm      | 795     | 87,292  | 115,721 | 145,360   | 3     |
+| W3CResolver       | checkMethods   | 259     | 6,710   | 5,485   | 15,610    | 268   |
+| W3CResolverNative | resolve        | 341,308 | 420,904 | 383,719 | 568,584   | 21    |
+| W3CResolverNative | resolveService | 646     | 46,379  | 51,724  | 86,768    | 3     |
+| W3CResolverNative | resolveVm      | 795     | 98,468  | 123,610 | 130,027   | 5     |
+```
+
+**Key changes since v1.2.1:**
+- **isAuthorizedOffChainWithSigner()** (new, v1.5.0): ERC-1271 contract-signer verification on the off-chain read path, both variants
+- **onlyDirectEOA thinned** to `_requireDirectEOA()`: CHANGELOG.md reports about 22 gas more per guarded write call, in exchange for 158 bytes saved per manager
+- **msg.sender-based authentication** (recorded in CHANGELOG.md as v1.4.0, folded into this release and never tagged separately): ID entropy and VM binding now use `msg.sender` instead of `tx.origin`
+
+These figures are not directly comparable function-for-function to the v1.2.1 numbers elsewhere in this document: no consolidated gas-report table was captured for v1.2.2 through v1.3.1, and this pass does not check out those tags to produce one (see the gap note below).
+
+**Versions not measured in this pass:** v1.2.2, v1.2.3, v1.2.4, v1.3.0, v1.3.1 would each require checking out their tag and re-running the gas report at that commit; this update does not check out any tag other than the one already checked out (v1.5.0). v1.4.0 was never tagged (per CHANGELOG.md) and its changes ship as part of v1.5.0 above.
+
 ## Method-Level Gas Analysis
+
+*The figures below predate the dual-variant architecture and are kept for historical continuity. For the latest measured values (v1.5.0, both variants), see the [v1.5.0 Gas Snapshot](#v150-gas-snapshot-september-2026) under Gas Evolution by Version.*
 
 ### Core DID Operations
 
@@ -133,6 +195,7 @@ Traditional DID systems (ERC-1056) require event reconstruction, making historic
 - **v1.1.0**: Bytecode optimization (custom errors, dead code removal, SLOAD caching, HashUtils library, direct storage reads, optimizer_runs=200)
 - **v1.2.0**: Dual-variant architecture (DidManagerNative with 1-slot VMs reduces per-operation gas for Ethereum-only DIDs)
 - **v1.2.1**: Added isAuthorized() view function (+412/+411 bytes), removed redundant authenticate(). Net gas impact: negligible (view-only addition)
+- **v1.5.0**: Added isAuthorizedOffChainWithSigner() (ERC-1271 contract-signer verification), conformant DID-string rendering, `onlyDirectEOA` thinned to an internal-function guard; also carries v1.4.0's msg.sender migration (never tagged separately). See [v1.5.0 Gas Snapshot](#v150-gas-snapshot-september-2026) for full measured figures
 
 ## Research Validation
 
@@ -199,4 +262,4 @@ Performance data referenced in:
 
 ---
 
-*Last Updated: v1.2.1 - Added isAuthorized() cross-DID authorization view function, removed redundant authenticate()*
+*Last Updated: v1.5.0 - Added isAuthorizedOffChainWithSigner() (ERC-1271 contract-signer verification), conformant DID-string rendering, `onlyDirectEOA` thinning (also carries v1.4.0's msg.sender migration, never tagged separately). See the v1.5.0 Gas Snapshot for full measured figures; v1.2.2 through v1.3.1 are not measured in this pass.*

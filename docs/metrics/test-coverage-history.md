@@ -53,6 +53,25 @@ The project has maintained comprehensive test coverage throughout development, w
 | **v1.1.0** | **98.36%** | **120/122** | **100%** | **93.10%** | **Bytecode optimization + HashUtils library (100% coverage)** |
 | **v1.2.0** | **>98%** | **See below** | **100%** | **>90%** | **Dual-variant: 268 total tests, DidManagerNative 99%, VMStorageNative 100%, W3CResolverNative 99%** |
 | **v1.2.1** | **>98%** | **See below** | **100%** | **>90%** | **317 total tests (+28 isAuthorized, +11 native fuzz, +8 native invariant, +2 expireVm), removed redundant authenticate()** |
+| **v1.5.0** | **98.83%** | **673/681** | **98.86% (87/88)** | **94.96% (132/139)** | **See "v1.5.0 Coverage Snapshot" below** |
+
+**Versions not measured in this pass:** v1.2.2 through v1.3.1 (git tags exist for all of them) and v1.4.0 (never tagged; see `contract-size-history.md`) are not filled in above. Recovering their coverage would require checking out each old tag and re-running `forge coverage` at that commit, which this update deliberately does not do (no branches created, no tags checked out; only the current working tree at v1.5.0 was measured).
+
+### v1.5.0 Coverage Snapshot
+
+Measured with `FOUNDRY_PROFILE=ci forge coverage --report lcov --no-match-path "test/{stress,performance}/*"`, the exact command the CI `coverage` job runs, followed by filtering the LCOV report to `src/*` only (excluding `test/*`, `script/*`, `lib/*`), matching the CI job's own `lcov --remove` step that gates the 90% threshold.
+
+- **Lines**: 98.83% (673/681)
+- **Statements**: 98.43% (forge's per-file `% Statements` column sums to 877/891 across the eleven `src/` files)
+- **Branches**: 94.96% (132/139)
+- **Functions**: 98.86% (87/88)
+
+Two `src/` files fall short of 100%: `src/W3CResolverBase.sol` (88.89% lines, 16/18) and `src/storage/VMStorage.sol` (93.48% lines, 86/92; 72.73% branches, 16/22).
+
+**Test counts** (three ways, since they differ by scope):
+- 371 tests under the default local profile (fuzz/invariant excluded via `no_match_test`), matching CHANGELOG.md's "371 tests passing on the default profile"
+- 396 tests under `FOUNDRY_PROFILE=ci` with `--no-match-path "test/{stress,performance}/*"`, the exact scope the CI `test` and `coverage` jobs run and the scope the coverage numbers above were measured against
+- 410 tests under `FOUNDRY_PROFILE=ci` with no path exclusion (stress/performance included), matching CHANGELOG.md's "410 under the CI profile"
 
 ## Quality Metrics
 
@@ -240,4 +259,4 @@ Coverage data supports PhD thesis claims about:
 
 ---
 
-*Last Updated: v1.2.4 - 317 total tests (258 unit, 21 fuzz, 15 invariant, 9 integration, 8 performance, 6 stress), all source contracts >90%. Fuzz/invariant excluded from default local runs; included in CI profiles (`ci`, `ci_thorough`).*
+*Last Updated: v1.5.0 - 410 total tests under the CI profile (396 with stress/performance excluded, matching the CI coverage job's own scope; 371 under the default local profile). Coverage on `src/*` only (CI's own filtered gate): 98.83% lines, 98.43% statements, 94.96% branches, 98.86% functions. v1.2.2 through v1.3.1, and v1.4.0 (never tagged), are not measured in this pass; see the note above the v1.5.0 row. Fuzz/invariant excluded from default local runs; included in CI profiles (`ci`, `ci_thorough`).*

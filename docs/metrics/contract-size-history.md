@@ -43,6 +43,7 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | v1.2.4 | 12.5 kB | 11.2 kB | 10.8 kB | 11.7 kB | Centralized parameter validation in DidManagerBase (-100 B each) |
 | **v1.3.0** | **12.5 kB** | **10.8 kB** | **10.9 kB** | **11.4 kB** | **Architecture refactor: DidAggregate + VMHooks (9 hooks) + ISP interfaces + W3CResolverBase + peer review fixes (isAuthorized extraction, resolver optimizations)** |
 | **v1.3.1** | **12.9 kB** | **10.8 kB** | **11.3 kB** | **11.4 kB** | **Off-chain auth: isAuthorizedOffChain() + lifecycle flows docs + 24 signature-based tests** |
+| **v1.5.0** | **13.9 kB** | **11.8 kB** | **12.3 kB** | **12.4 kB** | **ERC-1271 contract-signer support (`isAuthorizedOffChainWithSigner`) + conformant DID-string rendering (`trimMethodSegment`) + `onlyDirectEOA` thinned to an internal-function guard; also carries v1.4.0's msg.sender migration, never tagged separately and released together with v1.5.0 (see note below)** |
 
 ### Visual Documentation
 
@@ -359,6 +360,30 @@ The v1.3.0 release introduces DidAggregate + VMHooks (Template Method pattern) a
 
 **Net impact**: Managers grew +64/+62 B from `_getVmForAuth` hook implementations. Resolvers shrank -322/-340 B from `DEFAULT_CONTEXT` removal + `_bytesToHexString` internalization. Overall net: -536 B across all 4 contracts.
 
+### v1.5.0 ERC-1271 Signers, Conformant DID Strings (September 2026)
+
+The v1.5.0 release adds ERC-1271 contract-signer support to the off-chain authorization path, fixes DID-string rendering so the emitted string is a conformant W3C DID, and reshapes the `onlyDirectEOA` guard into a thin modifier over an internal function. It also carries the changes recorded in CHANGELOG.md as v1.4.0 (`msg.sender`-based authentication, replacing `tx.origin`), which that file states was "never tagged" and was "committed and released as part of 1.5.0."
+
+#### v1.5.0 Contract Sizes (measured via `forge build --sizes`, default profile)
+```
+| Contract             | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|----------------------|-------------------|---------------------|----------------------|-----------------------|
+| DidManager           | 13,931            | 13,959              | 10,645               | 35,193                |
+| DidManagerNative     | 12,323            | 12,351              | 12,253               | 36,801                |
+| W3CResolver          | 11,845            | 11,989              | 12,731               | 37,163                |
+| W3CResolverNative    | 12,367            | 12,511              | 12,209               | 36,641                |
+```
+
+**Key Changes:**
+1. **isAuthorizedOffChainWithSigner()**: new view function on both variants, verifying a claimed signer via OpenZeppelin `SignatureChecker` (`ecrecover` for EOAs, an ERC-1271 `isValidSignature` staticcall for contracts); covers EIP-7702-delegated EOAs on the read path only
+2. **W3CResolverUtils.trimMethodSegment**: strips a trailing filler run per segment instead of stripping anywhere, fixing an ambiguous/injectable rendered DID string; a read-path-only change, so the whole size cost lands in the resolvers
+3. **onlyDirectEOA thinned**: modifier body reduced to a single call into `_requireDirectEOA()`; CHANGELOG.md reports this saves 158 bytes per manager at a cost of about 22 gas per guarded call
+4. **HashUtils.packMethods()**: canonical `bytes32` construction helper for method segments
+
+**Size Impact (v1.3.1 -> v1.5.0):** CHANGELOG.md's own v1.5.0 entry records DidManager +790 B, DidManagerNative +790 B, W3CResolver +998 B, W3CResolverNative +998 B, attributed to the resolvers' read-path DID-string and signer-verification logic. This document does not hold an exact byte figure for v1.3.1 (only the rounded "12.9 kB" / "11.3 kB" in the table above), so an independently re-derived delta is not computed here; the CHANGELOG.md figures are cited as the project's own record rather than recalculated.
+
+**Note on v1.4.0:** no git tag `v1.4.0` exists in this repository. CHANGELOG.md states its changes were never tagged and shipped as part of v1.5.0, so its size impact is not separable from the v1.5.0 measurement above, and there is no historical commit to check out for it independently within this pass.
+
 #### Trade-off Analysis
 
 The v1.0 architecture provides:
@@ -428,4 +453,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v1.3.0 - Architecture refactor (DidAggregate + VMHooks) + peer review improvements (isAuthorized extraction, resolver optimizations)*
+*Last Updated: v1.5.0 - ERC-1271 contract-signer support, conformant DID-string rendering, `onlyDirectEOA` guard thinning (also carries v1.4.0's msg.sender migration, never tagged separately; see the v1.5.0 section above)*
