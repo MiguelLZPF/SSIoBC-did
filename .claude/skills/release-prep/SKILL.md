@@ -42,8 +42,8 @@ catches and memory does not:
 - `PROJECT.md` closed with "Version: v1.3.0" while `CHANGELOG.md` documented 1.5.0, uncaught for two releases
 - `git tag` lists `v1.3.1` then jumps straight to `v1.5.0`; the 1.4.0 release has a changelog entry
   and no tag
-- the compare links at the bottom of `CHANGELOG.md` stop at `[1.2.1]`, so several releases have no
-  diff link
+- the compare links at the bottom of `CHANGELOG.md` stopped at `[1.3.0]`, so the three most recent
+  releases had no diff link
 
 None of these is a mistake of understanding. They are all coordination failures across files that
 nothing checks together. Work the steps in order; the order is what makes the check reliable.
@@ -109,8 +109,9 @@ em dash. Get it wrong and `check-doc-links.py` fails.
 [1.6.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.5.0...v1.6.0
 ```
 
-While here, backfill every missing entry. That block has not been maintained since `[1.2.1]`, so
-`[1.5.0]`, `[1.3.1]`, `[1.3.0]`, `[1.2.4]`, `[1.2.3]` and `[1.2.2]` are all absent.
+While here, check the block is complete. It is descending and the newest entry is at the top, so
+read the FIRST line to find where it stops, not the last. A release that was never tagged has no
+compare range; link it to the commit that carried it, as `[1.4.0]` is.
 
 ## Step 4 — Sync the other version carriers
 

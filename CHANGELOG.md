@@ -388,6 +388,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ServiceStorage` contract for service endpoint management
 - Basic DID creation and VM creation functionality
 
+[1.5.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.3.1...v1.5.0
+[1.4.0]: https://github.com/MiguelLZPF/SSIoBC-did/commit/9db204fe70fca8803e57ce459465a2a76a4ed120
+[1.3.1]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.4...v1.3.0
 [1.2.4]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.3...v1.2.4
 [1.2.3]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.2.2...v1.2.3
