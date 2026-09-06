@@ -45,7 +45,7 @@ This project stores DID documents fully on-chain, which introduces unique consid
 - **On-chain identity data**: All verification methods, services, and controller relationships are publicly visible on the blockchain. Do not store sensitive personal information in DID documents.
 - **Controller delegation**: The controller system allows delegated management of DIDs. Verify controller permissions carefully before granting access.
 - **Verification method lifecycle**: Deactivated or expired verification methods must not be treated as valid for authentication or assertion purposes.
-- **Hash-based storage**: DID identifiers are derived from `keccak256(methods, random, tx.origin, block.prevrandao)`. While collision-resistant, the use of `block.prevrandao` means DID IDs are not fully unpredictable to miners/validators.
+- **Hash-based storage**: DID identifiers are derived from `keccak256(methods, random, msg.sender, block.prevrandao)`. While collision-resistant, the use of `block.prevrandao` means DID IDs are not fully unpredictable to miners/validators. Since v1.4.0 the caller is bound by `msg.sender`, never `tx.origin`, and every authenticated write is additionally guarded by `onlyDirectEOA`.
 - **Immutable architecture**: Contracts are not upgradeable. Security fixes require redeployment and DID migration.
 
 ## Audit Status
