@@ -1,0 +1,29 @@
+{
+  "$comment": [
+    "Shared Claude Code settings for contributors to SSIoBC-did.",
+    "Deliberately narrow: only the read-only and build commands this repository's",
+    "own CI runs. Anything that writes to a chain, reaches the network, or depends",
+    "on a personal setup belongs in .claude/settings.local.json, which is ignored.",
+    "See CONTRIBUTING.md for how these skills and settings are meant to be used."
+  ],
+  "permissions": {
+    "allow": [
+      "Bash(forge build:*)",
+      "Bash(forge test:*)",
+      "Bash(forge coverage:*)",
+      "Bash(forge fmt:*)",
+      "Bash(forge lint:*)",
+      "Bash(forge clean)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git describe:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(python3 scripts/ci/check-doc-links.py:*)",
+      "Bash(python3 scripts/ci/check-doc-placement.py:*)"
+    ]
+  }
+}

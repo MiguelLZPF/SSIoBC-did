@@ -32,7 +32,8 @@ Thumbs.db
 .com.apple.timemachine.donotpresent
 
 # 🤖🧠 AI & Tooling
-.claude/
+.claude/settings.local.json
+.claude/agents/
 .mcp.json
 .temp/
 # Byte cache from scripts/ci/ lints.
