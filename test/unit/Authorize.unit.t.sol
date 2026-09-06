@@ -57,7 +57,7 @@ contract AuthorizeUnitTest is TestBase {
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, cmd);
     _stopPrank();
-    vm.startPrank(user1);
+    vm.startPrank(user1, user1);
     didManager.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -101,7 +101,7 @@ contract AuthorizeUnitTest is TestBase {
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, cmd);
     _stopPrank();
-    vm.startPrank(user2);
+    vm.startPrank(user2, user2);
     didManager.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -188,7 +188,7 @@ contract AuthorizeUnitTest is TestBase {
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, cmd);
     _stopPrank();
-    vm.startPrank(user1);
+    vm.startPrank(user1, user1);
     didManager.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -404,7 +404,7 @@ contract AuthorizeUnitTest is TestBase {
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, cmd);
     _stopPrank();
-    vm.startPrank(user1);
+    vm.startPrank(user1, user1);
     didManager.validateVm(vmResult.vmCreatedPositionHash, block.timestamp + 100);
     vm.stopPrank();
 
@@ -448,7 +448,7 @@ contract AuthorizeUnitTest is TestBase {
     });
     DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, cmd);
     _stopPrank();
-    vm.startPrank(user2);
+    vm.startPrank(user2, user2);
     didManager.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -578,7 +578,7 @@ contract AuthorizeNativeUnitTest is TestBaseNative {
     });
     DidTestHelpersNative.CreateVmResult memory vmResult = DidTestHelpersNative.createVm(vm, didManagerNative, cmd);
     _stopPrank();
-    vm.startPrank(user1);
+    vm.startPrank(user1, user1);
     didManagerNative.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -617,7 +617,7 @@ contract AuthorizeNativeUnitTest is TestBaseNative {
     });
     DidTestHelpersNative.CreateVmResult memory vmResult = DidTestHelpersNative.createVm(vm, didManagerNative, cmd);
     _stopPrank();
-    vm.startPrank(user2);
+    vm.startPrank(user2, user2);
     didManagerNative.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -698,7 +698,7 @@ contract AuthorizeNativeUnitTest is TestBaseNative {
     });
     DidTestHelpersNative.CreateVmResult memory vmResult = DidTestHelpersNative.createVm(vm, didManagerNative, cmd);
     _stopPrank();
-    vm.startPrank(user1);
+    vm.startPrank(user1, user1);
     didManagerNative.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 
@@ -911,7 +911,7 @@ contract AuthorizeNativeUnitTest is TestBaseNative {
     });
     DidTestHelpersNative.CreateVmResult memory vmResult = DidTestHelpersNative.createVm(vm, didManagerNative, cmd);
     _stopPrank();
-    vm.startPrank(user1);
+    vm.startPrank(user1, user1);
     didManagerNative.validateVm(vmResult.vmCreatedPositionHash, block.timestamp + 100);
     vm.stopPrank();
 
@@ -952,7 +952,7 @@ contract AuthorizeNativeUnitTest is TestBaseNative {
     });
     DidTestHelpersNative.CreateVmResult memory vmResult = DidTestHelpersNative.createVm(vm, didManagerNative, cmd);
     _stopPrank();
-    vm.startPrank(user2);
+    vm.startPrank(user2, user2);
     didManagerNative.validateVm(vmResult.vmCreatedPositionHash, 0);
     vm.stopPrank();
 

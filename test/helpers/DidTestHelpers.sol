@@ -129,7 +129,7 @@ library DidTestHelpers {
 
     // Validate the VM to make it usable (VMs with ethereum addresses need validation)
     if (command.ethereumAddress != address(0)) {
-      vm.startPrank(command.ethereumAddress);
+      vm.startPrank(command.ethereumAddress, command.ethereumAddress);
       didManager.validateVm(vmResult.vmCreatedPositionHash, 0);
       vm.stopPrank();
     }

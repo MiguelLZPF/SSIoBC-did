@@ -107,7 +107,7 @@ library DidTestHelpersNative {
 
     // Validate the VM to make it usable
     if (command.ethereumAddress != address(0)) {
-      vm.startPrank(command.ethereumAddress);
+      vm.startPrank(command.ethereumAddress, command.ethereumAddress);
       didManager.validateVm(vmResult.vmCreatedPositionHash, 0);
       vm.stopPrank();
     }
