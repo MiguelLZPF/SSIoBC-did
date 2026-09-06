@@ -14,6 +14,22 @@ import { W3CResolverUtils } from "@src/W3CResolverUtils.sol";
 abstract contract W3CResolverBase is IW3CResolver {
   IDidReadOps internal _didReadOps;
 
+  /**
+   * @notice Free preflight: reverts if `methods` could never render a valid DID string.
+   * @dev Nothing in this system enforces these rules. `createDid` accepts any `methods` and
+   * `resolve` renders whatever it holds, both deliberately: none of the rules is a security
+   * property, and an immutable contract should not bake in a format that is expected to change.
+   * Conformance is the responsibility of the SDK, the reference implementation and the examples.
+   * This function exists so those clients (or anyone else) can enforce it at zero cost: call it
+   * via `eth_call` before sending a creation transaction. `bytes32(0)` is accepted because
+   * `createDid` substitutes `DEFAULT_DID_METHODS`, which is canonical.
+   * @param methods The packed methods value to check.
+   */
+  function checkMethods(bytes32 methods) external pure {
+    if (methods == bytes32(0)) return;
+    W3CResolverUtils.checkMethods(methods);
+  }
+
   function resolve(W3CDidInput memory didInput, bool includeExpired)
     external
     view

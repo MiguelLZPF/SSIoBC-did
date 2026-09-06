@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Table of Contents
 
+- [1.5.0 — 2026-08-26](#150--2026-08-26)
+- [1.4.0 — 2026-06-10](#140--2026-06-10)
 - [1.3.1 — 2026-03-10](#131--2026-03-10)
 - [1.3.0 — 2026-03-08](#130--2026-03-08)
 - [1.2.4 — 2026-03-05](#124--2026-03-05)
@@ -19,6 +21,161 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [1.0.1 — 2026-02-03](#101--2026-02-03)
 - [0.8.0 — 2024-07-06](#080--2024-07-06)
 - [0.6.0 — 2024-04-21](#060--2024-04-21)
+
+## [1.5.0] — 2026-08-26
+
+### Added
+
+- **ERC-1271 contract-signer support in the off-chain authorization path** (roadmap idea #1).
+  New view function `isAuthorizedOffChainWithSigner(methods, senderId, senderVmId, targetId, relationship, signer, messageHash, signature)`
+  on both variants. A contract signature cannot be recovered, so the caller states the claimed
+  `signer` and the contract verifies the claim with OpenZeppelin `SignatureChecker`:
+  `ecrecover` when `signer` has no code, an `IERC1271.isValidSignature` staticcall otherwise.
+  On the read path this covers **EIP-7702-delegated EOAs** and any contract that both implements
+  ERC-1271 and owns an active verification method. Plain smart accounts and multisigs are **not**
+  usable yet: a contract cannot activate its own VM (see Notes), so 7702 is the only shape
+  reachable today. The `onlyDirectEOA` guard on write paths is untouched.
+- `test/mocks/MockERC1271Wallets.sol` — ERC-1271 wallet mocks (approving, rejecting, reverting,
+  and a contract with no `isValidSignature`). The approving mock stores its owner in an
+  `immutable`, so `vm.etch` preserves it and tests can simulate an EIP-7702 delegated EOA.
+- `test/unit/AuthorizeOffChainErc1271.unit.t.sol` — 24 tests (17 full W3C + 7 native): EOA
+  parity with the `v,r,s` overload, contract-signer accept/reject, wrong magic value, reverting
+  wallet, non-wallet contract, malformed signature, and parameter validation.
+
+### Changed
+
+- **`onlyDirectEOA` reshaped into a thin modifier over an internal function.** A modifier body is
+  inlined at every use site, so the guard existed 10 times in the deployed bytecode. Moving the
+  check into `_requireDirectEOA()` saves **158 bytes per manager** and costs ~22 gas per guarded
+  call, which is the right side of `optimizer_runs = 200`. Byte-identical to removing the modifier
+  entirely, while keeping the precondition visible in each function signature. Same pattern as
+  OpenZeppelin `Ownable._checkOwner`. The convention is now recorded in `CLAUDE.md`.
+
+- `IDidAuth` gains `isAuthorizedOffChainWithSigner`; existing selectors are unchanged, so this is
+  ABI-additive.
+- Contract sizes: DidManager 13,931 B (+790), DidManagerNative 12,323 B (+790), W3CResolver
+  11,845 B (+998), W3CResolverNative 12,367 B (+998). EIP-170 limit is 24,576 B. The whole cost of
+  the DID-string work sits in the resolvers, on the read path, where nobody pays gas for it.
+- `createDid` gas: 277,889 -> 277,915 mean, **+26**. Measured with `forge test --gas-report` against
+  the pre-change tree; the write path is untouched.
+- 371 tests passing on the default profile (325 before), 410 under the CI profile (363 before).
+
+### Fixed
+
+- **DID-string rendering cleaned up, and the trust boundary made explicit.** The previous fix
+  stripped the `;` filler but left three holes, each found independently by two reviewers: segment
+  0 was emitted unguarded so an all-filler segment rendered `did::main:<id>`; no character set was
+  enforced, so a `:` injected an extra segment, a `#` injected a DID-URL fragment and uppercase
+  passed through; and filler was stripped from anywhere in a segment, so `"l;zpf"` and `"lzpf"`
+  rendered identically while hashing differently.
+
+  `W3CResolverUtils.trimMethodSegment` now removes a **trailing** filler run only, which fixes the
+  ambiguity that strip-anywhere introduced. It rejects nothing else, and neither does `createDid`.
+
+  **None of the seven canonical-`methods` rules is enforced on chain, deliberately.** `id` is
+  `keccak256(methods, random, msg.sender, prevrandao)`, so two DIDs cannot be made to render the
+  same string without a 256-bit preimage, and the hex `id` follows every segment, so an injected
+  `#` cannot make the rendered prefix equal another party's DID. These are conformance defects,
+  not attacks, and conformance is the SDK's responsibility. Two enforcing designs were built and
+  reverted: validating in `createDid` cost **+13,183 gas (+4.7%)** on every DID, and reverting
+  inside `resolve` made the contract withhold data it holds and baked an unamendable format policy
+  into a system with no upgrade path. See the new "Validation Scope and Trust Boundary" section of
+  `CLAUDE.md`.
+
+- **`W3CResolverBase.checkMethods(bytes32) external pure`** enforces all seven rules for anyone who
+  wants them. **Nothing in the contract calls it.** A client invokes it via `eth_call` at zero gas
+  before sending a creation transaction. A fuzz test asserts the property that matters: whatever
+  the preflight accepts renders a conformant DID string.
+
+- **`HashUtils.packMethods(bytes10,bytes10,bytes10)`** builds a canonical value. Needed because
+  `bytes32(bytes10("lzpf"))` pads with `0x00`, which renders but is not canonical; the helper
+  converts it to the canonical `;` form. `packMethods(bytes10("lzpf"), bytes10("main"), bytes10(0))` reproduces
+  `DEFAULT_DID_METHODS` byte for byte, asserted by a test.
+
+
+- **The emitted DID string was not a valid W3C DID.** `DEFAULT_DID_METHODS` pads its 10-byte
+  segments with `;` (`0x3B`), but `W3CResolverUtils.trimBytes` only stripped `0x00`, so the
+  filler survived into the output: `did:lzpf;;;;;;:main;;;;;;:;;;;;;;;;;:b3dd18c0…`. W3C DID
+  Core v1.0 section 3.1 allows only `a-z` and `0-9` in `method-name`, and `ALPHA / DIGIT /
+  "." / "-" / "_" / pct-encoded` in `idchar`, so the string was rejected by any ABNF-based
+  parser (`did-resolver`, and therefore Veramo, `did-jwt-vc` and the DIF Universal Resolver)
+  before reaching the contract. New `W3CResolverUtils.trimMethodSegment` strips both fillers
+  per segment and drops a segment that becomes empty. Default methods now render as
+  `did:lzpf:main:<id>`.
+- The `;` filler is deliberate and is kept: it makes a deliberately-empty segment
+  distinguishable from an unset one, which zero-padding cannot express, and keeps the constant
+  readable. The fix is **output-only**: stored `bytes32` values and every `idHash` are
+  unchanged, so no existing DID moves.
+
+### Added (conformance)
+
+- `test/unit/DidStringConformance.unit.t.sol` — 10 tests (7 full W3C + 3 native) asserting the
+  emitted DID string against the W3C DID Core v1.0 section 3.1 ABNF, across default methods,
+  omitted methods, zero-padded methods, one segment, and three segments. Includes a negative
+  test proving the checker rejects the pre-fix output, so the assertion is not vacuous.
+
+### Notes
+
+- **EIP-7702 ECDSA fallback.** A delegated EOA carries code, so `SignatureChecker` takes the
+  ERC-1271 branch and returns `false` whenever the delegate does not implement
+  `isValidSignature`, even for a valid signature from the account's own key. Measured before the
+  fallback with `vm.signAndAttachDelegation`: `isAuthorizedOffChain` `true`,
+  `isAuthorizedOffChainWithSigner` `false`. The view now recovers directly when the ERC-1271 check
+  fails. This grants nothing new: under EIP-7702 the private key keeps full control of the account
+  (it can transact directly and re-delegate), so its raw signature is authority the key already
+  holds. A signature from any other key is still rejected.
+- **Signature malleability differs between the two views.** `isAuthorizedOffChainWithSigner`
+  rejects a high-`s` signature (OpenZeppelin `ECDSA`); the raw-`ecrecover`
+  `isAuthorizedOffChain` accepts it. Prefer the new view. Locked in by
+  `test_WithSigner_Should_ReturnFalse_When_SignatureIsMalleated`.
+- **`onlyDirectEOA` proves less than its original NatSpec claimed.** Post-Pectra, `msg.sender ==
+  tx.origin` does not imply "no intermediary contract in the call chain": a 7702-delegated EOA has
+  code, so a call routed through a permissive delegate still satisfies the equality. What the
+  guard still guarantees, and what the authorization model needs, is that the authenticated
+  address is exactly the account that signed the transaction. NatSpec, PROJECT.md and the threat
+  model now state this limit.
+- **ERC-6492 is not supported.** Counterfactual (undeployed) wallets cannot be verified on chain;
+  the signing account must already have code.
+- **Known gap:** a contract cannot yet *own* a verification method. `createVm` forces
+  `expiration = 0` whenever `ethereumAddress` is set, and `validateVm` requires
+  `msg.sender == vm.ethereumAddress` under `onlyDirectEOA`, so a contract address can never
+  activate its own VM. Contract signers therefore only work for addresses that were validated as
+  EOAs and later gained code (the EIP-7702 shape). Closing this needs a signature-based
+  `validateVm` and is tracked in `docs/analysis/improvement-roadmap.md`.
+
+## [1.4.0] — 2026-06-10
+
+### ⚠️ BREAKING
+
+> Never tagged. This work was committed and released as part of 1.5.0; the section is kept
+> because the changes are distinct and worth reading separately.
+
+- **Authentication identity migrated from `tx.origin` to `msg.sender`** across all write operations:
+  - `createDid` (both variants): ID entropy now `keccak256(methods, random, msg.sender, block.prevrandao)`, initial VM `ethereumAddress` and validation now bound to `msg.sender`
+  - `reactivateDid` (self-reactivation and controller-reactivation branches) authenticates `msg.sender`
+  - `_validateSenderAndTarget` (feeds `expireVm`, `deactivateDid`, `updateController`, `updateService`, `createVm`) authenticates `msg.sender`
+- **New `onlyDirectEOA` modifier on all 8 authenticated state-changing entry points per variant** (`createDid`, `createVm`, `validateVm`, `expireVm`, `deactivateDid`, `reactivateDid`, `updateController`, `updateService`): reverts `DirectEOACallRequired()` unless `msg.sender == tx.origin`. Calls routed through intermediary contracts (multisigs, smart accounts, forwarders, ERC-4337 bundlers) now revert — use direct EOA transactions, or `isAuthorizedOffChain` for signature-based flows
+- DID IDs created through an intermediary contract pre-1.4.0 are not reproducible with the new derivation (attribution moved from `tx.origin` to `msg.sender`); direct EOA creations are unaffected
+- ABI function selectors unchanged; one new custom error added to the ABI
+
+### Security
+
+- **Closes the `tx.origin` confused-deputy/phishing vulnerability class**: previously, any contract a DID owner called could perform DID operations as them (deactivate, rotate controllers, add VMs), because authorization asked "who signed the transaction" instead of "who is calling". With `msg.sender` auth plus the equality guard, the signature-derived identity guarantee is preserved (the guard passes only when `msg.sender` IS the transaction's signing EOA) while intermediary impersonation becomes impossible
+- `tx.origin` survives ONLY inside the `onlyDirectEOA` equality guard — never as an identity source
+- EIP-7702-delegated EOAs keep working (their own address signs the transaction)
+
+### Added
+
+- `DirectEOACallRequired()` custom error in `src/types/DidTypes.sol`
+- `onlyDirectEOA` modifier in `DidAggregate.sol`
+- `test/unit/DirectEOAGuard.unit.t.sol` — 20 tests (10 per variant): confused-deputy attack mocks against all 8 guarded entry points, full direct-EOA lifecycle, and msg.sender identity-attribution checks
+
+### Changed
+
+- Rewrote inverted NatSpec on `reactivateDid` (the old comment claimed `tx.origin` *prevented* intermediary impersonation; it enabled it)
+- Test helpers (`DidTestHelpers`, `DidTestHelpersNative`) and auth unit tests now prank both `msg.sender` and `tx.origin` to the same EOA
+- Contract sizes: DidManager 13,141 B (+256), DidManagerNative 11,533 B (+256), resolvers unchanged
+- 363 tests passing under CI profile (343 existing + 20 new guard tests)
 
 ## [1.3.1] — 2026-03-10
 
