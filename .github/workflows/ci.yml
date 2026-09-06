@@ -1,24 +1,18 @@
 name: CI
 
+# No paths filter here, deliberately. A workflow skipped by a paths filter leaves every
+# check it would have published in a "Pending" state, and a branch that requires those
+# checks can then never be merged. Documented at
+# https://docs.github.com/en/actions/how-tos/manage-workflow-runs/skip-workflow-runs
+# The path filtering therefore lives in the `changes` job below, which always runs and
+# lets the expensive jobs skip themselves.
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    paths:
-      - "src/**/*.sol"
-      - "test/**/*.sol"
-      - "script/**/*.sol"
-      - "foundry.toml"
-      - ".github/workflows/ci.yml"
 
   push:
     branches:
       - main
-    paths:
-      - "src/**/*.sol"
-      - "test/**/*.sol"
-      - "script/**/*.sol"
-      - "foundry.toml"
-      - ".github/workflows/ci.yml"
 
   workflow_dispatch:
     inputs:
@@ -32,9 +26,62 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # ─── Job 0: Does this change touch anything the Foundry jobs test? ──
+  # Cheap, uncontainerised, and always runs, so the four required checks below always
+  # exist. On a documentation-only change it reports sol=false and they skip.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sol: ${{ steps.filter.outputs.sol }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # A manual dispatch has no diff to inspect, so it always runs everything.
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "sol=true" >> "$GITHUB_OUTPUT"
+            echo "manual dispatch: running the full suite" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if [ "$EVENT" = "pull_request" ]; then
+            range="$BASE_SHA...$HEAD_SHA"
+          elif [ -n "${BEFORE_SHA:-}" ] && git cat-file -e "$BEFORE_SHA^{commit}" 2>/dev/null; then
+            range="$BEFORE_SHA..$AFTER_SHA"
+          else
+            # First push to a branch, or a force-push whose parent is gone. Fail open.
+            echo "sol=true" >> "$GITHUB_OUTPUT"
+            echo "no resolvable diff range: running the full suite" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          changed=$(git diff --name-only "$range")
+          if printf '%s\n' "$changed" | grep -qE '^(src|test|script)/.*\.sol$|^foundry\.toml$|^\.github/workflows/ci\.yml$'; then
+            echo "sol=true" >> "$GITHUB_OUTPUT"
+            echo "Solidity or toolchain files changed: running the full suite" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "sol=false" >> "$GITHUB_OUTPUT"
+            echo "No Solidity, foundry.toml or ci.yml changes: Foundry jobs skipped" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   # ─── Job 1: Compile & Size Check ────────────────────────────────────
+  # Every other Foundry job needs this one, so skipping it here skips the whole chain.
   build:
-    name: Build & Size Check
+    needs: changes
+    if: needs.changes.outputs.sol == 'true'
     runs-on: ubuntu-latest
     container:
       # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
@@ -92,7 +139,6 @@ jobs:
 
   # ─── Job 2: Test Suite ──────────────────────────────────────────────
   test:
-    name: Tests
     runs-on: ubuntu-latest
     container:
       # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
@@ -126,7 +172,6 @@ jobs:
 
   # ─── Job 3: Coverage Analysis ───────────────────────────────────────
   coverage:
-    name: Coverage
     runs-on: ubuntu-latest
     container:
       # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
@@ -200,7 +245,6 @@ jobs:
 
   # ─── Job 4: Format & Lint ──────────────────────────────────────────
   quality:
-    name: Format & Lint
     runs-on: ubuntu-latest
     container:
       # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
