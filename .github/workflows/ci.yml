@@ -313,7 +313,13 @@ jobs:
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     needs: build
-    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
+    # Runs on pull requests AND on push to main. The push run is not decorative: it is the only
+    # thing that publishes `main.gasreport.ansi`, which is the artifact the compare step looks for.
+    # While this job was pull-request-only, that artifact never existed, so every PR compared
+    # against nothing and the action reported "0 diffs" while the job went green.
+    if: >-
+      (github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]')
+      || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     timeout-minutes: 30
     permissions:
       contents: read
@@ -337,7 +343,10 @@ jobs:
       - name: Generate gas report
         run: forge test --gas-report --no-match-path "test/{stress,performance}/*" > gasreport.ansi
         env:
-          FOUNDRY_FUZZ_SEED: "0x${{ github.event.pull_request.base.sha }}"
+          # On a PR this is the base commit; on a push to main it is that same commit once
+          # merged. A PR opened against main at commit X therefore uses the seed the main run at
+          # X used, so the two reports are fuzzed identically and a diff means the code moved.
+          FOUNDRY_FUZZ_SEED: "0x${{ github.event.pull_request.base.sha || github.sha }}"
 
       - name: Compare gas reports
         uses: Rubilmax/foundry-gas-diff@60e763d02526ee3299bd04278cb178d1547b134b # v3.21
@@ -348,7 +357,7 @@ jobs:
         id: gas_diff
 
       - name: Post gas diff comment
-        if: steps.gas_diff.outputs.markdown
+        if: github.event_name == 'pull_request' && steps.gas_diff.outputs.markdown
         uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: gas-diff

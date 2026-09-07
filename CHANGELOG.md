@@ -64,6 +64,14 @@ why this is a minor bump and not a patch.
 - `.github/WORKFLOWS.md` claimed the Slither SARIF is pushed to the GitHub Security tab via
   `codeql-action/upload-sarif@v3`. It is uploaded as a build artifact; the `security` job holds
   `contents: read` and `upload-sarif` needs `security-events: write`.
+- **The `gas-diff` CI job had never compared anything.** It ran only on pull requests, so nothing
+  ever published `main.gasreport.ansi`, the artifact its compare step looks for. Every run logged
+  `No workflow run found with an artifact named "main.gasreport.ansi"` and then `Format markdown of
+  0 diffs`, posted no comment, and reported success. The repository's whole artifact history
+  confirms it: every uploaded gas report is named after a feature branch and no `main` one exists.
+  The job now also runs on push to `main`, which is what publishes the baseline; the comment step
+  is restricted to pull requests, and the fuzz seed falls back to `github.sha` so the base and head
+  reports are fuzzed identically.
 - Eleven tracked files gained a final newline or lost a trailing blank line, which
   `end-of-file-fixer` had always wanted and only a `--all-files` run surfaced.
 - **`test_GasBenchmark_CreateMultipleServices_ScalingAnalysis` was failing before this release
