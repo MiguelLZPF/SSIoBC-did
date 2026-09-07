@@ -48,6 +48,17 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 
 ### Visual Documentation
 
+#### Size Evidence by Version
+
+- [v1.6.0 sizes (`forge build --sizes`)](../assets/data/sizes-v1.6.0.txt)
+
+**From v1.6.0 the evidence is text, not an image.** A screenshot of a terminal cannot be grepped,
+diffed, or checked by a linter, so nobody notices when it stops matching the tables above it, and a
+reader cannot copy a number out of it. The raw command output is committed instead: it carries a
+provenance header naming the commit, the tag, the toolchain and the exact command, and a reviewer
+can diff two releases directly. The images below stay as the historical record for v0.1.0 to
+v1.5.0.
+
 #### Size Screenshots by Version
 - [v0.1.0 Size Report](../assets/screenshots/contract-size/Size%20v0.1.0.jpeg)
 - [v0.1.2 Size Report](../assets/screenshots/contract-size/Size%20v0.1.2.png)
