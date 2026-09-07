@@ -62,7 +62,7 @@ body:
     id: solidity-version
     attributes:
       label: Solidity Version
-      placeholder: "0.8.33"
+      placeholder: "0.8.36"
 
   - type: textarea
     id: additional
