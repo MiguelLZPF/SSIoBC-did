@@ -19,4 +19,3 @@ No files changed, compilation skipped
 | stdMath        | 0.085     | 24.491      |
 | stdStorage     | 0.085     | 24.491      |
 | stdStorageSafe | 0.085     | 24.491      |
-
