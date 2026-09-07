@@ -36,7 +36,7 @@ jobs:
     outputs:
       sol: ${{ steps.filter.outputs.sol }}
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           submodules: false
@@ -84,17 +84,17 @@ jobs:
     if: needs.changes.outputs.sol == 'true'
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
@@ -130,7 +130,7 @@ jobs:
           cat contract-sizes.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cache build artifacts
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             out/
@@ -141,11 +141,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     needs: build
@@ -155,12 +155,12 @@ jobs:
     env:
       FOUNDRY_PROFILE: ci
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
       - name: Restore build cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             out/
@@ -174,11 +174,11 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     needs: build
@@ -189,12 +189,12 @@ jobs:
     env:
       FOUNDRY_PROFILE: ci
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
       - name: Restore build cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             out/
@@ -247,18 +247,18 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     needs: build
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
@@ -280,7 +280,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
@@ -305,15 +305,21 @@ jobs:
     name: Gas Diff
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     needs: build
-    if: github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]'
+    # Runs on pull requests AND on push to main. The push run is not decorative: it is the only
+    # thing that publishes `main.gasreport.ansi`, which is the artifact the compare step looks for.
+    # While this job was pull-request-only, that artifact never existed, so every PR compared
+    # against nothing and the action reported "0 diffs" while the job went green.
+    if: >-
+      (github.event_name == 'pull_request' && github.event.pull_request.user.login != 'dependabot[bot]')
+      || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     timeout-minutes: 30
     permissions:
       contents: read
@@ -322,12 +328,12 @@ jobs:
     env:
       FOUNDRY_PROFILE: ci
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
       - name: Restore build cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             out/
@@ -337,7 +343,10 @@ jobs:
       - name: Generate gas report
         run: forge test --gas-report --no-match-path "test/{stress,performance}/*" > gasreport.ansi
         env:
-          FOUNDRY_FUZZ_SEED: "0x${{ github.event.pull_request.base.sha }}"
+          # On a PR this is the base commit; on a push to main it is that same commit once
+          # merged. A PR opened against main at commit X therefore uses the seed the main run at
+          # X used, so the two reports are fuzzed identically and a diff means the code moved.
+          FOUNDRY_FUZZ_SEED: "0x${{ github.event.pull_request.base.sha || github.sha }}"
 
       - name: Compare gas reports
         uses: Rubilmax/foundry-gas-diff@60e763d02526ee3299bd04278cb178d1547b134b # v3.21
@@ -348,8 +357,8 @@ jobs:
         id: gas_diff
 
       - name: Post gas diff comment
-        if: steps.gas_diff.outputs.markdown
-        uses: marocchino/sticky-pull-request-comment@0ea0beb66eb9baf113663a64ec522f60e49231c0 # v3.0.4
+        if: github.event_name == 'pull_request' && steps.gas_diff.outputs.markdown
+        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         with:
           header: gas-diff
           delete: ${{ !steps.gas_diff.outputs.markdown }}
@@ -360,11 +369,11 @@ jobs:
     name: Thorough Property Tests
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     needs: build
@@ -375,12 +384,12 @@ jobs:
     env:
       FOUNDRY_PROFILE: ci_thorough
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
 
       - name: Restore build cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             out/

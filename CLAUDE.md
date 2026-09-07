@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Project**: W3C-compliant fully on-chain DID management system
 - **Innovation**: First complete on-chain DID document storage (vs event-based)
-- **Language**: Solidity 0.8.33 (Foundry framework)
+- **Language**: Solidity 0.8.36 (Foundry framework)
 - **Coverage**: >90% required (enforced in CI/CD)
 - **Architecture**: Dual-variant (Full W3C + Ethereum-Native) with shared DidAggregate (incl. isAuthorized) + VMHooks (9 hooks) + ServiceStorage + HashUtils (Template Method pattern)
 - **Storage**: Hash-based lists with EnumerableSet (gas-optimized)
@@ -135,7 +135,7 @@ did:method0:method1:method2:id
 
 ### Code Conventions
 
-- **Solidity**: 0.8.33 (fixed version)
+- **Solidity**: 0.8.36 (fixed version)
 - **Naming**: camelCase for public, _camelCase for internal, UPPER_CASE for constants
 - **Errors**: Custom errors instead of require strings (gas optimization)
 - **Coverage**: >90% required
@@ -228,7 +228,7 @@ Two Foundry CI profiles in `foundry.toml`:
 - `ci_thorough`: Deep (fuzz=1000, invariant runs=256/depth=64) — main merges only
 
 **Toolchain is pinned by container digest, not by installer.** The six Foundry jobs run inside
-`ghcr.io/foundry-rs/foundry@sha256:3a70bfa9…` (v1.5.1), the same build developers run locally.
+`ghcr.io/foundry-rs/foundry@sha256:0c00cb0b…` (v1.8.1), the same build developers run locally.
 Nothing is downloaded at job time.
 
 This replaced `foundry-rs/foundry-toolchain`, which downloads and executes a fresh `foundryup`
@@ -342,6 +342,6 @@ When developing or reviewing smart contracts for this DID/SSI project, the follo
 
 ---
 
-**Last Updated**: 2026-09-06
+**Last Updated**: 2026-09-07
 **Architecture**: Simplified 2-file system (CLAUDE.md + PROJECT.md)
 **Agent config**: `.claude/skills/` and `.claude/settings.json` are committed; `.claude/settings.local.json` is per-machine and ignored.

@@ -88,7 +88,7 @@ forge test --gas-report
 
 - **EVM version**: Osaka (as configured in foundry.toml)
 - **Optimizer**: Enabled, 200 runs
-- **Solidity version**: 0.8.33
+- **Solidity version**: 0.8.36
 - **Network**: Local Anvil node (deterministic gas pricing)
 
 ### Reproducibility

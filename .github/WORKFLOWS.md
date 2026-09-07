@@ -27,7 +27,7 @@
 
 The project uses a single unified workflow (`.github/workflows/ci.yml`) with 6 parallel jobs. This replaced two previous overlapping workflows (`test.yml` and `ai-quality-check.yml`) in February 2026.
 
-**Foundry version**: Pinned to `v1.5.1` across all jobs for reproducible builds.
+**Foundry version**: Pinned to `v1.8.1` across all jobs for reproducible builds.
 
 ## Pipeline Architecture
 
@@ -112,7 +112,9 @@ The path filters ensure CI only runs when relevant files change, saving runner m
 
 - Uses the official `crytic/slither-action` (no pip install overhead)
 - Filters out `lib/`, `test/`, `script/` paths
-- Outputs SARIF format and uploads to GitHub Security tab via `github/codeql-action/upload-sarif@v3`
+- Outputs SARIF format and uploads it as a build artifact (`slither-sarif`, 30-day retention). It is
+  deliberately not pushed to the GitHub Security tab: `codeql-action/upload-sarif` needs
+  `security-events: write`, which this job does not hold.
 - **Non-blocking**: `fail-on: none` ensures the Slither action exits 0 regardless of findings
 - Can be skipped via `workflow_dispatch` with `skip-security: true`
 
@@ -122,13 +124,25 @@ The path filters ensure CI only runs when relevant files change, saving runner m
 
 **Purpose**: Compares gas costs between PR branch and base branch.
 
-- **Runs only on pull requests**
-- Uses deterministic fuzz seed (`FOUNDRY_FUZZ_SEED`) for reproducible gas numbers
-- `Rubilmax/foundry-gas-diff` compares gas reports against the base branch
-- Posts a sticky PR comment with gas changes (p90 quantile, sorted by avg/max)
-- First run on a new branch may show an error (no baseline yet) — this is expected
+- **Runs on pull requests and on push to `main`.** Both halves are load-bearing. The push run
+  publishes `main.gasreport.ansi`, and that artifact is the only baseline the compare step on a
+  pull request can find.
+- Uses a deterministic fuzz seed (`FOUNDRY_FUZZ_SEED`): the PR's base commit, falling back to
+  `github.sha` on a push. A PR opened against `main` at commit X therefore fuzzes with the same
+  seed the `main` run at X used, so a reported diff means the code moved rather than the sample.
+- `Rubilmax/foundry-gas-diff` compares the two reports
+- Posts a sticky PR comment with gas changes (p90 quantile, sorted by avg/max); the comment step
+  is pull-request-only, since a push has no PR to comment on
 
 **Required status check**: No (informational only)
+
+> **A note on `No workflow run found with an artifact named "main.gasreport.ansi"`.** This page
+> used to say that error was expected on a new branch. It was not: while the job ran only on pull
+> requests, no run ever produced that artifact, so *every* comparison ran against an empty
+> reference and reported `Format markdown of 0 diffs` while going green. If this error appears
+> again, the baseline is genuinely missing and the diff below it is meaningless. It is expected
+> exactly once more, on the pull request that ships this change, because `main` has not yet had a
+> push run under the new condition.
 
 ## Configuration
 
@@ -186,7 +200,7 @@ The `Security Scan` and `Gas Diff` jobs are intentionally **not** required — t
 
 ## Maintenance
 
-- **Foundry version**: Pinned to `v1.5.1`. Update in all 6 jobs when upgrading.
+- **Foundry version**: Pinned to `v1.8.1`. Update in all 6 jobs when upgrading.
 - **Action versions**: Managed by Dependabot (`.github/dependabot.yml`) with weekly PRs.
 - **Coverage threshold**: Set to 90% in the coverage job's shell script. Adjust the `90` value if the threshold changes.
 - **Lint exclusions**: Configured in `foundry.toml` under `[lint] exclude_lints`.

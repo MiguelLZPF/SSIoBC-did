@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Table of Contents
 
+- [1.6.0 — 2026-09-07](#160--2026-09-07)
 - [1.5.0 — 2026-09-06](#150--2026-09-06)
 - [1.4.0 — 2026-06-10](#140--2026-06-10)
 - [1.3.1 — 2026-03-10](#131--2026-03-10)
@@ -21,6 +22,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [1.0.1 — 2026-02-03](#101--2026-02-03)
 - [0.8.0 — 2024-07-06](#080--2024-07-06)
 - [0.6.0 — 2024-04-21](#060--2024-04-21)
+
+## [1.6.0] — 2026-09-07
+
+Toolchain and dependency refresh. No Solidity in `src/` changed, no ABI selector moved, and no
+behaviour is different. The deployed bytecode does change, because the compiler changed, which is
+why this is a minor bump and not a patch.
+
+### Changed
+
+- **Foundry 1.5.1 -> 1.8.1.** The six containerised CI jobs move from
+  `ghcr.io/foundry-rs/foundry@sha256:3a70bfa9…` to `sha256:0c00cb0b…`. Digest read from the ghcr
+  manifest for the `v1.8.1` tag; the same query returns the old digest for `v1.5.1`, which matches
+  what the file already held.
+- **solc 0.8.33 -> 0.8.36**, in `foundry.toml` and in the six fixed pragmas under `script/`.
+  `src/` keeps its `>=0.8.0 <0.9.0` range, so the compiler is chosen in one place.
+  `evm_version` stays `osaka`, which **is** the latest selectable target. 0.8.36 adds
+  `amsterdam`, but solc marks it experimental and refuses it outright ("EVM version 'amsterdam' is
+  experimental and can only be used with the 'settings.experimental' option enabled"), and `osaka`
+  is solc 0.8.36's own default. The fork is also not live, so measuring against it would detach
+  the published gas numbers from the EVM the contracts are deployed on.
+- **forge-std 1.10.0 -> 1.16.2** and **openzeppelin-contracts 5.5.0 -> 5.7.0**.
+- **GitHub Actions**: `actions/checkout` v6.0.3 -> v7.0.1, `actions/cache` (save and restore)
+  v5.0.5 -> v6.1.0, `marocchino/sticky-pull-request-comment` v3.0.4 -> v3.0.5. `upload-artifact`
+  v7.0.1, `slither-action` v0.4.2, `foundry-gas-diff` v3.21 and `lcov-reporter-action` v0.4.0 are
+  already current.
+- **pre-commit hooks** `pre-commit/pre-commit-hooks` v4.5.0 -> v6.0.0.
+- `docs-lint.yml` pinned `actions/checkout` by floating tag while `ci.yml` pinned every action by
+  SHA. Both are now pinned by SHA.
+- Contract sizes: DidManager 13,907 B (-24), DidManagerNative 12,294 B (-29), W3CResolver
+  11,845 B (unchanged), W3CResolverNative 12,367 B (unchanged). EIP-170 limit is 24,576 B.
+- `createDid` gas: 216 less on both variants (median). Nothing moves by 1%.
+- Coverage is unchanged at 98.83% lines, 98.86% functions, 94.96% branches.
+
+### Fixed
+
+- `foundry.lock` claimed openzeppelin-contracts v5.4.0 while the recorded gitlink was v5.5.0.
+  Commit 91589e8 (2026-02-02) moved the submodule and left the lock behind, so for seven months
+  every build compiled against v5.5.0 while the lock said otherwise. Corrected before the bump, in
+  its own commit.
+- `.github/WORKFLOWS.md` claimed the Slither SARIF is pushed to the GitHub Security tab via
+  `codeql-action/upload-sarif@v3`. It is uploaded as a build artifact; the `security` job holds
+  `contents: read` and `upload-sarif` needs `security-events: write`.
+- **The `gas-diff` CI job had never compared anything.** It ran only on pull requests, so nothing
+  ever published `main.gasreport.ansi`, the artifact its compare step looks for. Every run logged
+  `No workflow run found with an artifact named "main.gasreport.ansi"` and then `Format markdown of
+  0 diffs`, posted no comment, and reported success. The repository's whole artifact history
+  confirms it: every uploaded gas report is named after a feature branch and no `main` one exists.
+  The job now also runs on push to `main`, which is what publishes the baseline; the comment step
+  is restricted to pull requests, and the fuzz seed falls back to `github.sha` so the base and head
+  reports are fuzzed identically.
+- Eleven tracked files gained a final newline or lost a trailing blank line, which
+  `end-of-file-fixer` had always wanted and only a `--all-files` run surfaced.
+- **`test_GasBenchmark_CreateMultipleServices_ScalingAnalysis` was failing before this release
+  and is now green.** It asserted service creation stays under 200,000 gas; the first iteration of
+  its loop costs 225,926 (cold storage) and the remaining four cost about 208,815. The identical
+  225,926 was reproduced on `main` before any work on this branch, so the `thorough` job that runs
+  `test/performance/` on push to `main` was already red and had been for some time. The 200,000
+  figure dates from the switch to dynamic bytes and was never re-derived after the DID-string and
+  signer work landed, so the budget was stale rather than the code. Raised to 240,000, which keeps
+  it a ceiling with headroom over the measured 225,926 rather than a target.
+
+### Removed
+
+- `.prettierrc.yaml`. It declared `prettier-plugin-solidity`, but the repository has no
+  `package.json` and no npm step, so the plugin could never be installed and the config was never
+  read. `forge fmt` is the formatter.
+
+### Notes
+
+- **Test totals changed without a test changing.** Foundry 1.8.1 counts an invariant suite as one
+  test where 1.5.1 counted one per `invariant_` function, so the CI scope reports 383 instead of
+  396 and the unfiltered scope 397 instead of 410. The same 15 invariants run and pass.
+- **`forge lint` reports 479 findings where 1.5.1 reported 48**, from new rule families
+  (`calls-loop`, `weak-prng`, `reentrancy-no-eth` and others). It still exits 0, so the `quality`
+  job is unaffected, and the three ids in `foundry.toml` `exclude_lints` are still valid. Triaging
+  the new rules is separate work.
+- **The gas report's Avg column is not comparable across this release.** Forge 1.8.1 reports about
+  half the calls per function that 1.5.1 did for the same suite. `docs/metrics/` uses medians for
+  the v1.5.0 -> v1.6.0 delta and says so.
+- solc 0.8.36 warns six times that `at` will become a keyword. All six are in
+  openzeppelin-contracts `EnumerableSet.sol`, not in this tree.
 
 ## [1.5.0] — 2026-09-06
 
@@ -388,6 +470,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ServiceStorage` contract for service endpoint management
 - Basic DID creation and VM creation functionality
 
+[1.6.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.3.1...v1.5.0
 [1.4.0]: https://github.com/MiguelLZPF/SSIoBC-did/commit/9db204fe70fca8803e57ce459465a2a76a4ed120
 [1.3.1]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.3.0...v1.3.1
