@@ -389,7 +389,7 @@ The v1.5.0 release adds ERC-1271 contract-signer support to the off-chain author
 
 The v1.6.0 release changes no Solidity in `src/`. It moves the toolchain forward: Foundry 1.5.1 to 1.8.1, solc 0.8.33 to 0.8.36, forge-std 1.10.0 to 1.16.2 and openzeppelin-contracts 5.5.0 to 5.7.0. The sizes below are therefore a measurement of what a newer compiler and a newer dependency do to unchanged source, which is the one case where a size row carries no design decision at all.
 
-`evm_version` stays `osaka`. solc 0.8.36 introduces an `amsterdam` target, but that fork is not live, and these numbers are only comparable to the rows above them while the target is held fixed.
+`evm_version` stays `osaka`, and that is already the latest selectable target: solc 0.8.36 introduces `amsterdam` but marks it experimental and refuses to compile against it unless `settings.experimental` is enabled, and `osaka` is the compiler's own default. The fork is not live either way, and these numbers are only comparable to the rows above them while the target is held fixed.
 
 #### v1.6.0 Contract Sizes (measured via `forge build --sizes`, default profile)
 ```

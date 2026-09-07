@@ -95,7 +95,7 @@ The same two files still fall short of 100%: `src/W3CResolverBase.sol` (88.89% l
 
 The 15 invariants still run and still pass; only the arithmetic of the total changed. Anyone comparing a v1.6.0 test count against an earlier release needs to know which forge produced it.
 
-**The third row counts tests, not passes.** Of those 397, one fails: `test_GasBenchmark_CreateMultipleServices_ScalingAnalysis` in `test/performance/`, which asserts service creation stays under 200,000 gas and measures 225,926. This is not a regression from the toolchain bump. The identical figure, 225,926, was reproduced on `main` before any change on this branch, so the assertion was already failing and the `thorough` job that runs this scope on push to `main` is already red. The first two rows exclude `test/performance/`, which is why the CI gate on pull requests stays green.
+**All 397 pass, which was not true before this release.** `test_GasBenchmark_CreateMultipleServices_ScalingAnalysis` in `test/performance/` asserted service creation stays under 200,000 gas while measuring 225,926 on its first, cold-storage iteration. That is not a regression from the toolchain bump: the identical 225,926 was reproduced on `main` before any change on this branch, so the `thorough` job that runs this scope on push to `main` was already red. The first two rows exclude `test/performance/`, which is why the pull-request gate stayed green and hid it. The budget was raised to 240,000 in v1.6.0; see CHANGELOG.md.
 
 ## Quality Metrics
 
