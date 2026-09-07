@@ -97,9 +97,79 @@ These figures are not directly comparable function-for-function to the v1.2.1 nu
 
 **Versions not measured in this pass:** v1.2.2, v1.2.3, v1.2.4, v1.3.0, v1.3.1 would each require checking out their tag and re-running the gas report at that commit; this update does not check out any tag other than the one already checked out (v1.5.0). v1.4.0 was never tagged (per CHANGELOG.md) and its changes ship as part of v1.5.0 above.
 
+### v1.6.0 Gas Snapshot (September 2026)
+
+Same command as the v1.5.0 snapshot, run under Foundry 1.8.1 and solc 0.8.36: `FOUNDRY_PROFILE=ci forge test --gas-report --no-match-path "test/{stress,performance}/*"`. 383 tests executed, which is the same suite as v1.5.0's 396: forge 1.8.1 counts an invariant suite as one test rather than one per `invariant_` function, and 396 - 15 + 2 = 383.
+
+**Read the Median column, not Avg.** Forge 1.8.1 reports far fewer calls per function than 1.5.1 did for the identical suite (`createDid` 8,534 -> 4,220, `createVm` 5,546 -> 1,763), so the mean is taken over a different sample and a v1.5.0/v1.6.0 mean delta measures the harness, not the contract. The median is stable across the change and is what the delta table below uses.
+
+#### DidManager (Full W3C variant)
+```
+| Function                        | Min    | Avg     | Median  | Max       | Calls |
+|----------------------------------|--------|---------|---------|-----------|-------|
+| createDid                       | 22,120 | 267,969 | 283,813 | 284,405   | 4,220 |
+| createVm                        | 30,040 | 230,196 | 271,506 | 336,681   | 1,763 |
+| deactivateDid                   | 24,480 | 45,888  | 51,757  | 56,760    | 30    |
+| reactivateDid                   | 24,480 | 47,848  | 59,130  | 68,701    | 14    |
+| updateController                | 27,480 | 55,073  | 41,563  | 98,308    | 619   |
+| updateService                   | 29,030 | 203,896 | 215,271 | 2,007,937 | 55    |
+| validateVm                      | 28,814 | 35,514  | 35,551  | 35,551    | 558   |
+| isVmRelationship                | 688    | 17,749  | 17,770  | 22,156    | 3,266 |
+| isAuthorized                    | 752    | 28,989  | 30,190  | 34,583    | 280   |
+| isAuthorizedOffChain            | 719    | 32,185  | 33,706  | 38,100    | 283   |
+| isAuthorizedOffChainWithSigner  | 876    | 16,162  | 9,735   | 38,037    | 18    |
+```
+
+#### DidManagerNative
+```
+| Function                        | Min     | Avg     | Median  | Max     | Calls |
+|----------------------------------|---------|---------|---------|---------|-------|
+| createDid                       | 22,120  | 201,089 | 212,114 | 212,706 | 4,388 |
+| createVm                        | 27,360  | 185,806 | 186,333 | 254,662 | 2,238 |
+| deactivateDid                   | 24,480  | 35,326  | 35,161  | 42,846  | 20    |
+| reactivateDid                   | 22,680  | 34,079  | 28,355  | 56,982  | 12    |
+| updateController                | 29,897  | 43,320  | 29,933  | 86,678  | 602   |
+| updateService                   | 203,481 | 213,634 | 203,637 | 248,705 | 9     |
+| validateVm                      | 28,544  | 33,341  | 33,354  | 33,354  | 1,057 |
+| isVmRelationship                | 666     | 6,021   | 6,029   | 6,029   | 1,808 |
+| isAuthorized                    | 730     | 12,974  | 18,264  | 22,657  | 1,564 |
+| isAuthorizedOffChain            | 719     | 21,316  | 21,802  | 21,802  | 267   |
+| isAuthorizedOffChainWithSigner  | 876     | 12,404  | 12,240  | 26,133  | 7     |
+```
+
+#### Resolvers
+```
+| Contract          | Function       | Min     | Avg     | Median  | Max       | Calls |
+|-------------------|----------------|---------|---------|---------|-----------|-------|
+| W3CResolver       | resolve        | 350,673 | 448,282 | 359,020 | 1,205,452 | 42    |
+| W3CResolver       | resolveService | 646     | 23,251  | 17,279  | 51,828    | 3     |
+| W3CResolver       | resolveVm      | 795     | 87,292  | 115,721 | 145,360   | 3     |
+| W3CResolver       | checkMethods   | 259     | 7,046   | 7,013   | 15,610    | 269   |
+| W3CResolverNative | resolve        | 341,404 | 421,041 | 383,863 | 568,776   | 21    |
+| W3CResolverNative | resolveService | 646     | 46,379  | 51,724  | 86,768    | 3     |
+| W3CResolverNative | resolveVm      | 795     | 98,468  | 123,610 | 130,027   | 5     |
+```
+
+**Median gas, v1.5.0 -> v1.6.0:**
+
+| Contract | Function | v1.5.0 | v1.6.0 | Change | Change (%) |
+|---|---|---|---|---|---|
+| DidManager | createDid | 284,029 | 283,813 | -216 | -0.08% |
+| DidManager | isAuthorizedOffChainWithSigner | 9,784 | 9,735 | -49 | -0.50% |
+| DidManagerNative | createDid | 212,330 | 212,114 | -216 | -0.10% |
+| DidManagerNative | isAuthorizedOffChainWithSigner | 12,338 | 12,240 | -98 | -0.79% |
+| W3CResolver | resolve | 358,972 | 359,020 | +48 | +0.01% |
+| W3CResolverNative | resolve | 383,719 | 383,863 | +144 | +0.04% |
+
+Every other function in the three tables above is byte-for-byte the same median as v1.5.0.
+
+**Reading these numbers:** no headline operation moves by 1%, so this release does not disturb the cost tables under [Cost Analysis](#cost-analysis) and `gas-costs-2025.md` is deliberately left unedited. The `createDid` saving of 216 gas on both variants is solc 0.8.36's codegen, consistent with both managers also shrinking in bytecode; the resolvers are byte-identical yet their `resolve` medians move slightly because `resolve` reads through the manager.
+
+One figure looks alarming and is not: `W3CResolver.checkMethods` moves from a 5,485 median to 7,013. It is an `external pure` helper that nothing in the contract calls, exercised only by fuzzed input, and its Min and Max are unchanged at 259 and 15,610. The distribution of the fuzz sample moved, not the function.
+
 ## Method-Level Gas Analysis
 
-*The figures below predate the dual-variant architecture and are kept for historical continuity. For the latest measured values (v1.5.0, both variants), see the [v1.5.0 Gas Snapshot](#v150-gas-snapshot-september-2026) under Gas Evolution by Version.*
+*The figures below predate the dual-variant architecture and are kept for historical continuity. For the latest measured values (v1.6.0, both variants), see the [v1.6.0 Gas Snapshot](#v160-gas-snapshot-september-2026) under Gas Evolution by Version.*
 
 ### Core DID Operations
 
@@ -196,6 +266,7 @@ Traditional DID systems (ERC-1056) require event reconstruction, making historic
 - **v1.2.0**: Dual-variant architecture (DidManagerNative with 1-slot VMs reduces per-operation gas for Ethereum-only DIDs)
 - **v1.2.1**: Added isAuthorized() view function (+412/+411 bytes), removed redundant authenticate(). Net gas impact: negligible (view-only addition)
 - **v1.5.0**: Added isAuthorizedOffChainWithSigner() (ERC-1271 contract-signer verification), conformant DID-string rendering, `onlyDirectEOA` thinned to an internal-function guard; also carries v1.4.0's msg.sender migration (never tagged separately). See [v1.5.0 Gas Snapshot](#v150-gas-snapshot-september-2026) for full measured figures
+- **v1.6.0**: Toolchain only (Foundry 1.8.1, solc 0.8.36, forge-std 1.16.2, OpenZeppelin 5.7.0). No source change; `createDid` median falls 216 gas on both variants and nothing else moves by 1%. See [v1.6.0 Gas Snapshot](#v160-gas-snapshot-september-2026)
 
 ## Research Validation
 

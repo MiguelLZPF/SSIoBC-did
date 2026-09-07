@@ -54,6 +54,7 @@ The project has maintained comprehensive test coverage throughout development, w
 | **v1.2.0** | **>98%** | **See below** | **100%** | **>90%** | **Dual-variant: 268 total tests, DidManagerNative 99%, VMStorageNative 100%, W3CResolverNative 99%** |
 | **v1.2.1** | **>98%** | **See below** | **100%** | **>90%** | **317 total tests (+28 isAuthorized, +11 native fuzz, +8 native invariant, +2 expireVm), removed redundant authenticate()** |
 | **v1.5.0** | **98.83%** | **673/681** | **98.86% (87/88)** | **94.96% (132/139)** | **See "v1.5.0 Coverage Snapshot" below** |
+| v1.6.0 | 98.83% | 673/681 | 98.86% (87/88) | 94.96% (132/139) | Toolchain only (Foundry 1.8.1, solc 0.8.36); identical to v1.5.0, see snapshot below |
 
 **Versions not measured in this pass:** v1.2.2 through v1.3.1 (git tags exist for all of them) and v1.4.0 (never tagged; see `contract-size-history.md`) are not filled in above. Recovering their coverage would require checking out each old tag and re-running `forge coverage` at that commit, which this update deliberately does not do (no branches created, no tags checked out; only the current working tree at v1.5.0 was measured).
 
@@ -72,6 +73,29 @@ Two `src/` files fall short of 100%: `src/W3CResolverBase.sol` (88.89% lines, 16
 - 371 tests under the default local profile (fuzz/invariant excluded via `no_match_test`), matching CHANGELOG.md's "371 tests passing on the default profile"
 - 396 tests under `FOUNDRY_PROFILE=ci` with `--no-match-path "test/{stress,performance}/*"`, the exact scope the CI `test` and `coverage` jobs run and the scope the coverage numbers above were measured against
 - 410 tests under `FOUNDRY_PROFILE=ci` with no path exclusion (stress/performance included), matching CHANGELOG.md's "410 under the CI profile"
+
+### v1.6.0 Coverage Snapshot
+
+Same command and same `src/*` filtering as the v1.5.0 snapshot, re-run under Foundry 1.8.1 and solc 0.8.36. **Every figure is identical to v1.5.0**, which is the expected result for a release that changes no Solidity in `src/`:
+
+- **Lines**: 98.83% (673/681)
+- **Statements**: 98.43% (877/891)
+- **Branches**: 94.96% (132/139)
+- **Functions**: 98.86% (87/88)
+
+The same two files still fall short of 100%: `src/W3CResolverBase.sol` (88.89% lines, 16/18) and `src/storage/VMStorage.sol` (93.48% lines, 86/92; 72.73% branches, 16/22).
+
+**Test counts changed without a single test being added or removed.** Foundry 1.8.1 counts an invariant suite as one test, where 1.5.1 counted one per `invariant_` function, so each of the two invariant suites now reports 1 instead of 7 and 8:
+
+| Scope | v1.5.0 (forge 1.5.1) | v1.6.0 (forge 1.8.1) |
+|---|---|---|
+| default local profile (fuzz/invariant excluded) | 371 | 371 |
+| `FOUNDRY_PROFILE=ci`, stress/performance excluded (the CI gate) | 396 | 383 |
+| `FOUNDRY_PROFILE=ci`, no path exclusion | 410 | 397 |
+
+The 15 invariants still run and still pass; only the arithmetic of the total changed. Anyone comparing a v1.6.0 test count against an earlier release needs to know which forge produced it.
+
+**The third row counts tests, not passes.** Of those 397, one fails: `test_GasBenchmark_CreateMultipleServices_ScalingAnalysis` in `test/performance/`, which asserts service creation stays under 200,000 gas and measures 225,926. This is not a regression from the toolchain bump. The identical figure, 225,926, was reproduced on `main` before any change on this branch, so the assertion was already failing and the `thorough` job that runs this scope on push to `main` is already red. The first two rows exclude `test/performance/`, which is why the CI gate on pull requests stays green.
 
 ## Quality Metrics
 

@@ -44,6 +44,7 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | **v1.3.0** | **12.5 kB** | **10.8 kB** | **10.9 kB** | **11.4 kB** | **Architecture refactor: DidAggregate + VMHooks (9 hooks) + ISP interfaces + W3CResolverBase + peer review fixes (isAuthorized extraction, resolver optimizations)** |
 | **v1.3.1** | **12.9 kB** | **10.8 kB** | **11.3 kB** | **11.4 kB** | **Off-chain auth: isAuthorizedOffChain() + lifecycle flows docs + 24 signature-based tests** |
 | **v1.5.0** | **13.9 kB** | **11.8 kB** | **12.3 kB** | **12.4 kB** | **ERC-1271 contract-signer support (`isAuthorizedOffChainWithSigner`) + conformant DID-string rendering (`trimMethodSegment`) + `onlyDirectEOA` thinned to an internal-function guard; also carries v1.4.0's msg.sender migration, never tagged separately and released together with v1.5.0 (see note below)** |
+| v1.6.0 | 13.9 kB | 11.8 kB | 12.3 kB | 12.4 kB | Toolchain only: Foundry 1.8.1, solc 0.8.36, forge-std 1.16.2, OpenZeppelin 5.7.0 (no source changes) |
 
 ### Visual Documentation
 
@@ -383,6 +384,39 @@ The v1.5.0 release adds ERC-1271 contract-signer support to the off-chain author
 **Size Impact (v1.3.1 -> v1.5.0):** CHANGELOG.md's own v1.5.0 entry records DidManager +790 B, DidManagerNative +790 B, W3CResolver +998 B, W3CResolverNative +998 B, attributed to the resolvers' read-path DID-string and signer-verification logic. This document does not hold an exact byte figure for v1.3.1 (only the rounded "12.9 kB" / "11.3 kB" in the table above), so an independently re-derived delta is not computed here; the CHANGELOG.md figures are cited as the project's own record rather than recalculated.
 
 **Note on v1.4.0:** no git tag `v1.4.0` exists in this repository. CHANGELOG.md states its changes were never tagged and shipped as part of v1.5.0, so its size impact is not separable from the v1.5.0 measurement above, and there is no historical commit to check out for it independently within this pass.
+
+### v1.6.0 Toolchain Refresh (September 2026)
+
+The v1.6.0 release changes no Solidity in `src/`. It moves the toolchain forward: Foundry 1.5.1 to 1.8.1, solc 0.8.33 to 0.8.36, forge-std 1.10.0 to 1.16.2 and openzeppelin-contracts 5.5.0 to 5.7.0. The sizes below are therefore a measurement of what a newer compiler and a newer dependency do to unchanged source, which is the one case where a size row carries no design decision at all.
+
+`evm_version` stays `osaka`. solc 0.8.36 introduces an `amsterdam` target, but that fork is not live, and these numbers are only comparable to the rows above them while the target is held fixed.
+
+#### v1.6.0 Contract Sizes (measured via `forge build --sizes`, default profile)
+```
+| Contract             | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|----------------------|-------------------|---------------------|----------------------|-----------------------|
+| DidManager           | 13,907            | 13,935              | 10,669               | 35,217                |
+| DidManagerNative     | 12,294            | 12,322              | 12,282               | 36,830                |
+| W3CResolver          | 11,845            | 11,989              | 12,731               | 37,163                |
+| W3CResolverNative    | 12,367            | 12,511              | 12,209               | 36,641                |
+```
+
+**Key Changes:**
+1. **openzeppelin-contracts 5.5.0 -> 5.7.0**: accounts for 16 bytes on each manager. `SignatureChecker` is the only OZ code on a write-adjacent path here, reached from `DidAggregate.isAuthorizedOffChainWithSigner`; the resolvers do not link it and do not move.
+2. **solc 0.8.33 -> 0.8.36**: accounts for a further 8 bytes on `DidManager` and 13 on `DidManagerNative`. 0.8.34 removed redundant prerequisite steps from the default Yul optimizer sequence, which is the plausible source, though the two managers moving by different amounts means it is a codegen difference rather than a fixed overhead.
+3. **forge-std 1.10.0 -> 1.16.2**: test-only, and contributes nothing to runtime size.
+4. **Foundry 1.5.1 -> 1.8.1**: measured on its own with solc held at 0.8.33, the new forge produced byte-identical output. The compiler, not the harness, is what moved the numbers.
+
+**Size Impact (v1.5.0 -> v1.6.0):**
+
+| Contract | v1.5.0 (B) | v1.6.0 (B) | Change (B) | Change (%) |
+|---|---|---|---|---|
+| DidManager | 13,931 | 13,907 | -24 | -0.17% |
+| DidManagerNative | 12,323 | 12,294 | -29 | -0.24% |
+| W3CResolver | 11,845 | 11,845 | 0 | 0.00% |
+| W3CResolverNative | 12,367 | 12,367 | 0 | 0.00% |
+
+**Net impact**: both managers shrink slightly and both resolvers are byte-identical, so the release costs nothing in EIP-170 headroom; the smallest margin is `DidManager` at 10,669 bytes.
 
 #### Trade-off Analysis
 
