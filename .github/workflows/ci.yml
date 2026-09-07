@@ -84,11 +84,11 @@ jobs:
     if: needs.changes.outputs.sol == 'true'
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     permissions:
@@ -141,11 +141,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     needs: build
@@ -174,11 +174,11 @@ jobs:
   coverage:
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     needs: build
@@ -247,11 +247,11 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     needs: build
@@ -305,11 +305,11 @@ jobs:
     name: Gas Diff
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     needs: build
@@ -360,11 +360,11 @@ jobs:
     name: Thorough Property Tests
     runs-on: ubuntu-latest
     container:
-      # Pinned by digest, not tag. Contains forge/cast/anvil v1.5.1, the same build developers
+      # Pinned by digest, not tag. Contains forge/cast/anvil v1.8.1, the same build developers
       # run locally, and nothing is downloaded at job time. Base is Ubuntu 22.04 with git, so
       # actions/checkout (incl. submodules) and every JS action work normally.
       # To bump: change the digest and the trailing comment together.
-      image: ghcr.io/foundry-rs/foundry@sha256:3a70bfa9bd2c732a767bb60d12c8770b40e8f9b6cca28efc4b12b1be81c7f28e # v1.5.1
+      image: ghcr.io/foundry-rs/foundry@sha256:0c00cb0bda1ab1b91c9a6bf60f4c76c09c1a8870824b6d4718afbabacf6f9a17 # v1.8.1
       # The image declares USER foundry (uid 1000); the runner work dir is not writable by it.
       options: --user root
     needs: build

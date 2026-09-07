@@ -56,7 +56,7 @@ body:
     attributes:
       label: Foundry Version
       description: Output of `forge --version`
-      placeholder: "forge 1.5.1"
+      placeholder: "forge 1.8.1"
 
   - type: input
     id: solidity-version

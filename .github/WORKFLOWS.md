@@ -27,7 +27,7 @@
 
 The project uses a single unified workflow (`.github/workflows/ci.yml`) with 6 parallel jobs. This replaced two previous overlapping workflows (`test.yml` and `ai-quality-check.yml`) in February 2026.
 
-**Foundry version**: Pinned to `v1.5.1` across all jobs for reproducible builds.
+**Foundry version**: Pinned to `v1.8.1` across all jobs for reproducible builds.
 
 ## Pipeline Architecture
 
@@ -188,7 +188,7 @@ The `Security Scan` and `Gas Diff` jobs are intentionally **not** required — t
 
 ## Maintenance
 
-- **Foundry version**: Pinned to `v1.5.1`. Update in all 6 jobs when upgrading.
+- **Foundry version**: Pinned to `v1.8.1`. Update in all 6 jobs when upgrading.
 - **Action versions**: Managed by Dependabot (`.github/dependabot.yml`) with weekly PRs.
 - **Coverage threshold**: Set to 90% in the coverage job's shell script. Adjust the `90` value if the threshold changes.
 - **Lint exclusions**: Configured in `foundry.toml` under `[lint] exclude_lints`.

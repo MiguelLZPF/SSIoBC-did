@@ -15,7 +15,7 @@ Thank you for your interest in contributing to SSIoBC-DID. This document provide
 
 ### Prerequisites
 
-- [Foundry](https://book.getfoundry.sh/getting-started/installation) (v1.5.1 or later)
+- [Foundry](https://book.getfoundry.sh/getting-started/installation) (v1.8.1 or later)
 - [Git](https://git-scm.com/) with GPG signing configured
 - [pre-commit](https://pre-commit.com/) (optional but recommended)
 
@@ -75,7 +75,7 @@ Thank you for your interest in contributing to SSIoBC-DID. This document provide
 
 ### Solidity
 
-- **Version**: Solidity 0.8.33 (fixed pragma for source, range pragma for tests)
+- **Version**: Solidity 0.8.36 (fixed pragma for source, range pragma for tests)
 - **Error Handling**: Use custom errors instead of `require` strings (gas optimization)
 - **Naming**: `camelCase` for public functions/variables, `_camelCase` for internal/private, `UPPER_CASE` for constants
 - **NatSpec**: Required for all public and external functions (`@notice`, `@param`, `@return`)
