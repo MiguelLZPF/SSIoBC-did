@@ -5,6 +5,7 @@
     ".github"
   ],
   "readme_only_roots": [
+    "networks",
     "script",
     "scripts",
     "src",
@@ -71,6 +72,7 @@
     ".claude",
     ".github",
     "docs",
+    "networks",
     "script",
     "scripts",
     "src",
