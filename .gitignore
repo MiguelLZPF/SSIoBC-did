@@ -12,6 +12,15 @@ out/
 # 🌍 Environment
 .env
 
+# Network profiles. Only local.env and example.env are tracked; every other
+# profile may name an internal host or hold a real key.
+networks/*.env
+!networks/local.env
+!networks/example.env
+
+# Subagent-driven-development scratch workspace.
+.superpowers/
+
 # 📦 Dependencies
 node_modules/
 
