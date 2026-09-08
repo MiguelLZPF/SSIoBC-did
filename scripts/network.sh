@@ -105,6 +105,38 @@ cmd_deployments() {
     done
 }
 
+cmd_smoke() {
+  preflight
+  command -v jq >/dev/null || die "jq is required for smoke"
+
+  # keccak256("DidCreated(bytes32,bytes32)") -- src/interfaces/IDidWriteOps.sol:9
+  local did_created_topic
+  did_created_topic="$(cast keccak 'DidCreated(bytes32,bytes32)')"
+
+  local random id receipts
+  random="$(cast keccak "smoke-$(date +%s)-$RANDOM")"
+
+  forge script script/Smoke.s.sol:SmokeScript \
+    --sig "createDid(bytes32)" "$random" \
+    --rpc-url "$RPC_URL" \
+    "${FORGE_SIGNER_ARGS[@]}" \
+    --broadcast \
+    ${FORGE_EXTRA[@]+"${FORGE_EXTRA[@]}"}
+
+  receipts="$(find "$ROOT/broadcast/Smoke.s.sol/$CHAIN_ID" -maxdepth 1 -name '*-latest.json' 2>/dev/null | head -1)"
+  [ -n "$receipts" ] || die "no broadcast receipt under broadcast/Smoke.s.sol/$CHAIN_ID"
+
+  id="$(jq -r --arg t "$did_created_topic" \
+    '[.receipts[].logs[] | select(.topics[0] == $t) | .topics[1]] | first // empty' "$receipts")"
+  [ -n "$id" ] || die "no DidCreated log in the receipt; the tx may have reverted"
+
+  printf '  did id           %s\n' "$id"
+
+  forge script script/Smoke.s.sol:SmokeScript \
+    --sig "verify(bytes32)" "$id" \
+    --rpc-url "$RPC_URL"
+}
+
 self_test() {
   local tmp fails=0
   tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' RETURN
