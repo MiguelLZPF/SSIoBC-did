@@ -36,7 +36,7 @@ load_profile() {
   elif [ -n "${ACCOUNT:-}" ]; then
     FORGE_SIGNER_ARGS=(--account "$ACCOUNT")
   else
-    FORGE_SIGNER_ARGS=(--mnemonic "$MNEMONIC" --mnemonic-index "${MNEMONIC_INDEX:-0}")
+    FORGE_SIGNER_ARGS=(--mnemonics "$MNEMONIC" --mnemonic-indexes "${MNEMONIC_INDEX:-0}")
   fi
 
   export NETWORK_NAME RPC_URL CHAIN_ID

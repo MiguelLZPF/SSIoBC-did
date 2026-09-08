@@ -16,5 +16,39 @@
       "networkName": "homelab",
       "timestamp": 1761499345
     }
+  },
+  "31337": {
+    "DidManager": {
+      "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "bytecodeHash": "0xbe3ff3c498098d016f5c1e6aeedd7ec6e30b6cfdf185c9281352b35e13d1f829",
+      "networkName": "local",
+      "proxyAddress": "0x0000000000000000000000000000000000000000",
+      "tag": "DeployAll",
+      "timestamp": 1788863870
+    },
+    "W3CResolver": {
+      "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+      "bytecodeHash": "0x2a1db1f2d2e77f8f8a31b1ccaa92c603d4ea8092056bd3c2d1d8c8ea3a3249e4",
+      "networkName": "local",
+      "proxyAddress": "0x0000000000000000000000000000000000000000",
+      "tag": "DeployAll",
+      "timestamp": 1788863870
+    },
+    "DidManagerNative": {
+      "address": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+      "bytecodeHash": "0xd44cca0c1ce849d2a9647145cc5a01f121b9f33f14077442d60f32e764907db8",
+      "networkName": "local",
+      "proxyAddress": "0x0000000000000000000000000000000000000000",
+      "tag": "DeployAll",
+      "timestamp": 1788863870
+    },
+    "W3CResolverNative": {
+      "address": "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9",
+      "bytecodeHash": "0x669273945a21e0b893039dc998aaa5b21fc0a4c3a454e888804008bb9a74ad97",
+      "networkName": "local",
+      "proxyAddress": "0x0000000000000000000000000000000000000000",
+      "tag": "DeployAll",
+      "timestamp": 1788863870
+    }
   }
 }
