@@ -22,10 +22,10 @@ Before deploying to any network, verify:
 - [ ] Contract sizes within EIP-170 limit (24KB): `forge build --sizes`
 
 ### Environment
-- [ ] `.env` configured with correct `RPC_URL`, `PRIVATE_KEY`, `HARDFORK`
-- [ ] Deployer account has sufficient ETH balance for deployment gas
-- [ ] Target network is correct (mainnet vs testnet vs local)
-- [ ] Foundry version matches CI/CD version
+- [ ] `networks/<name>.env` exists and is filled in (see [network-configuration.md](network-configuration.md))
+- [ ] `make check NETWORK=<name>` passes, confirming chain ID and deployer balance
+- [ ] Target network is correct (the chain-ID assertion enforces this, but read the table it prints)
+- [ ] Foundry version matches CI: 1.8.1
 
 ### Security
 - [ ] Code reviewed (blockchain-code-assassin audit recommended)
@@ -57,42 +57,24 @@ This simulates deployment without broadcasting transactions. Verify:
 - Gas estimates are reasonable
 - Contract addresses are deterministic (if using CREATE2)
 
-### 3. Deploy with Broadcast
+### 3. Deploy
 
-#### Full W3C Variant
 ```bash
-forge script script/DidManager.s.sol:DidManagerScript \
-  --sig "deploy(bool,string,bool)" true "DidManager_Deploy" true \
-  --rpc-url $RPC_URL \
-  --private-key $PRIVATE_KEY \
-  --broadcast
+make deploy NETWORK=<name>
 ```
 
-#### Ethereum-Native Variant
-```bash
-forge script script/DidManagerNative.s.sol:DidManagerNativeScript \
-  --sig "deploy(bool,string,bool)" true "DidManagerNative_Deploy" true \
-  --rpc-url $RPC_URL \
-  --private-key $PRIVATE_KEY \
-  --broadcast
-```
+This runs `script/DeployAll.s.sol`, which deploys `DidManager`, `W3CResolver`,
+`DidManagerNative` and `W3CResolverNative` in a single broadcast and wires each
+resolver to its manager. It refuses to run unless the live chain ID matches the
+profile's `CHAIN_ID`.
 
-#### W3C Resolver (Full W3C)
+To deploy one contract on its own, the individual scripts still exist. Note that
+the resolver scripts take the manager **first**:
+
 ```bash
 forge script script/W3CResolver.s.sol:W3CResolverScript \
-  --sig "deploy(bool,string,bool,address)" true "W3CResolver_Deploy" true <DIDMANAGER_ADDRESS> \
-  --rpc-url $RPC_URL \
-  --private-key $PRIVATE_KEY \
-  --broadcast
-```
-
-#### W3C Resolver (Ethereum-Native)
-```bash
-forge script script/W3CResolverNative.s.sol:W3CResolverNativeScript \
-  --sig "deploy(bool,string,bool,address)" true "W3CResolverNative_Deploy" true <DIDMANAGER_NATIVE_ADDRESS> \
-  --rpc-url $RPC_URL \
-  --private-key $PRIVATE_KEY \
-  --broadcast
+  --sig "deploy(address,bool,string,bool)" <DIDMANAGER_ADDRESS> true "W3CResolver_Deploy" true \
+  --rpc-url "$RPC_URL" --private-key "$PRIVATE_KEY" --broadcast
 ```
 
 ### 4. Store Deployment Metadata
@@ -152,9 +134,16 @@ Compare with the hash stored in `.deployments.json`.
 
 ### Network-Specific Notes
 
+`RPC_URL`, `CHAIN_ID` and the signer are never typed on the command line: they
+come from the selected `networks/<name>.env` profile. Quirks specific to a
+target chain (zero base fee, a rate-limited RPC endpoint, persistent state
+across restarts) are documented once, in
+[network-configuration.md](network-configuration.md#chain-traits-that-bite),
+rather than repeated per chain here.
+
 - **Mainnet**: Use conservative gas prices, verify high-value operations
 - **Goerli/Sepolia**: Free testnet ETH, suitable for integration testing
-- **Local (Anvil)**: Instant transactions, use for development and CI/CD
+- **Local (Anvil)**: `make anvil` starts one matching `foundry.toml`'s `evm_version`; `networks/local.env` targets it
 - **L2 (Optimism, Arbitrum)**: Lower gas costs, verify L2-specific behavior
 
 ---
