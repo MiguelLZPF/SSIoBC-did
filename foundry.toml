@@ -48,6 +48,14 @@ fs_permissions = [
   { access = "read-write", path = "./" },
 ] # default: all file cheat codes are disabled
 
+# Named RPC endpoints for `forge test --fork-url <name>` and `cast --rpc-url <name>`.
+# `custom` reads RPC_URL from the environment, which scripts/network.sh exports
+# from the selected networks/<name>.env profile. No endpoint is hardcoded here:
+# this repository is public and a profile may name an internal host.
+[rpc_endpoints]
+local = "http://127.0.0.1:8545"
+custom = "${RPC_URL}"
+
 # Linter configuration
 # - unsafe-typecast: String to bytes32 conversions in tests are safe and intentional
 # - pascal-case-struct: W3C acronym naming (W3CDidDocument, etc.) is intentional per W3C spec
