@@ -3,28 +3,6 @@ pragma solidity 0.8.36;
 
 contract Helper {
   /**
-   * @dev Helper function to trim the surrounding brackets from a JSON array string.
-   * @param json The JSON array string to be trimmed.
-   * @return The trimmed JSON string without the surrounding brackets.
-   */
-  function _trimBrackets(string memory json) internal pure returns (string memory) {
-    bytes memory jsonBytes = bytes(json);
-    if (jsonBytes.length < 2) {
-      return json; // Return as-is if too short to trim
-    }
-
-    // Create a new bytes array that is 2 characters shorter (removing the first and last characters)
-    bytes memory trimmedBytes = new bytes(jsonBytes.length - 2);
-
-    // Copy the characters, skipping the first and last ones
-    for (uint256 i = 1; i < jsonBytes.length - 1; i++) {
-      trimmedBytes[i - 1] = jsonBytes[i];
-    }
-
-    return string(trimmedBytes);
-  }
-
-  /**
    * @dev Trims leading and trailing whitespace from a given bytes array.
    * @param input The bytes array to be trimmed.
    * @return output The trimmed bytes array.
