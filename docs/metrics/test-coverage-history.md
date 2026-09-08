@@ -21,6 +21,17 @@ This document tracks test coverage evolution across SSIoBC-did versions, demonst
 
 The project has maintained comprehensive test coverage throughout development, with systematic tracking beginning at v0.1.2.
 
+#### Coverage Evidence by Version
+
+- [v1.6.0 coverage summary (`forge coverage --report summary`)](../assets/data/coverage-v1.6.0.txt)
+
+**From v1.6.0 the evidence is text, not an image.** A screenshot of a terminal cannot be grepped,
+diffed, or checked by a linter, so nobody notices when it stops matching the tables above it, and a
+reader cannot copy a number out of it. The raw command output is committed instead: it carries a
+provenance header naming the commit, the tag, the toolchain and the exact command, and a reviewer
+can diff two releases directly. The images below stay as the historical record for v0.1.0 to
+v1.5.0.
+
 #### Visual Coverage Documentation
 - [v0.1.2 Coverage Report](../assets/screenshots/test-coverage/Coverage%20v0.1.2.png)
 - [v0.1.3 Coverage Report](../assets/screenshots/test-coverage/Coverage%20v0.1.3.png)

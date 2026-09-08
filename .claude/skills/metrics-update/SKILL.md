@@ -4,7 +4,7 @@ description: >
   Re-measure contract sizes, gas consumption and test coverage for this Foundry
   project, then append a dated version block to the tracked research artifacts in
   docs/metrics/ in the exact house format (progression table row, sizes block,
-  delta table, screenshot link). USE WHEN: update the metrics, update docs/metrics,
+  delta table, committed text evidence). USE WHEN: update the metrics, update docs/metrics,
   refresh the gas numbers, record the new contract sizes, the sizes changed, gas
   went up after this change, add a version row to the size history, update the
   coverage history, we optimized something so record it, log this optimization,
@@ -29,7 +29,7 @@ Turns a code change into the four numbers this project publishes, and writes the
 - [Step 3 — Write the size history](#step-3--write-the-size-history)
 - [Step 4 — Write the gas history](#step-4--write-the-gas-history)
 - [Step 5 — Write the coverage history](#step-5--write-the-coverage-history)
-- [Step 6 — Screenshots and the ToC](#step-6--screenshots-and-the-toc)
+- [Step 6 — Evidence and the ToC](#step-6--evidence-and-the-toc)
 - [Step 7 — Verify and report](#step-7--verify-and-report)
 - [Traps worth knowing](#traps-worth-knowing)
 
@@ -128,19 +128,40 @@ methodology, and leave the stated market assumptions alone unless the user asks.
 contract rows under "Coverage Analysis by Component". Coverage below 90% is a CI failure, not a
 metrics entry, so if the summary shows under 90% stop and report it rather than recording it.
 
-## Step 6 — Screenshots and the ToC
+## Step 6 — Evidence and the ToC
 
-Each history file links a dated screenshot as evidence. The filenames follow a convention that is
-not uniform across the three directories, so copy the existing pattern exactly:
+Each history file links its raw command output as evidence, committed under
+`docs/assets/data/`:
 
-| Directory | Filename pattern |
-|---|---|
-| `docs/assets/screenshots/contract-size/` | `Size v1.5.0.png` |
-| `docs/assets/screenshots/gas-consumption/` | `Test & Gas v1.5.0.png` |
-| `docs/assets/screenshots/test-coverage/` | `Coverage v1.5.0.png` |
+Three files per release, named `sizes-`, `gasreport-` and `coverage-` followed by the version and
+`.txt`. `docs/assets/data/sizes-v1.6.0.txt` is the worked example of all three.
 
-Links from the markdown are URL-encoded (`Size%20v1.5.0.png`). You cannot take the screenshot; ask
-the user for it and add the link only once the file exists, or `check-doc-links.py` will fail.
+| Filename stem | Keep | Source command |
+|---|---|---|
+| `sizes-` | the one `forge build --sizes` table | `forge build --sizes` |
+| `gasreport-` | the four `src/` contract tables only | `FOUNDRY_PROFILE=ci forge test --gas-report --no-match-path "test/{stress,performance}/*"` |
+| `coverage-` | the summary table | `FOUNDRY_PROFILE=ci forge coverage --report summary --no-match-path "test/{stress,performance}/*"` |
+
+Every file starts with a provenance header, so a number can never be traced to the wrong build:
+
+```
+# SSIoBC-did <version> measurement evidence
+# commit:  <full sha>  (tag <version>)
+# toolchain: forge <ver> (<short sha>), solc <ver>, evm <target>, optimizer_runs 200
+# deps:    forge-std <tag>, openzeppelin-contracts <tag>
+# command: <the exact command>
+# captured: YYYY-MM-DD
+# note:    <the one thing a reader would otherwise misread>
+```
+
+Strip the compiler warnings and keep the tables; a reader wants the numbers, and noise is what
+makes an evidence file go unread.
+
+**Screenshots are no longer produced.** Versions v0.1.0 through v1.5.0 link PNGs under
+`docs/assets/screenshots/`, and those stay as the historical record. They are not extended, because
+an image of a terminal cannot be grepped, diffed or linted: nobody notices when it stops matching
+the table above it, and a reader cannot copy a number out of it. Text can be diffed between two
+releases directly, and `check-doc-links.py` can verify the link resolves.
 
 Every file edited needs its Table of Contents updated. This is a repo-wide standard and it is
 linted: `python3 scripts/ci/check-doc-links.py --all` runs in the `docs-lint` workflow.

@@ -19,6 +19,17 @@ This document tracks gas consumption evolution across SSIoBC-did versions, provi
 
 ### Early Development Phase (v0.1.0 - v0.3.0)
 
+#### Gas Evidence by Version
+
+- [v1.6.0 gas report (`forge test --gas-report`)](../assets/data/gasreport-v1.6.0.txt)
+
+**From v1.6.0 the evidence is text, not an image.** A screenshot of a terminal cannot be grepped,
+diffed, or checked by a linter, so nobody notices when it stops matching the tables above it, and a
+reader cannot copy a number out of it. The raw command output is committed instead: it carries a
+provenance header naming the commit, the tag, the toolchain and the exact command, and a reviewer
+can diff two releases directly. The images below stay as the historical record for v0.1.0 to
+v1.5.0.
+
 #### Individual Gas Reports
 - [v0.1.0 Gas Report](../assets/screenshots/gas-consumption/Gas%20v0.1.0.png)
 - [v0.1.1 Gas Report](../assets/screenshots/gas-consumption/Gas%20v0.1.1.png)
