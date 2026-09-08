@@ -34,12 +34,9 @@ struct DeploymentStoreInfo {
 contract Configuration is Script, Helper {
   using stdJson for string;
 
-  uint256 PORT = vm.envOr("PORT", uint256(8545));
-  uint256 CHAIN_ID = vm.envOr("CHAIN_ID", uint256(31337));
-  string HARDFORK = vm.envOr("HARDFORK", string("osaka"));
-  uint256 ACCOUNT_NUMBER = vm.envOr("ACCOUNT_NUMBER", uint256(10));
-  string MNEMONIC = vm.envOr("MNEMONIC", string("test test test test test test test test test test test junk"));
-  string ANVIL_CONFIG_OUT = vm.envOr("ANVIL_CONFIG_OUT", string(".last-anvil-config.json"));
+  /// @dev Label for the target network, supplied by networks/<name>.env.
+  /// Falls back to "chain-<id>" so a new chain needs no code change.
+  string NETWORK_NAME = vm.envOr("NETWORK_NAME", string(""));
   string DEPLOYMENTS_PATH = vm.envOr("DEPLOYMENTS_PATH", string(".deployments.json"));
 
   constructor() { }
@@ -97,67 +94,16 @@ contract Configuration is Script, Helper {
 
   /**
    * @dev Retrieves the network information.
+   * @notice The name comes from the NETWORK_NAME environment variable, set by
+   * the selected networks/<name>.env profile. The previous implementation was a
+   * thirty-deep chain-ID ternary that had to be edited to learn any new chain
+   * and was wrong for several of the ones it did list.
    * @return chainId The chain ID of the network.
    * @return networkName The name of the network.
    */
   function getNetwork() external view returns (uint256 chainId, string memory networkName) {
     chainId = block.chainid;
-    networkName = chainId == 31337
-      ? "anvil"
-      : chainId == 1
-        ? "mainnet"
-        : chainId == 3
-          ? "ropsten"
-          : chainId == 4
-            ? "rinkeby"
-            : chainId == 5
-              ? "goerli"
-              : chainId == 42
-                ? "kovan"
-                : chainId == 56
-                  ? "binance"
-                  : chainId == 97
-                    ? "bsc-testnet"
-                    : chainId == 128
-                      ? "heco"
-                      : chainId == 256
-                        ? "heco-testnet"
-                        : chainId == 137
-                          ? "matic"
-                          : chainId == 80001
-                            ? "mumbai"
-                            : chainId == 43114
-                              ? "avalanche"
-                              : chainId == 43113
-                                ? "fuji"
-                                : chainId == 1666700000
-                                  ? "harmony"
-                                  : chainId == 1666600000
-                                    ? "harmony-testnet"
-                                    : chainId == 42161
-                                      ? "arbitrum"
-                                      : chainId == 421611
-                                        ? "arbitrum-testnet"
-                                        : chainId == 250
-                                          ? "fantom"
-                                          : chainId == 4002
-                                            ? "celo"
-                                            : chainId == 44787
-                                              ? "moonbeam"
-                                              : chainId == 246
-                                                ? "zelcore"
-                                                : chainId == 1287
-                                                  ? "moonriver"
-                                                  : chainId == 43120
-                                                    ? "avalanche-testnet"
-                                                    : chainId == 43110
-                                                      ? "avax"
-                                                      : chainId == 4310
-                                                        ? "fuji-testnet"
-                                                        : chainId == 5777
-                                                          ? "ganache"
-                                                          : chainId == 31313 ? "hardhat" : "unknown";
-
+    networkName = bytes(NETWORK_NAME).length > 0 ? NETWORK_NAME : string.concat("chain-", vm.toString(chainId));
     return (chainId, networkName);
   }
 }
