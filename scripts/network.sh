@@ -54,12 +54,18 @@ deployer_address() {
   fi
 }
 
-preflight() {
-  local live client deployer balance
+assert_chain_id() {
+  local live
   live="$(cast chain-id --rpc-url "$RPC_URL")" \
     || die "cannot reach $RPC_URL"
   [ "$live" = "$CHAIN_ID" ] \
     || die "chain-id mismatch: profile '$NETWORK_NAME' expects $CHAIN_ID, $RPC_URL answered $live. Refusing to continue."
+  printf '%s' "$live"
+}
+
+preflight() {
+  local live client deployer balance
+  live="$(assert_chain_id)"
 
   client="$(cast rpc web3_clientVersion --rpc-url "$RPC_URL" 2>/dev/null | tr -d '"')"
   deployer="$(deployer_address)"
@@ -90,6 +96,7 @@ cmd_deploy() {
 }
 
 cmd_deployments() {
+  assert_chain_id >/dev/null
   local file="$ROOT/$DEPLOYMENTS_PATH"
   [ -f "$file" ] || die "no ledger at $file"
   jq -e --arg c "$CHAIN_ID" 'has($c)' "$file" >/dev/null \

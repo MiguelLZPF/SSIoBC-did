@@ -112,6 +112,11 @@ did:method0:method1:method2:id
 
 ## Deployment
 
+0. Have a chain listening. For a local target, start one in a separate terminal:
+   ```bash
+   make anvil
+   ```
+
 1. Create a network profile:
    ```bash
    cp networks/example.env networks/my-network.env

@@ -72,6 +72,7 @@ Selecting a network never edits a tracked file. Adding a network never edits cod
 | `PRIVATE_KEY` | one signer | Raw deployer key |
 | `ACCOUNT` | one signer | Foundry keystore account name, preferred over `PRIVATE_KEY` |
 | `MNEMONIC` + `MNEMONIC_INDEX` | one signer | Derive the deployer from a mnemonic |
+| `DEPLOY_TAG` | no | Label recorded with each ledger entry, read via `vm.envOr` in `DeployAll.s.sol`; defaults to `"DeployAll"` |
 | `FORGE_EXTRA_ARGS` | no | Escape hatch appended verbatim, e.g. `--legacy`, `--slow` |
 
 Exactly one signer form must be set. The wrapper fails loudly if zero or more than
@@ -177,7 +178,7 @@ before committing to a deploy.
       "address": "0x…",
       "bytecodeHash": "0x…",
       "networkName": "homelab",
-      "proxyAddress": "0x0…0 (always zero; this project uses no proxies)",
+      "proxyAddress": "0x0000000000000000000000000000000000000000",
       "tag": "DidManager_Test",
       "timestamp": 1761498992
     },
@@ -187,15 +188,18 @@ before committing to a deploy.
 }
 ```
 
+`proxyAddress` is always the zero address: this project uses no proxies, and
+the field is recorded rather than omitted so every entry has a fixed shape.
+
 Two reasons. First, a development chain that persists across restarts gets
 redeployed often, and an append-only array grows without bound while the reader has
 to scan top-down to guess the current address. Second, `retrieveDeployment()`
 becomes implementable: `chainId` plus contract name is an exact key.
 
 The two existing chain-6660 entries are migrated into the new shape rather than
-discarded, but they are already dead: that chain is back at block 0 and both
-addresses return empty code. This is the normal end state for a resettable
-development chain, and it is why `make deployments` re-checks liveness with
+discarded. A resettable development chain can go back to block 0 at any time,
+which silently invalidates every address recorded for it while the file itself
+stays unchanged. This is why `make deployments` re-checks liveness with
 `cast code` and prints each entry as `LIVE` or `GONE` rather than trusting the
 file. A ledger that cannot be stale is not achievable here; a ledger that tells
 you it is stale is.

@@ -32,6 +32,10 @@ contract ConfigurationUnitTest is Test {
   /// race and fail non-deterministically. Each scenario uses its own temp path so the
   /// two runs, sequential within this one function, cannot interfere with each other.
   function test_storeAndRetrieveDeployment_roundTripsAndReplaces() public {
+    // .temp/ is gitignored, so a clean checkout does not have it; create it before
+    // any vm.writeFile below or this test fails on first run from a fresh clone.
+    vm.createDir("./.temp", true);
+
     // Scenario 1: store then retrieve round-trips the full struct.
     string memory roundTripPath = "./.temp/test-deployments.json";
     vm.writeFile(roundTripPath, "{}");
