@@ -92,11 +92,15 @@ When the `store` parameter is `true`, deployment metadata is written to `.deploy
 
 ### Verify Contract Code
 
+Neither Anvil nor the development chains this project deploys to today carry a block
+explorer, so explorer verification is a manual step, not part of `make deploy` or any
+`networks/<name>.env` profile. If a chain with a real explorer is ever added as a target,
+run `forge verify-contract` by hand:
+
 ```bash
-# Verify on Etherscan (if applicable)
 forge verify-contract <CONTRACT_ADDRESS> src/DidManager.sol:DidManager \
   --chain-id <CHAIN_ID> \
-  --etherscan-api-key $ETHERSCAN_API_KEY
+  --etherscan-api-key <EXPLORER_API_KEY>
 ```
 
 ### Test Resolution

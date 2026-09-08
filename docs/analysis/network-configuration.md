@@ -72,8 +72,6 @@ Selecting a network never edits a tracked file. Adding a network never edits cod
 | `PRIVATE_KEY` | one signer | Raw deployer key |
 | `ACCOUNT` | one signer | Foundry keystore account name, preferred over `PRIVATE_KEY` |
 | `MNEMONIC` + `MNEMONIC_INDEX` | one signer | Derive the deployer from a mnemonic |
-| `VERIFY` | no | `true` to run `forge verify-contract`; default `false` |
-| `ETHERSCAN_API_KEY` | if verifying | Explorer API key |
 | `FORGE_EXTRA_ARGS` | no | Escape hatch appended verbatim, e.g. `--legacy`, `--slow` |
 
 Exactly one signer form must be set. The wrapper fails loudly if zero or more than
@@ -178,8 +176,9 @@ before committing to a deploy.
     "DidManager": {
       "address": "0x…",
       "bytecodeHash": "0x…",
-      "tag": "DidManager_Test",
       "networkName": "homelab",
+      "proxyAddress": "0x0…0 (always zero; this project uses no proxies)",
+      "tag": "DidManager_Test",
       "timestamp": 1761498992
     },
     "W3CResolver": { "…": "…" }
