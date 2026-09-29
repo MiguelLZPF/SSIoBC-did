@@ -345,5 +345,6 @@ When developing or reviewing smart contracts for this DID/SSI project, the follo
 **Last Updated**: 2026-09-07
 **Architecture**: Simplified 2-file system (CLAUDE.md + PROJECT.md)
 **Agent config**: `.claude/skills/` and `.claude/settings.json` are committed; `.claude/settings.local.json` is per-machine and ignored.
+**Skill models**: `metrics-update` and `release-prep` pin `model: sonnet` because they are mechanical. `solidity-review` inherits the session model because it is judgment work, and fans out to Sonnet subagents only for a full audit.
 
 _context-mode routing comes from the plugin's own session-start injection and is not restated here._

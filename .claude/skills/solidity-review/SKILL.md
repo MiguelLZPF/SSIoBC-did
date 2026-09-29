@@ -14,7 +14,7 @@ description: >
   review reliably gets wrong. DO NOT use for formatting or lint (that is forge fmt and
   forge lint), for updating docs/metrics (that is the metrics-update skill), or for
   reviewing non-Solidity code.
-model: sonnet
+model: inherit
 version: 1.0.0
 ---
 
@@ -69,6 +69,8 @@ git diff $(git merge-base HEAD main)..HEAD -- src/
 audit rather than a diff review, dispatch subagents by area (the two managers, the two
 resolvers, the storage contracts, the types and interfaces) and collect their findings,
 so the reading stays out of the main context.
+Those area subagents run on `sonnet`, and the main session verifies each finding
+before reporting it.
 
 Note which variant is touched. The repository ships two: the full W3C variant
 (`DidManager`, `VMStorage`, `W3CResolver`) and the Ethereum-native variant
