@@ -8,7 +8,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROFILE_DIR="$ROOT/networks"
+PROFILE_DIR="${NETWORK_PROFILE_DIR:-$ROOT/networks}"
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 note() { printf '  %-16s %s\n' "$1" "$2"; }
@@ -123,7 +123,11 @@ cmd_deploy() {
 
 cmd_deployments() {
   assert_chain_id >/dev/null
-  local file="$ROOT/$DEPLOYMENTS_PATH"
+  local file
+  case "$DEPLOYMENTS_PATH" in
+    /*) file="$DEPLOYMENTS_PATH" ;;
+    *)  file="$ROOT/$DEPLOYMENTS_PATH" ;;
+  esac
   [ -f "$file" ] || die "no ledger at $file"
   jq -e --arg c "$CHAIN_ID" 'has($c)' "$file" >/dev/null \
     || die "ledger has no entries for chain $CHAIN_ID"
@@ -218,11 +222,19 @@ case "$1" in
 esac
 STUB
   chmod +x "$tmp/bin1/cast"
-  local out
-  out="$( PATH="$tmp/bin1:$PATH"; load_profile good; preflight 2>&1 )" || out="PREFLIGHT-DIED"
-  case "$out" in *unknown*) check "preflight survives a failing web3_clientVersion" pass ;; *) check "preflight survives a failing web3_clientVersion" fail ;; esac
+  # These run the script as a CHILD process. A subshell on the left of ||, && or if has
+  # errexit disabled, which would hide exactly the failures under test.
+  local out rc
+  set +e
+  out="$( PATH="$tmp/bin1:$PATH" NETWORK_PROFILE_DIR="$tmp" bash "${BASH_SOURCE[0]}" check good 2>&1 )"; rc=$?
+  set -e
+  if [ "$rc" -eq 0 ] && printf '%s' "$out" | grep -q 'client.*unknown'; then
+    check "preflight survives a failing web3_clientVersion" pass
+  else
+    check "preflight survives a failing web3_clientVersion" fail
+  fi
 
-  # Stub cast: chain-id answers, code fails. cmd_deployments must die, not print LIVE.
+  # Stub cast: chain-id answers, code fails. deployments must exit non-zero, not print LIVE.
   cat > "$tmp/bin2/cast" <<'STUB'
 #!/usr/bin/env bash
 case "$1" in
@@ -232,8 +244,15 @@ esac
 STUB
   chmod +x "$tmp/bin2/cast"
   printf '{"1":{"DidManager":{"address":"0x00000000000000000000000000000000000000aa"}}}\n' > "$tmp/ledger.json"
-  out="$( PATH="$tmp/bin2:$PATH"; load_profile good; ROOT="$tmp"; DEPLOYMENTS_PATH=ledger.json; cmd_deployments 2>&1 )" && out="$out EXIT0"
-  case "$out" in *LIVE*|*EXIT0*) check "deployments dies when cast code fails" fail ;; *) check "deployments dies when cast code fails" pass ;; esac
+  printf 'NETWORK_NAME=a\nRPC_URL=http://x\nCHAIN_ID=1\nPRIVATE_KEY=0x1\nDEPLOYMENTS_PATH=%s/ledger.json\n' "$tmp" > "$tmp/led.env"
+  set +e
+  out="$( PATH="$tmp/bin2:$PATH" NETWORK_PROFILE_DIR="$tmp" bash "${BASH_SOURCE[0]}" deployments led 2>&1 )"; rc=$?
+  set -e
+  if [ "$rc" -ne 0 ] && ! printf '%s' "$out" | grep -q 'LIVE' && printf '%s' "$out" | grep -q '0x0000000000000000000000000000000000000000aa\|000aa'; then
+    check "deployments dies when cast code fails" pass
+  else
+    check "deployments dies when cast code fails" fail
+  fi
 
   [ "$fails" -eq 0 ] && { printf 'all self-tests passed\n'; return 0; }
   printf '%d self-test failure(s)\n' "$fails"; return 1
