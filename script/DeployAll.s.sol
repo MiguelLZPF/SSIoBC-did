@@ -2,6 +2,7 @@
 pragma solidity 0.8.36;
 
 import { Script, console } from "forge-std/Script.sol";
+import { VmSafe } from "forge-std/Vm.sol";
 import { Configuration, Deployment } from "@script/Configuration.s.sol";
 import { DidManager } from "@src/DidManager.sol";
 import { DidManagerNative } from "@src/DidManagerNative.sol";
@@ -37,10 +38,16 @@ contract DeployAllScript is Script {
     w3cResolverNative = new W3CResolverNative(IDidManagerNative(address(didManagerNative)));
     vm.stopBroadcast();
 
-    _record("DidManager", "DidManager.sol", address(didManager), tag);
-    _record("W3CResolver", "W3CResolver.sol", address(w3cResolver), tag);
-    _record("DidManagerNative", "DidManagerNative.sol", address(didManagerNative), tag);
-    _record("W3CResolverNative", "W3CResolverNative.sol", address(w3cResolverNative), tag);
+    // The ledger is written only by a real broadcast. A dry run (no --broadcast) or a
+    // plain simulation must not record addresses of contracts that were never deployed.
+    if (vm.isContext(VmSafe.ForgeContext.ScriptBroadcast)) {
+      _record("DidManager", "DidManager.sol", address(didManager), tag);
+      _record("W3CResolver", "W3CResolver.sol", address(w3cResolver), tag);
+      _record("DidManagerNative", "DidManagerNative.sol", address(didManagerNative), tag);
+      _record("W3CResolverNative", "W3CResolverNative.sol", address(w3cResolverNative), tag);
+    } else {
+      console.logString("dry run: ledger not written (no --broadcast)");
+    }
 
     (, string memory networkName) = config.getNetwork();
     console.logString(string.concat("deployed to ", networkName, " (chain ", vm.toString(block.chainid), ")"));

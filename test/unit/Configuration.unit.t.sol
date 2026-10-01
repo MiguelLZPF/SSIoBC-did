@@ -56,6 +56,9 @@ contract ConfigurationUnitTest is Test {
     Deployment memory got = roundTripConfig.retrieveDeployment(6660, "DidManager");
     assertEq(got.logicAddr, address(0xBEEF));
     assertEq(got.chainId, 6660);
+    assertEq(got.bytecodeHash, keccak256("code"));
+    assertEq(got.tag, bytes32("tag-1"));
+    assertEq(got.timestamp, 1234);
 
     // Scenario 2: a second store under the same chain+name key replaces rather than appends.
     string memory replacePath = "./.temp/test-deployments-replace.json";

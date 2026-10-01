@@ -15,10 +15,17 @@ note() { printf '  %-16s %s\n' "$1" "$2"; }
 
 load_profile() {
   local name="$1" file="$PROFILE_DIR/$1.env"
-  [ -f "$file" ] || die "no profile '$name'. Expected $file. Available: $(
-    ls "$PROFILE_DIR"/*.env 2>/dev/null | xargs -n1 basename 2>/dev/null | sed 's/\.env$//' | tr '\n' ' '
-  )"
-  set -a; . "$file"; set +a
+  if [ ! -f "$file" ]; then
+    local avail="" f
+    for f in "$PROFILE_DIR"/*.env; do
+      [ -e "$f" ] && avail="$avail$(basename "$f" .env) "
+    done
+    die "no profile '$name'. Expected $file. Available: $avail"
+  fi
+  set -a
+  # shellcheck source=/dev/null
+  . "$file"
+  set +a
 
   : "${NETWORK_NAME:?profile $name is missing NETWORK_NAME}"
   : "${RPC_URL:?profile $name is missing RPC_URL}"
@@ -67,7 +74,8 @@ preflight() {
   local live client deployer balance
   live="$(assert_chain_id)"
 
-  client="$(cast rpc web3_clientVersion --rpc-url "$RPC_URL" 2>/dev/null | tr -d '"')"
+  # Some nodes reject web3_clientVersion; that must not abort the preflight.
+  client="$(cast rpc web3_clientVersion --rpc-url "$RPC_URL" 2>/dev/null | tr -d '"' || true)"
   deployer="$(deployer_address)"
   balance="$(cast balance "$deployer" --rpc-url "$RPC_URL")"
 
@@ -87,12 +95,30 @@ cmd_check() { preflight; }
 
 cmd_deploy() {
   preflight
-  forge script script/DeployAll.s.sol:DeployAllScript \
+
+  # Forge writes the ledger during the run. Point it at a staging copy and promote it
+  # only when forge exits 0, so a broadcast that fails part-way leaves the real ledger
+  # untouched.
+  local real stage_dir stage
+  case "$DEPLOYMENTS_PATH" in
+    /*) real="$DEPLOYMENTS_PATH" ;;
+    *)  real="$ROOT/$DEPLOYMENTS_PATH" ;;
+  esac
+  stage_dir="$ROOT/.temp/deploy-staging"
+  stage="$stage_dir/$NETWORK_NAME-ledger.json"
+  mkdir -p "$stage_dir"
+  if [ -f "$real" ]; then cp "$real" "$stage"; else rm -f "$stage"; fi
+
+  if ( cd "$ROOT" && DEPLOYMENTS_PATH="$stage" forge script script/DeployAll.s.sol:DeployAllScript \
     --sig "run()" \
     --rpc-url "$RPC_URL" \
     "${FORGE_SIGNER_ARGS[@]}" \
     --broadcast \
-    ${FORGE_EXTRA[@]+"${FORGE_EXTRA[@]}"}
+    ${FORGE_EXTRA[@]+"${FORGE_EXTRA[@]}"} ); then
+    [ ! -f "$stage" ] || mv "$stage" "$real"
+  else
+    die "forge failed; the ledger at $real was left untouched (staging copy: $stage)"
+  fi
 }
 
 cmd_deployments() {
@@ -104,7 +130,10 @@ cmd_deployments() {
   printf '%-20s %-44s %s\n' NAME ADDRESS STATUS
   jq -r --arg c "$CHAIN_ID" '.[$c] | to_entries[] | "\(.key) \(.value.address)"' "$file" \
   | while read -r name addr; do
-      if [ "$(cast code "$addr" --rpc-url "$RPC_URL")" = "0x" ]; then
+      local code
+      code="$(cast code "$addr" --rpc-url "$RPC_URL")" \
+        || die "cannot read code at $addr from $RPC_URL; refusing to report a status"
+      if [ "$code" = "0x" ]; then
         printf '%-20s %-44s %s\n' "$name" "$addr" "GONE"
       else
         printf '%-20s %-44s %s\n' "$name" "$addr" "LIVE"
@@ -168,6 +197,43 @@ self_test() {
   printf 'NETWORK_NAME=a\nRPC_URL=http://x\nCHAIN_ID=1\nACCOUNT=b\n' > "$tmp/acct.env"
   ( load_profile acct && [ "${FORGE_SIGNER_ARGS[0]}" = "--account" ] ) >/dev/null 2>&1 \
     && check "ACCOUNT maps to --account" pass || check "ACCOUNT maps to --account" fail
+
+  printf 'NETWORK_NAME=a\nRPC_URL=http://x\nCHAIN_ID=1\nMNEMONIC="test test"\nMNEMONIC_INDEX=3\n' > "$tmp/mn.env"
+  ( load_profile mn \
+    && [ "${FORGE_SIGNER_ARGS[0]}" = "--mnemonics" ] && [ "${FORGE_SIGNER_ARGS[1]}" = "test test" ] \
+    && [ "${FORGE_SIGNER_ARGS[2]}" = "--mnemonic-indexes" ] && [ "${FORGE_SIGNER_ARGS[3]}" = "3" ] ) >/dev/null 2>&1 \
+    && check "MNEMONIC maps to --mnemonics/--mnemonic-indexes" pass || check "MNEMONIC maps to --mnemonics/--mnemonic-indexes" fail
+
+  # Stub cast: chain-id and the rest answer, web3_clientVersion fails.
+  mkdir -p "$tmp/bin1" "$tmp/bin2"
+  cat > "$tmp/bin1/cast" <<'STUB'
+#!/usr/bin/env bash
+case "$1" in
+  chain-id) echo 1 ;;
+  rpc) exit 1 ;;
+  wallet) echo 0x0000000000000000000000000000000000000001 ;;
+  balance) echo 1 ;;
+  from-wei) echo 1 ;;
+  block-number) echo 7 ;;
+esac
+STUB
+  chmod +x "$tmp/bin1/cast"
+  local out
+  out="$( PATH="$tmp/bin1:$PATH"; load_profile good; preflight 2>&1 )" || out="PREFLIGHT-DIED"
+  case "$out" in *unknown*) check "preflight survives a failing web3_clientVersion" pass ;; *) check "preflight survives a failing web3_clientVersion" fail ;; esac
+
+  # Stub cast: chain-id answers, code fails. cmd_deployments must die, not print LIVE.
+  cat > "$tmp/bin2/cast" <<'STUB'
+#!/usr/bin/env bash
+case "$1" in
+  chain-id) echo 1 ;;
+  code) exit 1 ;;
+esac
+STUB
+  chmod +x "$tmp/bin2/cast"
+  printf '{"1":{"DidManager":{"address":"0x00000000000000000000000000000000000000aa"}}}\n' > "$tmp/ledger.json"
+  out="$( PATH="$tmp/bin2:$PATH"; load_profile good; ROOT="$tmp"; DEPLOYMENTS_PATH=ledger.json; cmd_deployments 2>&1 )" && out="$out EXIT0"
+  case "$out" in *LIVE*|*EXIT0*) check "deployments dies when cast code fails" fail ;; *) check "deployments dies when cast code fails" pass ;; esac
 
   [ "$fails" -eq 0 ] && { printf 'all self-tests passed\n'; return 0; }
   printf '%d self-test failure(s)\n' "$fails"; return 1
