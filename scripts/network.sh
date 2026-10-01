@@ -105,7 +105,7 @@ cmd_deploy() {
     *)  real="$ROOT/$DEPLOYMENTS_PATH" ;;
   esac
   stage_dir="$ROOT/.temp/deploy-staging"
-  stage="$stage_dir/$NETWORK_NAME-ledger.json"
+  stage="$stage_dir/chain-$CHAIN_ID-ledger.json"
   mkdir -p "$stage_dir"
   if [ -f "$real" ]; then cp "$real" "$stage"; else rm -f "$stage"; fi
 

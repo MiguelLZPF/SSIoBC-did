@@ -155,7 +155,9 @@ records `networkName` as an empty string in `.deployments.json` instead of
 failing loudly. There is nothing to fix here: it is a property of how Foundry
 scripts read their environment, not a bug, and it is documented here so the next
 person who reaches for `forge script` directly knows why the ledger entry came
-out wrong.
+out wrong. Running `forge script ... --broadcast` directly also writes the ledger straight
+to the tracked file before the transactions are confirmed, because only `make deploy`
+stages the ledger and promotes it on success.
 
 ## The Pre-Flight Check
 
