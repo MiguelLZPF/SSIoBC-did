@@ -60,7 +60,9 @@ thing, so there is one concept to learn and one place to change.
   .deployments.json   keyed  chainId -> contractName
 ```
 
-Selecting a network never edits a tracked file. Adding a network never edits code.
+Selecting a network edits no tracked file, and adding a network edits no code. Deploying
+does record the new addresses in the tracked `.deployments.json`, on purpose: deployed
+addresses are public information, so the ledger stays in version control.
 
 ## Profile Variables
 
@@ -136,7 +138,7 @@ A `Makefile` at the repository root, delegating to `scripts/network.sh`.
 | `make anvil` | Start a local Anvil matching `foundry.toml`'s `evm_version` |
 | `make check NETWORK=<n>` | Pre-flight only: resolve, chain ID, client version, deployer balance |
 | `make deploy NETWORK=<n>` | Pre-flight, then `DeployAll`, then record the ledger |
-| `make smoke NETWORK=<n>` | Create a DID, add a VM, resolve it, assert the document |
+| `make smoke NETWORK=<n>` | Create a DID (which creates its default VM), resolve it through the Full-variant `W3CResolver`, assert the document. The Native variant is not smoke-tested |
 | `make deployments NETWORK=<n>` | Print the ledger for that chain, each entry marked `LIVE` or `GONE` |
 
 `NETWORK` defaults to `local`, so `make deploy` on a laptop does the obvious thing.
@@ -145,7 +147,7 @@ The wrapper is thin on purpose. It resolves a profile, validates it, runs one
 pre-flight assertion, and execs `forge`. Everything else is Foundry.
 
 **`make` is the supported entrypoint, not a convenience wrapper around one.**
-`script/DeployAll.s.sol` reads `NETWORK_NAME` through a Solidity field
+`script/Configuration.s.sol` reads `NETWORK_NAME` through a Solidity field
 initializer, so the value has to be present in the process environment before
 `forge script` starts. `scripts/network.sh` exports it as part of `load_profile`.
 Invoking `forge script` directly, bypassing `make` and `scripts/network.sh`,
@@ -211,8 +213,10 @@ learn a new one.
 ## Smoke Test
 
 `script/Smoke.s.sol`, run by `make smoke NETWORK=<n>`, exercises the deployed
-contracts on a live chain: create a DID, add a verification method, resolve the
-document, assert the shape.
+contracts on a live chain: call `createDid` (which creates the default verification
+method), resolve the document through the Full-variant `W3CResolver`, assert the shape.
+The Native variant (`DidManagerNative`, `W3CResolverNative`) is deployed but not
+smoke-tested.
 
 `forge test` stays hermetic. It never touches a network, so CI is unaffected and
 stays reproducible. A live chain is a deployment target, not a test fixture.
@@ -273,8 +277,9 @@ make deploy NETWORK=<name>
 make smoke  NETWORK=<name>
 ```
 
-No tracked file is edited, and no Solidity is recompiled to teach the repository
-about the chain.
+Selecting the network edits no tracked file, and no Solidity is recompiled to teach the
+repository about the chain. `make deploy` records the addresses in the tracked
+`.deployments.json` on purpose, because deployed addresses are public information.
 
 ## What Changed From the Old Setup
 

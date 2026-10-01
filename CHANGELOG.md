@@ -38,7 +38,8 @@ Deployment tooling. No `src/` Solidity changed, so no ABI moved and no bytecode 
   profile's `CHAIN_ID` before any broadcast, and refuses to continue on a mismatch.
 - **`script/DeployAll.s.sol`**, deploying both variants and both resolvers in one broadcast.
   Deploying previously took four invocations with the manager address copied by hand.
-- **`script/Smoke.s.sol`** and `make smoke`, creating a DID on a live chain and resolving it.
+- **`script/Smoke.s.sol`** and `make smoke`, creating a DID on a live chain and resolving it through the Full-variant
+  resolver (the Native variant is not smoke-tested).
   `forge test` stays hermetic.
 - **`test/unit/Configuration.unit.t.sol`**, covering `getNetwork` and the ledger round trip.
 

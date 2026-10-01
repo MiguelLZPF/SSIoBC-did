@@ -72,10 +72,15 @@ To deploy one contract on its own, the individual scripts still exist. Note that
 the resolver scripts take the manager **first**:
 
 ```bash
+set -a; . networks/<name>.env; set +a   # RPC_URL, CHAIN_ID, NETWORK_NAME and the signer
 forge script script/W3CResolver.s.sol:W3CResolverScript \
   --sig "deploy(address,bool,string,bool)" <DIDMANAGER_ADDRESS> true "W3CResolver_Deploy" true \
   --rpc-url "$RPC_URL" --private-key "$PRIVATE_KEY" --broadcast
 ```
+
+The values come from the sourced profile, never from the command line. This example
+assumes the profile sets `PRIVATE_KEY`; for a profile that sets `ACCOUNT` or `MNEMONIC`,
+swap the signer flag for `--account "$ACCOUNT"` or `--mnemonics "$MNEMONIC"`.
 
 ### 4. Store Deployment Metadata
 

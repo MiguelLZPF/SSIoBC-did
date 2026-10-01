@@ -136,7 +136,7 @@ did:method0:method1:method2:id
 4. Verify against the live chain:
    ```bash
    make deployments NETWORK=my-network   # each entry LIVE or GONE
-   make smoke NETWORK=my-network         # create a DID and resolve it
+   make smoke NETWORK=my-network         # create a DID and resolve it (Full variant only)
    ```
 
 Addresses are recorded in `.deployments.json`, keyed by chain ID and contract
