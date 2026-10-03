@@ -69,6 +69,9 @@ fuzz = { runs = 256 }
 invariant = { runs = 64, depth = 32 }
 no_match_test = "^$"  # Override default exclusion — CI runs fuzz + invariant tests
 verbosity = 2
+# Gas report lists only the deployed contracts: test scaffolding getters return
+# fuzz-length arrays, so their gas is noise in the PR gas-diff comment.
+gas_reports = ["DidManager", "DidManagerNative", "W3CResolver", "W3CResolverNative"]
 
 # Thorough CI profile — merge to main only (full property testing)
 [profile.ci_thorough]
