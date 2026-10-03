@@ -112,28 +112,35 @@ did:method0:method1:method2:id
 
 ## Deployment
 
-1. Configure environment variables in a `.env` file (see [`.env.example`](./.env.example)).
-
-2. Build the contracts:
+0. Have a chain listening. For a local target, start one in a separate terminal:
    ```bash
-   forge build
+   make anvil
    ```
 
-3. Deploy using the Foundry script:
+1. Create a network profile:
    ```bash
-   # Dry run (no broadcast)
-   forge script script/DidManager.s.sol:DidManagerScript \
-     --sig "deploy(bool,string,bool)" false "Local_Test" false
-
-   # Deploy with broadcast
-   forge script script/DidManager.s.sol:DidManagerScript \
-     --sig "deploy(bool,string,bool)" true "DidManager_Deploy" true \
-     --rpc-url http://localhost:8545 \
-     --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
-     --broadcast
+   cp networks/example.env networks/my-network.env
+   $EDITOR networks/my-network.env
    ```
 
-4. Deployment metadata is stored in `.deployments.json` when the `store` option is `true`.
+2. Confirm it reaches the chain you think it does:
+   ```bash
+   make check NETWORK=my-network
+   ```
+
+3. Deploy all four contracts in one broadcast:
+   ```bash
+   make deploy NETWORK=my-network
+   ```
+
+4. Verify against the live chain:
+   ```bash
+   make deployments NETWORK=my-network   # each entry LIVE or GONE
+   make smoke NETWORK=my-network         # create a DID and resolve it (Full variant only)
+   ```
+
+Addresses are recorded in `.deployments.json`, keyed by chain ID and contract
+name. Full reference: [docs/analysis/network-configuration.md](docs/analysis/network-configuration.md).
 
 ## Advantages
 

@@ -26,6 +26,24 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # ─── Shell: lint and self-test the network wrapper ────────────────
+  # Deliberately independent of the `changes` filter: it is cheap, needs no Foundry,
+  # and must run when only scripts/, networks/ or the Makefile change.
+  shell:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: false
+
+      - name: shellcheck
+        run: shellcheck --severity=warning scripts/network.sh
+
+      - name: network.sh self-test
+        run: ./scripts/network.sh --test
+
   # ─── Job 0: Does this change touch anything the Foundry jobs test? ──
   # Cheap, uncontainerised, and always runs, so the four required checks below always
   # exist. On a documentation-only change it reports sol=false and they skip.

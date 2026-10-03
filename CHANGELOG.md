@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Table of Contents
 
+- [Unreleased](#unreleased)
 - [1.6.0 — 2026-09-07](#160--2026-09-07)
 - [1.5.0 — 2026-09-06](#150--2026-09-06)
 - [1.4.0 — 2026-06-10](#140--2026-06-10)
@@ -22,6 +23,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [1.0.1 — 2026-02-03](#101--2026-02-03)
 - [0.8.0 — 2024-07-06](#080--2024-07-06)
 - [0.6.0 — 2024-04-21](#060--2024-04-21)
+
+## [Unreleased]
+
+Deployment tooling. No `src/` Solidity changed, so no ABI moved and no bytecode differs.
+
+### Added
+
+- **Network profiles.** A network is a `networks/<name>.env` file, selected with
+  `make <target> NETWORK=<name>`. Local Anvil and any remote chain are the same kind of
+  thing, so there is one mechanism rather than a local path plus a custom path.
+- **`make` targets**: `check`, `deploy`, `smoke`, `deployments`, `anvil`, `help`.
+- **Chain-ID pre-flight.** `scripts/network.sh` asserts the live `cast chain-id` equals the
+  profile's `CHAIN_ID` before any broadcast, and refuses to continue on a mismatch.
+- **`script/DeployAll.s.sol`**, deploying both variants and both resolvers in one broadcast.
+  Deploying previously took four invocations with the manager address copied by hand.
+- **`script/Smoke.s.sol`** and `make smoke`, creating a DID on a live chain and resolving it through the Full-variant
+  resolver (the Native variant is not smoke-tested).
+  `forge test` stays hermetic.
+- **`test/unit/Configuration.unit.t.sol`**, covering `getNetwork` and the ledger round trip.
+
+### Changed
+
+- **`.deployments.json` is keyed `chainId -> contractName`** instead of an append-only array,
+  so a redeploy on a persistent chain replaces rather than accumulates.
+- **`Configuration.getNetwork()`** reads `NETWORK_NAME` with a `chain-<id>` fallback, replacing
+  a thirty-deep chain-ID ternary that was wrong for several entries and needed an edit per chain.
+- **`.env.example`** no longer advertises `PORT`, `HARDFORK`, `ACCOUNT_NUMBER`, `MNEMONIC` or
+  `ANVIL_CONFIG_OUT`. Nothing read them.
+
+### Fixed
+
+- **`Configuration.retrieveDeployment()` could not work.** It parsed `"."` of a JSON array and
+  decoded the result into a single struct. It now takes `(chainId, name)`.
+- **`docs/analysis/deployment-guide.md` documented the wrong resolver signature**, as
+  `deploy(bool,string,bool,address)` with the address last. The manager comes first.
+
+### Removed
+
+- **`latest-anvil-config.json`**, tracked at the repository root with private keys in it,
+  referenced by nothing, listing stale accounts under a name that did not match the
+  `ANVIL_CONFIG_OUT` default it appeared to satisfy.
+- `Helper._trimBrackets`, which existed only to splice the append-only ledger array.
 
 ## [1.6.0] — 2026-09-07
 

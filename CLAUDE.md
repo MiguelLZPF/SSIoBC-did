@@ -50,12 +50,13 @@ forge fmt
 
 ### Deployment
 ```bash
-# Deploy to local network (dry run)
-forge script script/DidManager.s.sol:DidManagerScript --sig "deploy(bool,string,bool)" false "Local_Test" false
-
-# Deploy with broadcast
-forge script script/DidManager.s.sol:DidManagerScript --sig "deploy(bool,string,bool)" true "DidManager_Test" true --rpc-url http://localhost:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
+make check NETWORK=local        # pre-flight: reachability, chain-id assertion, balance
+make deploy NETWORK=local       # deploy all four contracts in one broadcast
+make smoke NETWORK=local        # create a DID on the live chain and resolve it
+make deployments NETWORK=local  # print the ledger, each entry LIVE or GONE
 ```
+A network is a `networks/<name>.env` file. Only `local.env` and `example.env` are
+tracked, because this repository is public and a profile may name an internal host.
 
 ## Project Knowledge Reference
 
@@ -339,6 +340,7 @@ When developing or reviewing smart contracts for this DID/SSI project, the follo
 | **PROJECT.md** | Project knowledge base | Architecture, DID concepts, design patterns, file organization |
 | **foundry.toml** | Foundry configuration | Solidity version, optimizer, formatter settings |
 | **docs/metrics/** | Performance tracking | Gas costs, coverage trends (academic quality) |
+| **docs/analysis/network-configuration.md** | Network setup | Profiles, the chain-id pre-flight, the ledger, chain traits that break a first deploy |
 
 ---
 

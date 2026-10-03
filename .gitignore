@@ -12,6 +12,17 @@ out/
 # 🌍 Environment
 .env
 
+# Network profiles. Only README.md, local.env and example.env are tracked; anything
+# else under networks/ (profiles, backups, subdirectories) may name an internal host
+# or hold a real key.
+networks/**
+!networks/README.md
+!networks/local.env
+!networks/example.env
+
+# Subagent-driven-development scratch workspace.
+.superpowers/
+
 # 📦 Dependencies
 node_modules/
 
