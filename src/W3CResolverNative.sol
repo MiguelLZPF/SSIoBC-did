@@ -57,7 +57,7 @@ contract W3CResolverNative is W3CResolverBase {
       bytes32 vmId = _didManagerNative.getVmIdAtPosition(didInput.methods, didInput.id, i);
       VerificationMethod memory nativeVm = _didManagerNative.getVm(didInput.methods, didInput.id, bytes32(0), i);
 
-      if (includeExpired || (nativeVm.expiration != 0 && nativeVm.expiration > block.timestamp)) {
+      if (includeExpired || nativeVm.expiration > block.timestamp) {
         vmsTemp[realLength[0]] = _toW3cVerificationMethod(nativeVm, vmId, didInput, didString);
         realLength[0]++;
         string memory methodString = W3CResolverUtils.formatDidWithFragment(didPrefix, vmId);
