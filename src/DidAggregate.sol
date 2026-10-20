@@ -441,13 +441,11 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
 
     // 2. Sender's VM has the required relationship (non-reverting via _getVmForAuth)
     (uint256 vmExpiration, address vmEthereumAddress, bytes1 vmRelationships) = _getVmForAuth(senderIdHash, senderVmId);
-    if (vmExpiration == 0 || vmExpiration <= block.timestamp) return false;
+    if (vmExpiration <= block.timestamp) return false;
     if (vmEthereumAddress != sender || (vmRelationships & relationship) != relationship) return false;
 
     // 3. Sender is controller of target (or IS target for self-controlled)
-    if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) return false;
-
-    return true;
+    return _isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash);
   }
 
   // ═══════════════════════════════════════════════════════════════════
