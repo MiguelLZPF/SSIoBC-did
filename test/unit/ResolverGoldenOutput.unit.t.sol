@@ -11,6 +11,8 @@ import { DidCreateVmCommand as CreateVmCommand } from "@types/VmTypes.sol";
 import { DidCreateVmCommandNative as CreateVmCommandNative } from "@types/VmTypesNative.sol";
 import { DEFAULT_VM_ID } from "@types/VmTypes.sol";
 import { DEFAULT_VM_ID_NATIVE } from "@types/VmTypesNative.sol";
+import { W3CResolverBase } from "@src/W3CResolverBase.sol";
+import { HashUtils } from "@src/HashUtils.sol";
 import { W3CDidDocument, W3CVerificationMethod, W3CService, W3CDidInput } from "@types/W3CTypes.sol";
 
 /**
@@ -49,6 +51,7 @@ contract ResolverGoldenOutputFullUnitTest is TestBase, ResolverGoldenFixtures {
   using DidTestHelpers for *;
 
   address private user1 = Fixtures.TEST_USER_1;
+  address private user2 = Fixtures.TEST_USER_2;
 
   bytes32 private methods;
   bytes32 private didId;
@@ -68,10 +71,27 @@ contract ResolverGoldenOutputFullUnitTest is TestBase, ResolverGoldenFixtures {
   bytes32 private constant GOLDEN_F3_LEADING_ZERO_VM =
     0xdbdf6cb0856cca16dbd3c0866aa8cf1dc7a01f2ce7794aab33c610c86cb613ab;
 
+  // F4 to F7 were added after review and measured on the original sources (5555ebd).
+  bytes32 private constant GOLDEN_F4_UNVALIDATED_EXCLUDE =
+    0xb3d188151ed38da4233bac41fb72fc1a9574c4fd4e81c99ef50495c25f24c6dc;
+  bytes32 private constant GOLDEN_F4_UNVALIDATED_INCLUDE =
+    0x4b4de9d043c011da2dddb60af4b0be0fe0d7f832f097dbb3c8d25ca9a8a3e890;
+  bytes32 private constant GOLDEN_F5_BLOCKCHAIN_ACCOUNT =
+    0x0dd6e9fb1b35a59cd8210a8364536c7081b1b9d24bb01cb9978863daeef80e94;
+  bytes32 private constant GOLDEN_F6_METHODS_ONE_SEGMENT =
+    0x0f068ab48298e856250c749f2e5487582b7db7532c2a35208501162facdceb1b;
+  bytes32 private constant GOLDEN_F6_METHODS_THREE_SEGMENTS =
+    0x23460a285e5f3176369ce206531953f8a10ed3a29ff4f008d9498c62243195df;
+  bytes32 private constant GOLDEN_F7_RECREATED_INCLUDE =
+    0xb98cbacc09f53bb5224b859ce62a3e2f0e5c28a7f10ebb2584f28ff36faf6a8d;
+  bytes32 private constant GOLDEN_F7_RECREATED_EXCLUDE =
+    0xb98cbacc09f53bb5224b859ce62a3e2f0e5c28a7f10ebb2584f28ff36faf6a8d;
+
   function setUp() public {
     vm.warp(GOLDEN_TIMESTAMP);
     _deployDidManager();
     _setupUser(user1, "user1");
+    _setupUser(user2, "user2");
   }
 
   function _input(bytes32 fragment) private view returns (W3CDidInput memory) {
@@ -215,6 +235,114 @@ contract ResolverGoldenOutputFullUnitTest is TestBase, ResolverGoldenFixtures {
       _hash(w3cResolver.resolveVm(_input(FRAGMENT_LEADING_ZERO), Fixtures.VM_ID_CUSTOM)), GOLDEN_F3_LEADING_ZERO_VM
     );
   }
+
+  /// @dev Creates a VM with every field settable, as user1 (caller must be pranked).
+  function _createVmWith(
+    bytes32 vmId,
+    bytes1 relationships,
+    bytes memory multibase,
+    bytes memory account,
+    address owner,
+    uint88 expiration
+  ) private {
+    didManager.createVm(
+      CreateVmCommand({
+        methods: methods,
+        senderId: didId,
+        senderVmId: DEFAULT_VM_ID,
+        targetId: didId,
+        vmId: vmId,
+        type_: Fixtures.defaultVmType(),
+        publicKeyMultibase: multibase,
+        blockchainAccountId: account,
+        ethereumAddress: owner,
+        relationships: relationships,
+        expiration: expiration
+      })
+    );
+  }
+
+  function _startDefaultDid() private {
+    _startPrank(user1);
+    DidTestHelpers.CreateDidResult memory created = DidTestHelpers.createDefaultDid(vm, didManager);
+    methods = created.didInfo.methods;
+    didId = created.didInfo.id;
+  }
+
+  /// @notice F4: a VM with a non-zero ethereumAddress left unvalidated (expiration 0) is filtered by
+  /// includeExpired = false and rendered with its address and expiration 0 when included.
+  function test_Golden_F4_Resolve_UnvalidatedEthereumAddressVm() public {
+    _startDefaultDid();
+    _createVmWith(Fixtures.VM_ID_CUSTOM, 0x06, Fixtures.TEST_SECP256K1_MULTIBASE, "", user2, 0);
+    _stopPrank();
+    W3CDidDocument memory excluded = w3cResolver.resolve(_input(bytes32(0)), false);
+    W3CDidDocument memory included = w3cResolver.resolve(_input(bytes32(0)), true);
+    assertEq(excluded.verificationMethod.length, 1, "unvalidated VM is filtered out");
+    assertEq(included.verificationMethod.length, 2, "unvalidated VM is listed when expired are included");
+    assertEq(_hash(excluded), GOLDEN_F4_UNVALIDATED_EXCLUDE);
+    assertEq(_hash(included), GOLDEN_F4_UNVALIDATED_INCLUDE);
+  }
+
+  /// @notice F5: a VM with a non-empty blockchainAccountId renders it.
+  function test_Golden_F5_Resolve_BlockchainAccountId() public {
+    _startDefaultDid();
+    _createVmWith(
+      Fixtures.VM_ID_CUSTOM, 0x03, "", Fixtures.DEFAULT_CAIP10_ACCOUNT_ID, address(0), uint88(GOLDEN_TIMESTAMP + 1 days)
+    );
+    _stopPrank();
+    W3CVerificationMethod memory out = w3cResolver.resolveVm(_input(bytes32(0)), Fixtures.VM_ID_CUSTOM);
+    assertGt(bytes(out.blockchainAccountId).length, 0);
+    assertEq(_hash(w3cResolver.resolve(_input(bytes32(0)), false)), GOLDEN_F5_BLOCKCHAIN_ACCOUNT);
+  }
+
+  /// @notice F6: non-default methods accepted by checkMethods: one segment with an empty middle segment (";" filler)
+  /// and three populated segments.
+  function test_Golden_F6_Resolve_NonDefaultMethods() public {
+    bytes32 one = HashUtils.packMethods(bytes10("lzpf"), bytes10(0), bytes10(0));
+    bytes32 three = HashUtils.packMethods(bytes10("abc"), bytes10("x-Y_1"), bytes10("z.9"));
+    W3CResolverBase(address(w3cResolver)).checkMethods(one);
+    W3CResolverBase(address(w3cResolver)).checkMethods(three);
+    _startPrank(user1);
+    bytes32 idOne = DidTestHelpers.createDid(vm, didManager, one, Fixtures.DEFAULT_RANDOM_0, bytes32(0)).didInfo.id;
+    bytes32 idThree = DidTestHelpers.createDid(vm, didManager, three, Fixtures.DEFAULT_RANDOM_0, bytes32(0)).didInfo.id;
+    _stopPrank();
+    assertEq(
+      _hash(w3cResolver.resolve(W3CDidInput({ methods: one, id: idOne, fragment: FRAGMENT_PLAIN }), false)),
+      GOLDEN_F6_METHODS_ONE_SEGMENT
+    );
+    assertEq(
+      _hash(w3cResolver.resolve(W3CDidInput({ methods: three, id: idThree, fragment: bytes32(0) }), false)),
+      GOLDEN_F6_METHODS_THREE_SEGMENTS
+    );
+  }
+
+  /// @notice F7: createDid on an expired DID (same sender, random, methods) runs _removeAllVms and creates the same
+  /// VM id again with empty key fields; nothing of the first life may leak into the second.
+  function test_Golden_F7_Resolve_VmIdRecreatedAfterRemoveAll() public {
+    _startDefaultDid();
+    _createVmWith(
+      Fixtures.VM_ID_CUSTOM,
+      0x06,
+      Fixtures.TEST_SECP256K1_MULTIBASE,
+      Fixtures.DEFAULT_CAIP10_ACCOUNT_ID,
+      address(0),
+      uint88(GOLDEN_TIMESTAMP + 1 days)
+    );
+    didManager.deactivateDid(methods, didId, DEFAULT_VM_ID, didId);
+    vm.warp(GOLDEN_TIMESTAMP + 1);
+    DidTestHelpers.CreateDidResult memory again = DidTestHelpers.createDid(
+      vm, didManager, Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_0, Fixtures.VM_ID_CUSTOM
+    );
+    _stopPrank();
+    assertEq(again.didInfo.id, didId, "same DID id is re-created");
+    W3CVerificationMethod memory out = w3cResolver.resolveVm(_input(bytes32(0)), Fixtures.VM_ID_CUSTOM);
+    assertEq(bytes(out.publicKeyMultibase).length, 0, "no stale multibase");
+    assertEq(bytes(out.blockchainAccountId).length, 0, "no stale account id");
+    W3CDidDocument memory included = w3cResolver.resolve(_input(bytes32(0)), true);
+    assertEq(included.verificationMethod.length, 1, "first-life VMs are gone");
+    assertEq(_hash(included), GOLDEN_F7_RECREATED_INCLUDE);
+    assertEq(_hash(w3cResolver.resolve(_input(bytes32(0)), false)), GOLDEN_F7_RECREATED_EXCLUDE);
+  }
 }
 
 contract ResolverGoldenOutputNativeUnitTest is TestBaseNative, ResolverGoldenFixtures {
@@ -238,6 +366,14 @@ contract ResolverGoldenOutputNativeUnitTest is TestBaseNative, ResolverGoldenFix
   bytes32 private constant GOLDEN_N2_RESOLVE_TRUE = 0x0ff5744a0c3711bcd0dd91e14692d5dac8e04b3193cc8784b10dfe66cff81e1f;
   bytes32 private constant GOLDEN_N3_PLAIN = 0xcf52cc2dd0ca15bed45bf2cdce981059c5aa4e5b381cb523030539374deceb10;
   bytes32 private constant GOLDEN_N3_LEADING_ZERO = 0x57d405a8943e516d7fa18368c8912f58cb0b175bcf04827154ee75a0fcdb329f;
+
+  // N4 and N5 were added after review and measured on the original sources (5555ebd).
+  bytes32 private constant GOLDEN_N4_METHODS_ONE_SEGMENT =
+    0xa8db1ada38c1153b15913c28ce48d5d6ffd5c0b90f54a8b0a1351016d27363ee;
+  bytes32 private constant GOLDEN_N5_RECREATED_INCLUDE =
+    0xc1e4bb4dce538343b37b41d31663e93743d3b8215925abb8b018c8f0b0fc54cf;
+  bytes32 private constant GOLDEN_N5_RECREATED_EXCLUDE =
+    0xc1e4bb4dce538343b37b41d31663e93743d3b8215925abb8b018c8f0b0fc54cf;
 
   function setUp() public {
     vm.warp(GOLDEN_TIMESTAMP);
@@ -382,5 +518,41 @@ contract ResolverGoldenOutputNativeUnitTest is TestBaseNative, ResolverGoldenFix
   function test_Golden_N3_Resolve_LeadingZeroFragment() public {
     _buildN1();
     assertEq(_hash(w3cResolverNative.resolve(_input(FRAGMENT_LEADING_ZERO), false)), GOLDEN_N3_LEADING_ZERO);
+  }
+
+  /// @notice N4: non-default methods with an empty middle segment (";" filler), native resolver.
+  function test_Golden_N4_Resolve_NonDefaultMethods() public {
+    bytes32 one = HashUtils.packMethods(bytes10("lzpf"), bytes10(0), bytes10(0));
+    W3CResolverBase(address(w3cResolverNative)).checkMethods(one);
+    _startPrank(user1);
+    bytes32 idOne =
+      DidTestHelpersNative.createDid(vm, didManagerNative, one, Fixtures.DEFAULT_RANDOM_0, bytes32(0)).didInfo.id;
+    _stopPrank();
+    assertEq(
+      _hash(w3cResolverNative.resolve(W3CDidInput({ methods: one, id: idOne, fragment: FRAGMENT_PLAIN }), false)),
+      GOLDEN_N4_METHODS_ONE_SEGMENT
+    );
+  }
+
+  /// @notice N5: native VM id re-created after _removeAllVms; the keyAgreement multibase of the first life must not
+  /// reappear.
+  function test_Golden_N5_Resolve_VmIdRecreatedAfterRemoveAll() public {
+    _startPrank(user1);
+    DidTestHelpersNative.CreateDidResult memory created = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    methods = created.didInfo.methods;
+    didId = created.didInfo.id;
+    _createVm(Fixtures.VM_ID_CUSTOM, user2, 0x05, Fixtures.TEST_SECP256K1_MULTIBASE);
+    didManagerNative.deactivateDid(methods, didId, DEFAULT_VM_ID_NATIVE, didId);
+    vm.warp(GOLDEN_TIMESTAMP + 1);
+    DidTestHelpersNative.createDid(
+      vm, didManagerNative, Fixtures.EMPTY_DID_METHODS, Fixtures.DEFAULT_RANDOM_0, Fixtures.VM_ID_CUSTOM
+    );
+    _stopPrank();
+    W3CVerificationMethod memory out = w3cResolverNative.resolveVm(_input(bytes32(0)), Fixtures.VM_ID_CUSTOM);
+    assertEq(bytes(out.publicKeyMultibase).length, 0, "no stale multibase");
+    W3CDidDocument memory included = w3cResolverNative.resolve(_input(bytes32(0)), true);
+    assertEq(included.verificationMethod.length, 1, "first-life VMs are gone");
+    assertEq(_hash(included), GOLDEN_N5_RECREATED_INCLUDE);
+    assertEq(_hash(w3cResolverNative.resolve(_input(bytes32(0)), false)), GOLDEN_N5_RECREATED_EXCLUDE);
   }
 }
