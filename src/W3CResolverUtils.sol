@@ -74,9 +74,10 @@ library W3CResolverUtils {
         realLenght++;
       }
     }
-    w3cControllers = new string[](realLenght);
-    for (uint8 i = 0; i < realLenght; i++) {
-      w3cControllers[i] = temporalControllers[i];
+    w3cControllers = temporalControllers;
+    assembly ("memory-safe") {
+      // Safe: only lowers the length to the filled count (<= the allocation); the unused tail is never read.
+      mstore(w3cControllers, realLenght)
     }
     return w3cControllers;
   }
@@ -284,9 +285,10 @@ library W3CResolverUtils {
         length++;
       }
     }
-    output = new bytes(length);
-    for (uint256 i = 0; i < length; i++) {
-      output[i] = withoutZeros[i];
+    output = withoutZeros;
+    assembly ("memory-safe") {
+      // Safe: only lowers the length to the bytes written (<= the allocation); the unused tail is never read.
+      mstore(output, length)
     }
     return output;
   }
