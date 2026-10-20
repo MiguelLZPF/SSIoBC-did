@@ -138,7 +138,42 @@ library W3CResolverUtils {
     if (uint16(uint256(methods)) != 0x3B3B) revert MethodPaddingMustBeSemicolon();
   }
 
+  /**
+   * @dev Builds the untrimmed DID prefix `did:m0:[m1:][m2:]<hex id>`, without any fragment.
+   * @param didInput The DID input (the fragment is ignored).
+   * @return prefix The untrimmed prefix bytes.
+   */
+  function formatDidPrefix(W3CDidInput memory didInput) internal pure returns (bytes memory prefix) {
+    bytes memory method0 = trimMethodSegment(bytes10(didInput.methods));
+    bytes memory method1 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 80)));
+    bytes memory method2 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 160)));
+    bytes memory finalEncode = abi.encodePacked("did:", method0, ":");
+    if (method1.length > 0) {
+      finalEncode = abi.encodePacked(finalEncode, method1, ":");
+    }
+    if (method2.length > 0) {
+      finalEncode = abi.encodePacked(finalEncode, method2, ":");
+    }
+    return abi.encodePacked(finalEncode, bytesToHexString(abi.encodePacked(didInput.id)));
+  }
+
+  /**
+   * @dev Appends an optional `#fragment` to a prefix from {formatDidPrefix} and trims the WHOLE
+   * concatenation, exactly as {formatDidString} does. Never trim the fragment on its own:
+   * trimBytes returns empty when the first byte is 0x00.
+   * @param prefix The untrimmed prefix.
+   * @param fragment The fragment (VM id), or zero for none.
+   * @return did The DID string.
+   */
+  function formatDidWithFragment(bytes memory prefix, bytes32 fragment) internal pure returns (string memory did) {
+    if (fragment != bytes32(0)) {
+      return string(trimBytes(abi.encodePacked(prefix, "#", fragment)));
+    }
+    return string(trimBytes(prefix));
+  }
+
   function formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
+    // Kept as one body on purpose: routing it through formatDidPrefix adds a call layer that costs gas on resolveVm.
     bytes memory method0 = trimMethodSegment(bytes10(didInput.methods));
     bytes memory method1 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 80)));
     bytes memory method2 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 160)));

@@ -49,6 +49,7 @@ contract W3CResolverNative is W3CResolverBase {
     }
     W3CVerificationMethod[] memory vmsTemp = new W3CVerificationMethod[](maxLength);
     uint8[] memory realLength = new uint8[](6);
+    bytes memory didPrefix = W3CResolverUtils.formatDidPrefix(didInput);
 
     // * (1) Iterate over the VM list (1-based positions)
     for (uint8 i = 1; i <= maxLength; i++) {
@@ -59,8 +60,7 @@ contract W3CResolverNative is W3CResolverBase {
       if (includeExpired || (nativeVm.expiration != 0 && nativeVm.expiration > block.timestamp)) {
         vmsTemp[realLength[0]] = _toW3cVerificationMethod(nativeVm, vmId, didInput, didString);
         realLength[0]++;
-        string memory methodString =
-          W3CResolverUtils.formatDidString(W3CDidInput({ methods: didInput.methods, id: didInput.id, fragment: vmId }));
+        string memory methodString = W3CResolverUtils.formatDidWithFragment(didPrefix, vmId);
         if (nativeVm.relationships & 0x01 == 0x01) {
           methodsTemp[0][realLength[1]] = methodString;
           realLength[1]++;
