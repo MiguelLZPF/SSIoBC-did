@@ -398,8 +398,9 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     returns (bool)
   {
     bool controllersIsEmpty = true;
-    for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
-      Controller storage ctrl = _controllers[targetIdHash][i];
+    Controller[CONTROLLERS_MAX_LENGTH] storage ctrls = _controllers[targetIdHash];
+    for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH;) {
+      Controller storage ctrl = ctrls[i];
       bytes32 ctrlId = ctrl.id;
       if (ctrlId != bytes32(0)) {
         controllersIsEmpty = false;
@@ -412,12 +413,12 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
           return true;
         }
       }
+      unchecked {
+        ++i;
+      }
     }
     // If controllers array is empty and sender is the target, return true (controllers not used)
-    if (controllersIsEmpty && senderIdHash == targetIdHash) {
-      return true;
-    }
-    return false;
+    return controllersIsEmpty && senderIdHash == targetIdHash;
   }
 
   /// @dev Shared authorization logic used by both isAuthorized and isAuthorizedOffChain.
