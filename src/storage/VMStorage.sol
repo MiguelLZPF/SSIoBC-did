@@ -255,10 +255,9 @@ abstract contract VMStorage is IVMStorage, VMHooks {
     if (vmId == bytes32(0) || sender == address(0)) {
       revert MissingRequiredParameter();
     }
-    // Get VM
-    VerificationMethod memory vm = _vmByNsAndId[didHash][vmId];
-    // Check if VM exists (has an id set)
-    if (vm.id == bytes32(0)) return false;
+    // Get VM by storage pointer (no copy). A missing VM has ethereumAddress == 0 and sender != 0 is enforced above,
+    // so the ownership comparison below is already false for it.
+    VerificationMethod storage vm = _vmByNsAndId[didHash][vmId];
     // Check if sender owns this VM and has authentication relationship (0x01)
     return (vm.ethereumAddress == sender && (vm.relationships & bytes1(0x01)) == bytes1(0x01));
   }
