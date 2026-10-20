@@ -210,8 +210,10 @@ library W3CResolverUtils {
         uint256 strLen = i - startPos;
         if (strLen > 0) {
           bytes memory strBytes = new bytes(strLen);
-          for (uint256 j = 0; j < strLen; j++) {
-            strBytes[j] = packed[startPos + j];
+          assembly ("memory-safe") {
+            // Safe: copies exactly strLen bytes from inside `packed` (startPos + strLen <= packed.length) into a fresh
+            // strLen-byte buffer.
+            mcopy(add(strBytes, 0x20), add(add(packed, 0x20), startPos), strLen)
           }
           strings[stringIndex] = string(strBytes);
           lastNonEmpty = stringIndex + 1;
