@@ -24,6 +24,9 @@ error DidInputRequired();
  * Contains common functions used by both W3CResolver and W3CResolverNative.
  */
 library W3CResolverUtils {
+  /// @dev Lowercase hex digits for bytesToHexString
+  bytes16 private constant HEX_DIGITS = "0123456789abcdef";
+
   /**
    * @dev Validates DID input, reverting if id is zero. Sets default methods if empty.
    * @param didInput The DID input to validate.
@@ -310,11 +313,13 @@ library W3CResolverUtils {
    */
   function bytesToHexString(bytes memory input) internal pure returns (string memory hexString) {
     bytes memory converted = new bytes(input.length * 2);
-    bytes memory _base = "0123456789abcdef";
 
-    for (uint256 i = 0; i < input.length; i++) {
-      converted[i * 2] = _base[uint8(input[i]) / _base.length];
-      converted[i * 2 + 1] = _base[uint8(input[i]) % _base.length];
+    unchecked {
+      for (uint256 i = 0; i < input.length; ++i) {
+        uint8 b = uint8(input[i]);
+        converted[i * 2] = HEX_DIGITS[b >> 4];
+        converted[i * 2 + 1] = HEX_DIGITS[b & 0x0f];
+      }
     }
 
     return string(converted);
