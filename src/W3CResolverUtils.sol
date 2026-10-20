@@ -176,22 +176,7 @@ library W3CResolverUtils {
   }
 
   function formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
-    // Kept as one body on purpose: routing it through formatDidPrefix adds a call layer that costs gas on resolveVm.
-    bytes memory method0 = trimMethodSegment(bytes10(didInput.methods));
-    bytes memory method1 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 80)));
-    bytes memory method2 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 160)));
-    bytes memory finalEncode = abi.encodePacked("did:", method0, ":");
-    if (method1.length > 0) {
-      finalEncode = abi.encodePacked(finalEncode, method1, ":");
-    }
-    if (method2.length > 0) {
-      finalEncode = abi.encodePacked(finalEncode, method2, ":");
-    }
-    finalEncode = abi.encodePacked(finalEncode, bytesToHexString(abi.encodePacked(didInput.id)));
-    if (didInput.fragment != bytes32(0)) {
-      finalEncode = abi.encodePacked(finalEncode, "#", didInput.fragment);
-    }
-    return string(trimBytes(finalEncode));
+    return formatDidWithFragment(formatDidPrefix(didInput), didInput.fragment);
   }
 
   /**
