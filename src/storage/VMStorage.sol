@@ -75,12 +75,11 @@ abstract contract VMStorage is IVMStorage, VMHooks {
     }
 
     //* Implementation
-    // Existence check
-    if (_vmIds[command.didHash].contains(command.id)) revert VmAlreadyExists();
-    // Add ID to set and compute position
-    bool added = _vmIds[command.didHash].add(command.id);
-    assert(added);
-    uint256 vmCount = _vmIds[command.didHash].length();
+    // Existence check and insert in one step: add() returns false when the id is already in the set
+    EnumerableSet.Bytes32Set storage ids = _vmIds[command.didHash];
+    if (!ids.add(command.id)) revert VmAlreadyExists();
+    // Compute position
+    uint256 vmCount = ids.length();
     if (vmCount > type(uint8).max) revert TooManyVerificationMethods();
     uint8 position = uint8(vmCount);
     idHash = HashUtils.calculateIdHash(command.didHash, command.id);
