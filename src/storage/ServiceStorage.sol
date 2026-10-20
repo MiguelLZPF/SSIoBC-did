@@ -104,13 +104,16 @@ abstract contract ServiceStorage is IServiceStorage {
    */
   function _removeAllServices(bytes32 didHash) internal {
     bytes32 serviceDidHash = _addServiceNameSpace(didHash);
-    uint256 len = _serviceIds[serviceDidHash].length();
+    EnumerableSet.Bytes32Set storage ids = _serviceIds[serviceDidHash];
+    uint256 len = ids.length();
     while (len > 0) {
-      bytes32 lastId = _serviceIds[serviceDidHash].at(len - 1);
+      bytes32 lastId = ids.at(len - 1);
       delete _serviceByNsAndId[serviceDidHash][lastId];
       delete _servicePositionByNsAndId[serviceDidHash][lastId];
-      _serviceIds[serviceDidHash].remove(lastId);
-      len--;
+      ids.remove(lastId);
+      unchecked {
+        --len; // loop guard proves len > 0
+      }
     }
   }
 

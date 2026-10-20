@@ -152,9 +152,10 @@ abstract contract VMStorage is IVMStorage, VMHooks {
   }
 
   function _removeAllVms(bytes32 didHash) internal virtual override {
-    uint256 len = _vmIds[didHash].length();
+    EnumerableSet.Bytes32Set storage ids = _vmIds[didHash];
+    uint256 len = ids.length();
     while (len > 0) {
-      bytes32 lastId = _vmIds[didHash].at(len - 1);
+      bytes32 lastId = ids.at(len - 1);
       // Delete VM payload
       delete _vmByNsAndId[didHash][lastId];
       // Delete positionHash mappings stored at creation time
@@ -163,8 +164,10 @@ abstract contract VMStorage is IVMStorage, VMHooks {
       delete _vmIdByPositionHash[storedPositionHash];
       delete _didHashByPositionHash[storedPositionHash];
       // Remove from set
-      _vmIds[didHash].remove(lastId);
-      len--;
+      ids.remove(lastId);
+      unchecked {
+        --len; // loop guard proves len > 0
+      }
     }
   }
 
