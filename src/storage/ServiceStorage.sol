@@ -80,20 +80,17 @@ abstract contract ServiceStorage is IServiceStorage {
     if (type_.length == 0) revert ServiceTypeCannotBeEmpty();
     if (serviceEndpoint.length == 0) revert ServiceEndpointCannotBeEmpty();
 
-    bytes32 positionHash;
+    // Store the service payload by ID
+    Service storage service = _serviceByNsAndId[serviceDidHash][id];
     if (!exists) {
       bool added = _serviceIds[serviceDidHash].add(id);
       assert(added);
       position = uint8(_serviceIds[serviceDidHash].length());
       _servicePositionByNsAndId[serviceDidHash][id] = position;
-      positionHash = HashUtils.calculatePositionHash(serviceDidHash, position);
-    } else {
-      positionHash = HashUtils.calculatePositionHash(serviceDidHash, position);
+      // The id of an existing service never changes, so it is written only when the service is new
+      service.id = id;
     }
-
-    // Store the service payload by ID
-    Service storage service = _serviceByNsAndId[serviceDidHash][id];
-    service.id = id;
+    bytes32 positionHash = HashUtils.calculatePositionHash(serviceDidHash, position);
     service.type_ = type_;
     service.serviceEndpoint = serviceEndpoint;
 
