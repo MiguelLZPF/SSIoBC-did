@@ -53,11 +53,11 @@ contract W3CResolverNative is W3CResolverBase {
 
     // * (1) Iterate over the VM list (1-based positions)
     for (uint8 i = 1; i <= maxLength; i++) {
-      // Native VMs don't store ID in struct; retrieve it via position
-      bytes32 vmId = _didManagerNative.getVmIdAtPosition(didInput.methods, didInput.id, i);
       VerificationMethod memory nativeVm = _didManagerNative.getVm(didInput.methods, didInput.id, bytes32(0), i);
 
       if (includeExpired || nativeVm.expiration > block.timestamp) {
+        // Native VMs don't store ID in struct; retrieve it via position, only for VMs that are kept
+        bytes32 vmId = _didManagerNative.getVmIdAtPosition(didInput.methods, didInput.id, i);
         vmsTemp[realLength[0]] = _toW3cVerificationMethod(nativeVm, vmId, didInput, didString);
         realLength[0]++;
         string memory methodString = W3CResolverUtils.formatDidWithFragment(didPrefix, vmId);
@@ -126,11 +126,11 @@ contract W3CResolverNative is W3CResolverBase {
     W3CDidInput memory didInput,
     string memory controller
   ) internal view returns (W3CVerificationMethod memory w3cVm) {
-    string memory blockchainAccountId = nativeVm.ethereumAddress != address(0)
-      ? string(
-        abi.encodePacked("eip155:", Strings.toString(block.chainid), ":", Strings.toHexString(nativeVm.ethereumAddress))
-      )
-      : "";
+    string memory ethereumAddress = Strings.toHexString(nativeVm.ethereumAddress);
+    string memory blockchainAccountId;
+    if (nativeVm.ethereumAddress != address(0)) {
+      blockchainAccountId = string(abi.encodePacked("eip155:", Strings.toString(block.chainid), ":", ethereumAddress));
+    }
 
     return W3CVerificationMethod({
       id: string(W3CResolverUtils.trimBytes(abi.encodePacked(vmId))),
@@ -138,7 +138,7 @@ contract W3CResolverNative is W3CResolverBase {
       controller: controller,
       publicKeyMultibase: string(_didManagerNative.getVmPublicKeyMultibase(didInput.methods, didInput.id, vmId)),
       blockchainAccountId: blockchainAccountId,
-      ethereumAddress: Strings.toHexString(nativeVm.ethereumAddress),
+      ethereumAddress: ethereumAddress,
       expiration: uint256(nativeVm.expiration) * 1000
     });
   }
