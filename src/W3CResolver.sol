@@ -21,12 +21,14 @@ contract W3CResolver is W3CResolverBase {
 
   function resolveVm(W3CDidInput memory didInput, bytes32 vmId) public view returns (W3CVerificationMethod memory vm) {
     W3CResolverUtils.checkDidInput(didInput);
-    return _toW3cVerificationMethod(_didManagerFull.getVm(didInput.methods, didInput.id, vmId, 0), didInput);
+    return _toW3cVerificationMethod(
+      _didManagerFull.getVm(didInput.methods, didInput.id, vmId, 0), W3CResolverUtils.formatDidString(didInput)
+    );
   }
 
   // * Internal functions
 
-  function _getAllVerificationMethods(W3CDidInput memory didInput, bool includeExpired)
+  function _getAllVerificationMethods(W3CDidInput memory didInput, bool includeExpired, string memory didString)
     internal
     view
     override
@@ -44,7 +46,7 @@ contract W3CResolver is W3CResolverBase {
     for (uint8 i = 1; i <= maxLength; i++) {
       VerificationMethod memory vm = _didManagerFull.getVm(didInput.methods, didInput.id, bytes32(0), i);
       if (includeExpired || (vm.expiration != 0 && vm.expiration > block.timestamp)) {
-        vmsTemp[realLength[0]] = _toW3cVerificationMethod(vm, didInput);
+        vmsTemp[realLength[0]] = _toW3cVerificationMethod(vm, didString);
         realLength[0]++;
         string memory methodString = W3CResolverUtils.formatDidString(
           W3CDidInput({ methods: didInput.methods, id: didInput.id, fragment: vm.id })
@@ -101,7 +103,7 @@ contract W3CResolver is W3CResolverBase {
     return (vms, methods);
   }
 
-  function _toW3cVerificationMethod(VerificationMethod memory vm, W3CDidInput memory didInput)
+  function _toW3cVerificationMethod(VerificationMethod memory vm, string memory controller)
     internal
     pure
     returns (W3CVerificationMethod memory w3cVm)
@@ -109,7 +111,7 @@ contract W3CResolver is W3CResolverBase {
     return W3CVerificationMethod({
       id: string(W3CResolverUtils.trimBytes(abi.encodePacked(vm.id))),
       type_: string(W3CResolverUtils.trimBytes(abi.encodePacked(vm.type_))),
-      controller: W3CResolverUtils.formatDidString(didInput),
+      controller: controller,
       publicKeyMultibase: string(vm.publicKeyMultibase),
       blockchainAccountId: string(vm.blockchainAccountId),
       ethereumAddress: Strings.toHexString(vm.ethereumAddress),

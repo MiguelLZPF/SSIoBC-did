@@ -30,12 +30,12 @@ contract W3CResolverNative is W3CResolverBase {
   function resolveVm(W3CDidInput memory didInput, bytes32 vmId) public view returns (W3CVerificationMethod memory vm) {
     W3CResolverUtils.checkDidInput(didInput);
     VerificationMethod memory nativeVm = _didManagerNative.getVm(didInput.methods, didInput.id, vmId, 0);
-    return _toW3cVerificationMethod(nativeVm, vmId, didInput);
+    return _toW3cVerificationMethod(nativeVm, vmId, didInput, W3CResolverUtils.formatDidString(didInput));
   }
 
   // * Internal functions
 
-  function _getAllVerificationMethods(W3CDidInput memory didInput, bool includeExpired)
+  function _getAllVerificationMethods(W3CDidInput memory didInput, bool includeExpired, string memory didString)
     internal
     view
     override
@@ -57,7 +57,7 @@ contract W3CResolverNative is W3CResolverBase {
       VerificationMethod memory nativeVm = _didManagerNative.getVm(didInput.methods, didInput.id, bytes32(0), i);
 
       if (includeExpired || (nativeVm.expiration != 0 && nativeVm.expiration > block.timestamp)) {
-        vmsTemp[realLength[0]] = _toW3cVerificationMethod(nativeVm, vmId, didInput);
+        vmsTemp[realLength[0]] = _toW3cVerificationMethod(nativeVm, vmId, didInput, didString);
         realLength[0]++;
         string memory methodString =
           W3CResolverUtils.formatDidString(W3CDidInput({ methods: didInput.methods, id: didInput.id, fragment: vmId }));
@@ -120,11 +120,12 @@ contract W3CResolverNative is W3CResolverBase {
    * - publicKeyMultibase: Read from storage for keyAgreement VMs, empty otherwise
    * - blockchainAccountId: Derived as CAIP-10 from ethereumAddress and block.chainid
    */
-  function _toW3cVerificationMethod(VerificationMethod memory nativeVm, bytes32 vmId, W3CDidInput memory didInput)
-    internal
-    view
-    returns (W3CVerificationMethod memory w3cVm)
-  {
+  function _toW3cVerificationMethod(
+    VerificationMethod memory nativeVm,
+    bytes32 vmId,
+    W3CDidInput memory didInput,
+    string memory controller
+  ) internal view returns (W3CVerificationMethod memory w3cVm) {
     string memory blockchainAccountId = nativeVm.ethereumAddress != address(0)
       ? string(
         abi.encodePacked("eip155:", Strings.toString(block.chainid), ":", Strings.toHexString(nativeVm.ethereumAddress))
@@ -134,7 +135,7 @@ contract W3CResolverNative is W3CResolverBase {
     return W3CVerificationMethod({
       id: string(W3CResolverUtils.trimBytes(abi.encodePacked(vmId))),
       type_: NATIVE_VM_TYPE,
-      controller: W3CResolverUtils.formatDidString(didInput),
+      controller: controller,
       publicKeyMultibase: string(_didManagerNative.getVmPublicKeyMultibase(didInput.methods, didInput.id, vmId)),
       blockchainAccountId: blockchainAccountId,
       ethereumAddress: Strings.toHexString(nativeVm.ethereumAddress),
