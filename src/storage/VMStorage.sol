@@ -90,8 +90,9 @@ abstract contract VMStorage is IVMStorage, VMHooks {
     VerificationMethod storage vm = _vmByNsAndId[command.didHash][command.id];
     vm.id = command.id;
     vm.type_ = command.type_;
-    vm.publicKeyMultibase = command.publicKeyMultibase;
-    vm.blockchainAccountId = command.blockchainAccountId;
+    // The slot of a new VM is zero (removal deletes the struct), so an empty value needs no write
+    if (command.publicKeyMultibase.length != 0) vm.publicKeyMultibase = command.publicKeyMultibase;
+    if (command.blockchainAccountId.length != 0) vm.blockchainAccountId = command.blockchainAccountId;
     vm.ethereumAddress = command.ethereumAddress;
     vm.relationships = command.relationships;
     vm.expiration = command.expiration;
