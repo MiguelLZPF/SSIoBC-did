@@ -281,11 +281,12 @@ abstract contract VMStorage is IVMStorage, VMHooks {
       revert MissingRequiredParameter();
     }
     if (relationship > bytes1(0x1F)) revert VmRelationshipOutOfRange();
-    // Get VM
-    VerificationMethod memory vm = _vmByNsAndId[didHash][id];
+    // Get VM by storage pointer: only the slots actually read are loaded (no copy of the dynamic bytes)
+    VerificationMethod storage vm = _vmByNsAndId[didHash][id];
     // Check if the VM exists and is not expired
     // Note: expiration == 0 means never validated (invalid VM)
-    if (vm.expiration == 0 || vm.expiration <= block.timestamp) revert VmAlreadyExpired();
+    uint88 expiration = vm.expiration;
+    if (expiration == 0 || expiration <= block.timestamp) revert VmAlreadyExpired();
     // Check if the sender is in the VM and if the VM relationship is the same as the one provided
     return (vm.ethereumAddress == sender && (vm.relationships & relationship) == relationship);
   }
