@@ -65,7 +65,7 @@ library W3CResolverUtils {
     pure
     returns (string[] memory w3cControllers)
   {
-    uint8 realLenght = 0;
+    uint256 realLenght = 0;
     string[] memory temporalControllers = new string[](controllers.length);
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
       if (controllers[i].id != bytes32(0)) {
