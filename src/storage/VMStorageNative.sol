@@ -126,7 +126,7 @@ abstract contract VMStorageNative is IVMStorageNative, VMHooks {
     VerificationMethod storage vm = _vmByNsAndId[didHash][id];
     if (vm.expiration <= block.timestamp) revert VmAlreadyExpired();
     vm.expiration = uint88(block.timestamp);
-    emit VmExpirationUpdated(didHash, id, true, vm.expiration);
+    emit VmExpirationUpdated(didHash, id, true, uint88(block.timestamp));
   }
 
   function _removeAllVms(bytes32 didHash) internal virtual override {
