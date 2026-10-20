@@ -72,31 +72,16 @@ contract W3CResolver is W3CResolverBase {
         }
       }
     }
-    // * (2) Create the final arrays
-    vms = new W3CVerificationMethod[](realLength[0]);
-    for (uint8 i = 0; i < realLength[0]; i++) {
-      vms[i] = vmsTemp[i];
-    }
-    methods = new string[][](5);
-    methods[0] = new string[](realLength[1]);
-    for (uint8 i = 0; i < realLength[1]; i++) {
-      methods[0][i] = methodsTemp[0][i];
-    }
-    methods[1] = new string[](realLength[2]);
-    for (uint8 i = 0; i < realLength[2]; i++) {
-      methods[1][i] = methodsTemp[1][i];
-    }
-    methods[2] = new string[](realLength[3]);
-    for (uint8 i = 0; i < realLength[3]; i++) {
-      methods[2][i] = methodsTemp[2][i];
-    }
-    methods[3] = new string[](realLength[4]);
-    for (uint8 i = 0; i < realLength[4]; i++) {
-      methods[3][i] = methodsTemp[3][i];
-    }
-    methods[4] = new string[](realLength[5]);
-    for (uint8 i = 0; i < realLength[5]; i++) {
-      methods[4][i] = methodsTemp[4][i];
+    // * (2) Shrink the temporary arrays in place and return them
+    vms = vmsTemp;
+    methods = methodsTemp;
+    assembly ("memory-safe") {
+      // Safe: only lowers each length to the count actually filled (never above the allocation), the tail is simply
+      // left unused.
+      mstore(vms, mload(add(realLength, 0x20)))
+      for { let i := 0 } lt(i, 5) { i := add(i, 1) } {
+        mstore(mload(add(add(methods, 0x20), mul(i, 0x20))), mload(add(realLength, mul(add(i, 2), 0x20))))
+      }
     }
 
     return (vms, methods);
