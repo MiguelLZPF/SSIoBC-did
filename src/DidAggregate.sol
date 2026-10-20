@@ -114,7 +114,7 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     _validateTripleParams(methods, senderId, targetId);
     //* Implementation
     bytes32 senderIdHash = HashUtils.calculateIdHash(methods, senderId);
-    bytes32 targetIdHash = HashUtils.calculateIdHash(methods, targetId);
+    bytes32 targetIdHash = senderId == targetId ? senderIdHash : HashUtils.calculateIdHash(methods, targetId);
 
     // CRITICAL: Target must be DEACTIVATED (expiration == 0), not just expired
     if (_expirationDate[targetIdHash] != 0) {
