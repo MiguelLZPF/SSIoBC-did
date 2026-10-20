@@ -220,7 +220,8 @@ abstract contract VMStorage is IVMStorage, VMHooks {
     override
     returns (uint256 expiration, address ethereumAddress, bytes1 relationships)
   {
-    VerificationMethod memory vm = _getVm(didHash, vmId, 0);
+    // vmId == 0 still yields zeros: no write path stores under key 0 (createVm defaults the id to "vm-0")
+    VerificationMethod storage vm = _vmByNsAndId[didHash][vmId];
     return (vm.expiration, vm.ethereumAddress, vm.relationships);
   }
 
