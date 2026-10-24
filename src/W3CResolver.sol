@@ -43,9 +43,9 @@ contract W3CResolver is W3CResolverBase {
     W3CVerificationMethod[] memory vmsTemp = new W3CVerificationMethod[](maxLength);
     uint8[] memory realLength = new uint8[](6);
     bytes memory didPrefix = W3CResolverUtils.formatDidPrefix(didInput);
-    // * (1) Iterate over the VM list
-    for (uint8 i = 1; i <= maxLength; i++) {
-      VerificationMethod memory vm = _didManagerFull.getVm(didInput.methods, didInput.id, bytes32(0), i);
+    // * (1) Iterate over the VM list (0-based counter: a 1-based `i <= maxLength` loop overflows uint8 at 255 VMs)
+    for (uint8 i = 0; i < maxLength; i++) {
+      VerificationMethod memory vm = _didManagerFull.getVm(didInput.methods, didInput.id, bytes32(0), i + 1);
       if (includeExpired || vm.expiration > block.timestamp) {
         vmsTemp[realLength[0]] = _toW3cVerificationMethod(vm, didString);
         realLength[0]++;

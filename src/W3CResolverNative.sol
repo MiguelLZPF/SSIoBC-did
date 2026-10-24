@@ -51,13 +51,14 @@ contract W3CResolverNative is W3CResolverBase {
     uint8[] memory realLength = new uint8[](6);
     bytes memory didPrefix = W3CResolverUtils.formatDidPrefix(didInput);
 
-    // * (1) Iterate over the VM list (1-based positions)
-    for (uint8 i = 1; i <= maxLength; i++) {
-      VerificationMethod memory nativeVm = _didManagerNative.getVm(didInput.methods, didInput.id, bytes32(0), i);
+    // * (1) Iterate over the VM list (0-based counter, positions are 1-based: a `i <= maxLength` loop overflows uint8
+    // at 255 VMs)
+    for (uint8 i = 0; i < maxLength; i++) {
+      VerificationMethod memory nativeVm = _didManagerNative.getVm(didInput.methods, didInput.id, bytes32(0), i + 1);
 
       if (includeExpired || nativeVm.expiration > block.timestamp) {
         // Native VMs don't store ID in struct; retrieve it via position, only for VMs that are kept
-        bytes32 vmId = _didManagerNative.getVmIdAtPosition(didInput.methods, didInput.id, i);
+        bytes32 vmId = _didManagerNative.getVmIdAtPosition(didInput.methods, didInput.id, i + 1);
         vmsTemp[realLength[0]] = _toW3cVerificationMethod(nativeVm, vmId, didInput, didString);
         realLength[0]++;
         string memory methodString = W3CResolverUtils.formatDidWithFragment(didPrefix, vmId);
