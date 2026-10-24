@@ -18,19 +18,22 @@
   - [VMStorage.unit.t.sol](#9-vmstorageunittsol--30-tests)
   - [W3CResolver.unit.t.sol](#10-w3cresolverunittsol--22-tests)
   - [W3CResolverNative.unit.t.sol](#11-w3cresolvernativeunittsol--27-tests)
+  - [ListLimits.unit.t.sol](#12-listlimitsunittsol--9-tests)
+  - [ResolverGoldenOutput.unit.t.sol](#13-resolvergoldenoutputunittsol--24-tests)
+  - [SparseControllers.unit.t.sol](#14-sparsecontrollersunittsol--10-tests)
 - [Fuzz Tests](#fuzz-tests)
-  - [DidManager.fuzz.t.sol](#12-didmanagerfuzztsol--10-tests)
-  - [DidManagerNative.fuzz.t.sol](#13-didmanagernativefuzztsol--11-tests)
+  - [DidManager.fuzz.t.sol](#15-didmanagerfuzztsol--10-tests)
+  - [DidManagerNative.fuzz.t.sol](#16-didmanagernativefuzztsol--11-tests)
 - [Integration Tests](#integration-tests)
-  - [DidLifecycle.integration.t.sol](#14-didlifecycleintegrationtsol--6-tests)
-  - [KeyAgreementE2E.t.sol](#15-keyagreemente2etsol--3-tests)
+  - [DidLifecycle.integration.t.sol](#17-didlifecycleintegrationtsol--6-tests)
+  - [KeyAgreementE2E.t.sol](#18-keyagreemente2etsol--3-tests)
 - [Invariant Tests](#invariant-tests)
-  - [SystemInvariants.t.sol](#16-systeminvariantstsol--7-invariants)
-  - [NativeSystemInvariants.t.sol](#17-nativesysteminvariantstsol--8-invariants)
+  - [SystemInvariants.t.sol](#19-systeminvariantstsol--7-invariants)
+  - [NativeSystemInvariants.t.sol](#20-nativesysteminvariantstsol--8-invariants)
 - [Performance Tests](#performance-tests)
-  - [GasOptimization.performance.t.sol](#18-gasoptimizationperformancetsol--8-tests)
+  - [GasOptimization.performance.t.sol](#21-gasoptimizationperformancetsol--8-tests)
 - [Stress Tests](#stress-tests)
-  - [StressTest.t.sol](#19-stresstesttsol--6-tests)
+  - [StressTest.t.sol](#22-stresstesttsol--6-tests)
 - [Helper & Fixture Files](#helper--fixture-files)
 - [Coverage by Production Contract](#coverage-by-production-contract)
 
@@ -40,15 +43,15 @@
 
 | Category | Count | Files |
 |----------|------:|------:|
-| Unit Tests | 351 | 11 |
+| Unit Tests | 394 | 14 |
 | Fuzz Tests | 21 | 2 |
 | Integration Tests | 9 | 2 |
 | Invariant Tests | 15 | 2 |
 | Performance Tests | 8 | 1 |
 | Stress Tests | 6 | 1 |
-| **TOTAL** | **410** | **19** |
+| **TOTAL** | **453** | **22** |
 
-> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 371 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 410 run under the CI profiles.
+> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 414 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 453 run under the CI profiles.
 
 ---
 
@@ -600,9 +603,88 @@ Shares 20 tests with W3CResolver (adapted for native), **plus** 7 native-specifi
 
 ---
 
+### 12. `ListLimits.unit.t.sol` — 9 tests
+
+**File**: `test/unit/ListLimits.unit.t.sol`
+**Contracts**: `ListLimitsFullUnitTest` (6), `ListLimitsNativeUnitTest` (3)
+**Primary targets**: `W3CResolver.resolve()`, `W3CResolverNative.resolve()`, `ServiceStorage._updateService()`, `TooManyServices`
+
+Pins the 255-entry list limits (added in v1.7.0). Before the fix, `resolve` panicked (0x11) on a DID holding the maximum 255 VMs, and a 256th service wrapped its `uint8` position to 0. Rows 3 and 5-6 exist on the Full variant only; the Native variant covers the resolve tests and row 4.
+
+| # | Test Name | What It Does | Production Functions & Contracts Touched | Notable Setup |
+|---|-----------|-------------|------------------------------------------|---------------|
+| 1 | `test_Resolve_Should_ListAll255Vms_When_IncludeExpiredIsFalse` | A DID at the VM cap (255 active VMs) resolves and lists all 255 VMs and 255 authentication entries; logs the `resolve` gas | `W3CResolver.resolve()` / `W3CResolverNative.resolve()` → `_getAllVerificationMethods()` (0-based `uint8` loop passing `i + 1`) | 254 VMs added to the default VM; Full uses `publicKeyMultibase` VMs (active on creation), Native uses validated address VMs |
+| 2 | `test_Resolve_Should_ListAll255Vms_When_IncludeExpiredIsTrue` | Same DID with `includeExpired = true` | same | same |
+| 3 | `test_CreateVm_Should_Revert_When_Adding256thVm` (Full only) | The 256th VM is refused and the list stays at 255 | `VMStorage._createVm()` → `TooManyVerificationMethods` | 255-VM DID |
+| 4 | `test_UpdateService_Should_Accept255thAndRevertOn256th_When_ListIsFull` | The 255th service is accepted, the 256th reverts with `TooManyServices()`, and the list length plus lookups by id and by position are unchanged | `ServiceStorage._updateService()` → `EnumerableSet.add()` → cap check → `TooManyServices` | 255 services |
+| 5 | `test_UpdateService_Should_StillUpdateExisting_When_ListIsFull` (Full only) | An existing service on a full list can still be updated | `_updateService()` existing-id path skips the cap | 255 services |
+| 6 | `test_UpdateService_Should_AcceptNewService_When_FullListHadOneDeleted` (Full only) | Deleting one service on a full list frees a slot for a new one | `_updateService()` delete path, then create path | 255 services, one deleted |
+
+---
+
+### 13. `ResolverGoldenOutput.unit.t.sol` — 24 tests
+
+**File**: `test/unit/ResolverGoldenOutput.unit.t.sol`
+**Contracts**: `ResolverGoldenOutputFullUnitTest` (14), `ResolverGoldenOutputNativeUnitTest` (10)
+**Primary targets**: `W3CResolver`, `W3CResolverNative`, `W3CResolverBase`, `W3CResolverUtils`
+
+Behaviour lock added before the v1.7.0 gas pass: each test builds a fixed fixture at a fixed timestamp and compares `keccak256(abi.encode(result))` with a hard-coded constant, so any change to observable resolver output fails. The file is never edited to follow a code change.
+
+| # | Test Name | What It Does | Production Functions & Contracts Touched | Notable Setup |
+|---|-----------|-------------|------------------------------------------|---------------|
+| 1 | `test_Golden_F1_Resolve_ExcludeExpired` | Full document with `includeExpired = false` matches the pinned hash | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F1: 3 VMs covering all five relationship bits, 2 services, 2 controllers |
+| 2 | `test_Golden_F1_Resolve_IncludeExpired` | Full document with `includeExpired = true` matches the pinned hash | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F1 |
+| 3 | `test_Golden_F1_ResolveVm_EachVm` | `resolveVm` output of each of the 3 VMs matches its pinned hash | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F1 |
+| 4 | `test_Golden_F1_ResolveService_EachService` | `resolveService` output of each service matches its pinned hash | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F1 |
+| 5 | `test_Golden_F2_Resolve_ExcludeExpired` | Expired middle VM is filtered and array indices shift as pinned | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F2: F1 after the middle VM expires |
+| 6 | `test_Golden_F2_Resolve_IncludeExpired` | Expired middle VM stays in the document | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F2 |
+| 7 | `test_Golden_F3_Resolve_PlainFragment` | Non-zero `didInput.fragment` resolves as pinned | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F3: fragment input |
+| 8 | `test_Golden_F3_Resolve_LeadingZeroFragment` | Fragment whose first byte is `0x00` (`trimBytes` returns empty) resolves as pinned | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F3 |
+| 9 | `test_Golden_F3_ResolveVm_PlainFragment` | `resolveVm` with a plain fragment | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F3 |
+| 10 | `test_Golden_F3_ResolveVm_LeadingZeroFragment` | `resolveVm` with a leading-zero fragment | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F3 |
+| 11 | `test_Golden_F4_Resolve_UnvalidatedEthereumAddressVm` | Unvalidated address VM (expiration 0) is filtered when excluding expired and rendered with its address when included | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F4 |
+| 12 | `test_Golden_F5_Resolve_BlockchainAccountId` | A VM with a `blockchainAccountId` renders it | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F5 |
+| 13 | `test_Golden_F6_Resolve_NonDefaultMethods` | Non-default methods accepted by `checkMethods` (empty middle segment, three populated segments) | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F6 |
+| 14 | `test_Golden_F7_Resolve_VmIdRecreatedAfterRemoveAll` | A VM id re-created after `_removeAllVms` carries nothing from its first life | `W3CResolver.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | F7: `createDid` on an expired DID |
+| 15 | `test_Golden_N1_Resolve_ExcludeExpired` | Native document with `includeExpired = false` matches the pinned hash | `W3CResolverNative.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | N1: native counterpart of F1 |
+| 16 | `test_Golden_N1_Resolve_IncludeExpired` | Native document with `includeExpired = true` | `W3CResolverNative.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | N1 |
+| 17 | `test_Golden_N1_ResolveVm_EachVm` | Native `resolveVm` of each VM | `W3CResolverNative.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | N1 |
+| 18 | `test_Golden_N1_ResolveService_EachService` | Native `resolveService` of each service | `W3CResolverNative.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | N1 |
+| 19 | `test_Golden_N2_Resolve_ExcludeExpired` | Native expired VM filtered | `W3CResolverNative.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | N2: native counterpart of F2 |
+| 20 | `test_Golden_N2_Resolve_IncludeExpired` | Native expired VM kept | `W3CResolverNative.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | N2 |
+| 21 | `test_Golden_N3_Resolve_PlainFragment` | Native plain fragment | `W3CResolverNative.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | N3: fragment input |
+| 22 | `test_Golden_N3_Resolve_LeadingZeroFragment` | Native leading-zero fragment | `W3CResolverNative.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | N3 |
+| 23 | `test_Golden_N4_Resolve_NonDefaultMethods` | Native non-default methods with an empty middle segment | `W3CResolverNative.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | N4 |
+| 24 | `test_Golden_N5_Resolve_VmIdRecreatedAfterRemoveAll` | Native VM id re-created after `_removeAllVms`; the first life's keyAgreement multibase must not reappear | `W3CResolverNative.resolve()` / `resolveVm()` / `resolveService()` → `W3CResolverUtils` | N5 |
+
+---
+
+### 14. `SparseControllers.unit.t.sol` — 10 tests
+
+**File**: `test/unit/SparseControllers.unit.t.sol`
+**Contracts**: `SparseControllersUnitTest` (5), `SparseControllersNativeUnitTest` (5)
+**Primary targets**: `DidAggregate._isControllerFor()`, `isAuthorized()`, `updateService()`
+
+Behaviour lock added before the gas pass touched `_isControllerFor`: the loop must not stop at an empty slot, and a controller entry carrying a `vmId` must refuse a different VM of the controller DID.
+
+| # | Test Name | What It Does | Production Functions & Contracts Touched | Notable Setup |
+|---|-----------|-------------|------------------------------------------|---------------|
+| 1 | `test_SparseController_Should_ActAsController_When_OnlyPosition3SetWithVmId` (Full) | A controller stored only in slot 3, with a `vmId`, is accepted by the controller checks | `DidAggregate._isControllerFor()` loop does not stop at an empty slot | controller in position 3 only |
+| 2 | `test_SparseController_Should_ActAsController_When_OnlyPosition3SetWithoutVmId` (Full) | Same without a `vmId` (any VM of the controller DID) | `_isControllerFor()` | controller in position 3 only |
+| 3 | `test_SparseController_Should_RefuseOtherVm_When_EntryHasVmId` (Full) | The entry names `vm-0`; another valid VM of the controller DID is refused | `_isControllerFor()` vmId comparison | second VM on the controller DID |
+| 4 | `test_SparseController_Should_ActAsController_When_OnlyLastPositionSetWithVmId` (Full) | A controller only in the last slot (4) is found, with a `vmId` | `_isControllerFor()` | controller in position 4 only |
+| 5 | `test_SparseController_Should_ActAsController_When_OnlyLastPositionSetWithoutVmId` (Full) | Same without a `vmId` | `_isControllerFor()` | controller in position 4 only |
+| 6 | `test_SparseController_Should_ActAsController_When_OnlyPosition3SetWithVmId` (Native) | A controller stored only in slot 3, with a `vmId`, is accepted by the controller checks | `DidAggregate._isControllerFor()` loop does not stop at an empty slot | controller in position 3 only |
+| 7 | `test_SparseController_Should_ActAsController_When_OnlyPosition3SetWithoutVmId` (Native) | Same without a `vmId` (any VM of the controller DID) | `_isControllerFor()` | controller in position 3 only |
+| 8 | `test_SparseController_Should_RefuseOtherVm_When_EntryHasVmId` (Native) | The entry names `vm-0`; another valid VM of the controller DID is refused | `_isControllerFor()` vmId comparison | second VM on the controller DID |
+| 9 | `test_SparseController_Should_ActAsController_When_OnlyLastPositionSetWithVmId` (Native) | A controller only in the last slot (4) is found, with a `vmId` | `_isControllerFor()` | controller in position 4 only |
+| 10 | `test_SparseController_Should_ActAsController_When_OnlyLastPositionSetWithoutVmId` (Native) | Same without a `vmId` | `_isControllerFor()` | controller in position 4 only |
+
+---
+
 ## Fuzz Tests
 
-### 12. `DidManager.fuzz.t.sol` — 10 tests
+### 15. `DidManager.fuzz.t.sol` — 10 tests
 
 **File**: `test/fuzz/DidManager.fuzz.t.sol`
 **Contract**: `DidManagerFuzzTest`
@@ -623,7 +705,7 @@ Shares 20 tests with W3CResolver (adapted for native), **plus** 7 native-specifi
 
 ---
 
-### 13. `DidManagerNative.fuzz.t.sol` — 11 tests
+### 16. `DidManagerNative.fuzz.t.sol` — 11 tests
 
 **File**: `test/fuzz/DidManagerNative.fuzz.t.sol`
 **Contract**: `DidManagerNativeFuzzTest`
@@ -639,7 +721,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ## Integration Tests
 
-### 14. `DidLifecycle.integration.t.sol` — 6 tests
+### 17. `DidLifecycle.integration.t.sol` — 6 tests
 
 **File**: `test/integration/DidLifecycle.integration.t.sol`
 **Contract**: `DidLifecycleIntegrationTest`
@@ -656,7 +738,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ---
 
-### 15. `KeyAgreementE2E.t.sol` — 3 tests
+### 18. `KeyAgreementE2E.t.sol` — 3 tests
 
 **File**: `test/integration/KeyAgreementE2E.t.sol`
 **Contract**: `KeyAgreementE2ETest`
@@ -672,7 +754,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ## Invariant Tests
 
-### 16. `SystemInvariants.t.sol` — 7 invariants
+### 19. `SystemInvariants.t.sol` — 7 invariants
 
 **File**: `test/invariant/SystemInvariants.t.sol`
 **Contract**: `SystemInvariantsTest`
@@ -691,7 +773,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ---
 
-### 17. `NativeSystemInvariants.t.sol` — 8 invariants
+### 20. `NativeSystemInvariants.t.sol` — 8 invariants
 
 **File**: `test/invariant/NativeSystemInvariants.t.sol`
 **Contract**: `NativeSystemInvariantsTest`
@@ -707,7 +789,7 @@ Same 7 invariants as above for native variant **plus**:
 
 ## Performance Tests
 
-### 18. `GasOptimization.performance.t.sol` — 8 tests
+### 21. `GasOptimization.performance.t.sol` — 8 tests
 
 **File**: `test/performance/GasOptimization.performance.t.sol`
 **Contract**: `GasOptimizationPerformanceTest`
@@ -729,7 +811,7 @@ Same 7 invariants as above for native variant **plus**:
 
 ## Stress Tests
 
-### 19. `StressTest.t.sol` — 6 tests
+### 22. `StressTest.t.sol` — 6 tests
 
 **File**: `test/stress/StressTest.t.sol`
 **Contract**: `StressTest`
@@ -779,7 +861,7 @@ These files are not test files but support the test infrastructure:
 
 ---
 
-**Last Updated**: 2026-08-26
-**Total Test Count**: 410 (371 in the default profile; fuzz/invariant run under CI profiles)
+**Last Updated**: 2026-10-24
+**Total Test Count**: 453 (414 in the default profile; fuzz/invariant run under CI profiles)
 **Test Framework**: Foundry (forge test)
 **Coverage Target**: >90% (enforced in CI/CD)

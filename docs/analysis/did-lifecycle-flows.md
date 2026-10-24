@@ -318,7 +318,7 @@ Brief descriptions of remaining DID operations. For full NatSpec documentation, 
 
 ### 6.2 Verification Method (VM) Add and Validate
 
-**Add**: `DidManager.createVm(DidCreateVmCommand)` — Requires sender authentication + controller authorization on target DID. Creates an unvalidated VM (expiration = 0 if ethereumAddress is provided). Max 256 VMs per DID.
+**Add**: `DidManager.createVm(DidCreateVmCommand)` — Requires sender authentication + controller authorization on target DID. Creates an unvalidated VM (expiration = 0 if ethereumAddress is provided). Max 255 VMs per DID (`TooManyVerificationMethods`).
 
 **Validate**: `DidManager.validateVm(bytes32 positionHash, uint256 expiration)` — Must be called by the VM's `ethereumAddress` (proves key ownership). Sets the VM's expiration timestamp. Can only be called once per VM.
 
@@ -326,7 +326,7 @@ Brief descriptions of remaining DID operations. For full NatSpec documentation, 
 
 **Function**: `DidAggregate.updateService(methods, senderId, senderVmId, targetId, serviceId, type_, endpoint)`
 
-Requires sender authentication + controller authorization. Services store `type_` and `serviceEndpoint` as packed bytes. Use `serviceId = bytes32(0)` with a position to remove a service.
+Requires sender authentication + controller authorization. Services store `type_` and `serviceEndpoint` as packed bytes. Use `serviceId = bytes32(0)` with a position to remove a service. Max 255 services per DID: adding a 256th reverts with `TooManyServices()` (updating or deleting an existing service on a full list still works).
 
 ### 6.4 DID Deactivation and Reactivation
 

@@ -238,10 +238,13 @@ Correct deployment order:
 | Controller slot exhaustion | LOW | Maximum 5 controllers per DID |
 | Large key material | LOW | Storage cost proportional to size |
 | Resolver gas limit | MEDIUM | Complex DIDs with many VMs may approach block gas limit |
+| List limits (255 VMs resolve, 256th service wrap) | MEDIUM, fixed in v1.7.0 | Before v1.7.0 both resolvers panicked (0x11) on a DID holding the maximum 255 VMs, so the DID could not be resolved at all, and a 256th service wrapped its `uint8` position to 0, hiding the entry and corrupting the reported list length. Both resolvers now loop with a 0-based counter and `ServiceStorage` reverts with `TooManyServices()` past 255 services. Resolve at 255 VMs costs about 25.9M gas (Full) and 19.0M gas (Native), under the 50M default `eth_call` cap |
 
 ### Position Overflow Protection
 
 The `TooManyVerificationMethods` error prevents creating more than 255 VMs per DID (uint8 position overflow guard added in v1.2.0).
+
+The same guard now covers services: `TooManyServices` prevents a 256th service per DID (added in v1.7.0). Positions are `uint8` in the ABI (`getServiceListLength`, `getService`), so the cap keeps the ABI instead of widening the type. Existing services on a full list can still be updated or deleted.
 
 ---
 
