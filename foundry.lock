@@ -1,4 +1,10 @@
 {
+  "lib/ethr-did-registry": {
+    "tag": {
+      "name": "1.3.0",
+      "rev": "22b55e59d97549cd0682077fbfc34c457a40a982"
+    }
+  },
   "lib/forge-std": {
     "tag": {
       "name": "v1.16.2",

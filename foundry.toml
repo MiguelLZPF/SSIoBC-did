@@ -32,6 +32,8 @@ remappings = [
   "@test/=test/",
   # OpenZeppelin remappings
   "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+  # ERC-1056 registry (gas comparison, test/performance only)
+  "@ethr-did-registry/=lib/ethr-did-registry/contracts/",
 ]
 
 # Configures permissions for cheatcodes that touch the filesystem like `vm.writeFile`
