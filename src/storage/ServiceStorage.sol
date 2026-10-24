@@ -80,20 +80,17 @@ abstract contract ServiceStorage is IServiceStorage {
     if (type_.length == 0) revert ServiceTypeCannotBeEmpty();
     if (serviceEndpoint.length == 0) revert ServiceEndpointCannotBeEmpty();
 
-    bytes32 positionHash;
+    // Store the service payload by ID
+    Service storage service = _serviceByNsAndId[serviceDidHash][id];
     if (!exists) {
       bool added = _serviceIds[serviceDidHash].add(id);
       assert(added);
       position = uint8(_serviceIds[serviceDidHash].length());
       _servicePositionByNsAndId[serviceDidHash][id] = position;
-      positionHash = HashUtils.calculatePositionHash(serviceDidHash, position);
-    } else {
-      positionHash = HashUtils.calculatePositionHash(serviceDidHash, position);
+      // The id of an existing service never changes, so it is written only when the service is new
+      service.id = id;
     }
-
-    // Store the service payload by ID
-    Service storage service = _serviceByNsAndId[serviceDidHash][id];
-    service.id = id;
+    bytes32 positionHash = HashUtils.calculatePositionHash(serviceDidHash, position);
     service.type_ = type_;
     service.serviceEndpoint = serviceEndpoint;
 
@@ -107,13 +104,16 @@ abstract contract ServiceStorage is IServiceStorage {
    */
   function _removeAllServices(bytes32 didHash) internal {
     bytes32 serviceDidHash = _addServiceNameSpace(didHash);
-    uint256 len = _serviceIds[serviceDidHash].length();
+    EnumerableSet.Bytes32Set storage ids = _serviceIds[serviceDidHash];
+    uint256 len = ids.length();
     while (len > 0) {
-      bytes32 lastId = _serviceIds[serviceDidHash].at(len - 1);
+      bytes32 lastId = ids.at(len - 1);
       delete _serviceByNsAndId[serviceDidHash][lastId];
       delete _servicePositionByNsAndId[serviceDidHash][lastId];
-      _serviceIds[serviceDidHash].remove(lastId);
-      len--;
+      ids.remove(lastId);
+      unchecked {
+        --len; // loop guard proves len > 0
+      }
     }
   }
 

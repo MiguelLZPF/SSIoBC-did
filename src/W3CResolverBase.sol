@@ -36,9 +36,11 @@ abstract contract W3CResolverBase is IW3CResolver {
     returns (W3CDidDocument memory didDocument)
   {
     W3CResolverUtils.checkDidInput(didInput);
+    // * Format the DID string once; reused for the document id and every VM controller
+    string memory didString = W3CResolverUtils.formatDidString(didInput);
     // * Get Verification Methods (variant-specific)
     (W3CVerificationMethod[] memory vms, string[][] memory methods) =
-      _getAllVerificationMethods(didInput, includeExpired);
+      _getAllVerificationMethods(didInput, includeExpired, didString);
     // * Get Services
     W3CService[] memory services = new W3CService[](_didReadOps.getServiceListLength(didInput.methods, didInput.id));
     for (uint8 i = 0; i < services.length; i++) {
@@ -57,7 +59,7 @@ abstract contract W3CResolverBase is IW3CResolver {
     ctx[0] = "https://www.w3.org/ns/did/v1";
     return W3CDidDocument({
       context: ctx,
-      id: W3CResolverUtils.formatDidString(didInput),
+      id: didString,
       controller: W3CResolverUtils.toW3cController(
         _didReadOps.getControllerList(didInput.methods, didInput.id), didInput.methods
       ),
@@ -89,7 +91,7 @@ abstract contract W3CResolverBase is IW3CResolver {
   // Abstract hooks (variant-specific)
   // ═══════════════════════════════════════════════════════════════════
 
-  function _getAllVerificationMethods(W3CDidInput memory didInput, bool includeExpired)
+  function _getAllVerificationMethods(W3CDidInput memory didInput, bool includeExpired, string memory didString)
     internal
     view
     virtual

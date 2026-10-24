@@ -114,7 +114,7 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     _validateTripleParams(methods, senderId, targetId);
     //* Implementation
     bytes32 senderIdHash = HashUtils.calculateIdHash(methods, senderId);
-    bytes32 targetIdHash = HashUtils.calculateIdHash(methods, targetId);
+    bytes32 targetIdHash = senderId == targetId ? senderIdHash : HashUtils.calculateIdHash(methods, targetId);
 
     // CRITICAL: Target must be DEACTIVATED (expiration == 0), not just expired
     if (_expirationDate[targetIdHash] != 0) {
@@ -398,8 +398,9 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     returns (bool)
   {
     bool controllersIsEmpty = true;
-    for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
-      Controller storage ctrl = _controllers[targetIdHash][i];
+    Controller[CONTROLLERS_MAX_LENGTH] storage ctrls = _controllers[targetIdHash];
+    for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH;) {
+      Controller storage ctrl = ctrls[i];
       bytes32 ctrlId = ctrl.id;
       if (ctrlId != bytes32(0)) {
         controllersIsEmpty = false;
@@ -412,12 +413,12 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
           return true;
         }
       }
+      unchecked {
+        ++i;
+      }
     }
     // If controllers array is empty and sender is the target, return true (controllers not used)
-    if (controllersIsEmpty && senderIdHash == targetIdHash) {
-      return true;
-    }
-    return false;
+    return controllersIsEmpty && senderIdHash == targetIdHash;
   }
 
   /// @dev Shared authorization logic used by both isAuthorized and isAuthorizedOffChain.
@@ -441,13 +442,11 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
 
     // 2. Sender's VM has the required relationship (non-reverting via _getVmForAuth)
     (uint256 vmExpiration, address vmEthereumAddress, bytes1 vmRelationships) = _getVmForAuth(senderIdHash, senderVmId);
-    if (vmExpiration == 0 || vmExpiration <= block.timestamp) return false;
+    if (vmExpiration <= block.timestamp) return false;
     if (vmEthereumAddress != sender || (vmRelationships & relationship) != relationship) return false;
 
     // 3. Sender is controller of target (or IS target for self-controlled)
-    if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) return false;
-
-    return true;
+    return _isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash);
   }
 
   // ═══════════════════════════════════════════════════════════════════

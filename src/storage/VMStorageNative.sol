@@ -58,12 +58,11 @@ abstract contract VMStorageNative is IVMStorageNative, VMHooks {
     }
 
     //* Implementation
-    // Existence check
-    if (_vmIds[command.didHash].contains(command.id)) revert VmAlreadyExists();
-    // Add ID to set and compute position
-    bool added = _vmIds[command.didHash].add(command.id);
-    assert(added);
-    uint256 vmCount = _vmIds[command.didHash].length();
+    // Existence check and insert in one step: add() returns false when the id is already in the set
+    EnumerableSet.Bytes32Set storage ids = _vmIds[command.didHash];
+    if (!ids.add(command.id)) revert VmAlreadyExists();
+    // Compute position
+    uint256 vmCount = ids.length();
     if (vmCount > type(uint8).max) revert TooManyVerificationMethods();
     uint8 position = uint8(vmCount);
     idHash = HashUtils.calculateIdHash(command.didHash, command.id);
@@ -127,13 +126,14 @@ abstract contract VMStorageNative is IVMStorageNative, VMHooks {
     VerificationMethod storage vm = _vmByNsAndId[didHash][id];
     if (vm.expiration <= block.timestamp) revert VmAlreadyExpired();
     vm.expiration = uint88(block.timestamp);
-    emit VmExpirationUpdated(didHash, id, true, vm.expiration);
+    emit VmExpirationUpdated(didHash, id, true, uint88(block.timestamp));
   }
 
   function _removeAllVms(bytes32 didHash) internal virtual override {
-    uint256 len = _vmIds[didHash].length();
+    EnumerableSet.Bytes32Set storage ids = _vmIds[didHash];
+    uint256 len = ids.length();
     while (len > 0) {
-      bytes32 lastId = _vmIds[didHash].at(len - 1);
+      bytes32 lastId = ids.at(len - 1);
       // Delete publicKeyMultibase overflow (no-op for non-keyAgreement VMs)
       delete _publicKeyMultibase[didHash][lastId];
       // Delete VM payload
@@ -144,8 +144,10 @@ abstract contract VMStorageNative is IVMStorageNative, VMHooks {
       delete _vmIdByPositionHash[storedPositionHash];
       delete _didHashByPositionHash[storedPositionHash];
       // Remove from set
-      _vmIds[didHash].remove(lastId);
-      len--;
+      ids.remove(lastId);
+      unchecked {
+        --len; // loop guard proves len > 0
+      }
     }
   }
 
@@ -204,7 +206,8 @@ abstract contract VMStorageNative is IVMStorageNative, VMHooks {
     override
     returns (uint256 expiration, address ethereumAddress, bytes1 relationships)
   {
-    VerificationMethod memory vm = _getVm(didHash, vmId, 0);
+    // vmId == 0 still yields zeros: no write path stores under key 0 (createVm defaults the id to "vm-0")
+    VerificationMethod storage vm = _vmByNsAndId[didHash][vmId];
     return (vm.expiration, vm.ethereumAddress, vm.relationships);
   }
 

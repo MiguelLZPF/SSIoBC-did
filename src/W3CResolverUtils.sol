@@ -24,6 +24,9 @@ error DidInputRequired();
  * Contains common functions used by both W3CResolver and W3CResolverNative.
  */
 library W3CResolverUtils {
+  /// @dev Lowercase hex digits for bytesToHexString
+  bytes16 private constant HEX_DIGITS = "0123456789abcdef";
+
   /**
    * @dev Validates DID input, reverting if id is zero. Sets default methods if empty.
    * @param didInput The DID input to validate.
@@ -62,7 +65,7 @@ library W3CResolverUtils {
     pure
     returns (string[] memory w3cControllers)
   {
-    uint8 realLenght = 0;
+    uint256 realLenght = 0;
     string[] memory temporalControllers = new string[](controllers.length);
     for (uint8 i = 0; i < CONTROLLERS_MAX_LENGTH; i++) {
       if (controllers[i].id != bytes32(0)) {
@@ -71,9 +74,10 @@ library W3CResolverUtils {
         realLenght++;
       }
     }
-    w3cControllers = new string[](realLenght);
-    for (uint8 i = 0; i < realLenght; i++) {
-      w3cControllers[i] = temporalControllers[i];
+    w3cControllers = temporalControllers;
+    assembly ("memory-safe") {
+      // Safe: only lowers the length to the filled count (<= the allocation); the unused tail is never read.
+      mstore(w3cControllers, realLenght)
     }
     return w3cControllers;
   }
@@ -138,7 +142,12 @@ library W3CResolverUtils {
     if (uint16(uint256(methods)) != 0x3B3B) revert MethodPaddingMustBeSemicolon();
   }
 
-  function formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
+  /**
+   * @dev Builds the untrimmed DID prefix `did:m0:[m1:][m2:]<hex id>`, without any fragment.
+   * @param didInput The DID input (the fragment is ignored).
+   * @return prefix The untrimmed prefix bytes.
+   */
+  function formatDidPrefix(W3CDidInput memory didInput) internal pure returns (bytes memory prefix) {
     bytes memory method0 = trimMethodSegment(bytes10(didInput.methods));
     bytes memory method1 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 80)));
     bytes memory method2 = trimMethodSegment(bytes10(bytes32(uint256(didInput.methods) << 160)));
@@ -149,11 +158,26 @@ library W3CResolverUtils {
     if (method2.length > 0) {
       finalEncode = abi.encodePacked(finalEncode, method2, ":");
     }
-    finalEncode = abi.encodePacked(finalEncode, bytesToHexString(abi.encodePacked(didInput.id)));
-    if (didInput.fragment != bytes32(0)) {
-      finalEncode = abi.encodePacked(finalEncode, "#", didInput.fragment);
+    return abi.encodePacked(finalEncode, bytesToHexString(abi.encodePacked(didInput.id)));
+  }
+
+  /**
+   * @dev Appends an optional `#fragment` to a prefix from {formatDidPrefix} and trims the WHOLE
+   * concatenation, exactly as {formatDidString} does. Never trim the fragment on its own:
+   * trimBytes returns empty when the first byte is 0x00.
+   * @param prefix The untrimmed prefix.
+   * @param fragment The fragment (VM id), or zero for none.
+   * @return did The DID string.
+   */
+  function formatDidWithFragment(bytes memory prefix, bytes32 fragment) internal pure returns (string memory did) {
+    if (fragment != bytes32(0)) {
+      return string(trimBytes(abi.encodePacked(prefix, "#", fragment)));
     }
-    return string(trimBytes(finalEncode));
+    return string(trimBytes(prefix));
+  }
+
+  function formatDidString(W3CDidInput memory didInput) internal pure returns (string memory did) {
+    return formatDidWithFragment(formatDidPrefix(didInput), didInput.fragment);
   }
 
   /**
@@ -186,8 +210,10 @@ library W3CResolverUtils {
         uint256 strLen = i - startPos;
         if (strLen > 0) {
           bytes memory strBytes = new bytes(strLen);
-          for (uint256 j = 0; j < strLen; j++) {
-            strBytes[j] = packed[startPos + j];
+          assembly ("memory-safe") {
+            // Safe: copies exactly strLen bytes from inside `packed` (startPos + strLen <= packed.length) into a fresh
+            // strLen-byte buffer.
+            mcopy(add(strBytes, 0x20), add(add(packed, 0x20), startPos), strLen)
           }
           strings[stringIndex] = string(strBytes);
           lastNonEmpty = stringIndex + 1;
@@ -261,9 +287,10 @@ library W3CResolverUtils {
         length++;
       }
     }
-    output = new bytes(length);
-    for (uint256 i = 0; i < length; i++) {
-      output[i] = withoutZeros[i];
+    output = withoutZeros;
+    assembly ("memory-safe") {
+      // Safe: only lowers the length to the bytes written (<= the allocation); the unused tail is never read.
+      mstore(output, length)
     }
     return output;
   }
@@ -275,11 +302,13 @@ library W3CResolverUtils {
    */
   function bytesToHexString(bytes memory input) internal pure returns (string memory hexString) {
     bytes memory converted = new bytes(input.length * 2);
-    bytes memory _base = "0123456789abcdef";
 
-    for (uint256 i = 0; i < input.length; i++) {
-      converted[i * 2] = _base[uint8(input[i]) / _base.length];
-      converted[i * 2 + 1] = _base[uint8(input[i]) % _base.length];
+    unchecked {
+      for (uint256 i = 0; i < input.length; ++i) {
+        uint8 b = uint8(input[i]);
+        converted[i * 2] = HEX_DIGITS[b >> 4];
+        converted[i * 2 + 1] = HEX_DIGITS[b & 0x0f];
+      }
     }
 
     return string(converted);

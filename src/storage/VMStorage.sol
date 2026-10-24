@@ -75,12 +75,11 @@ abstract contract VMStorage is IVMStorage, VMHooks {
     }
 
     //* Implementation
-    // Existence check
-    if (_vmIds[command.didHash].contains(command.id)) revert VmAlreadyExists();
-    // Add ID to set and compute position
-    bool added = _vmIds[command.didHash].add(command.id);
-    assert(added);
-    uint256 vmCount = _vmIds[command.didHash].length();
+    // Existence check and insert in one step: add() returns false when the id is already in the set
+    EnumerableSet.Bytes32Set storage ids = _vmIds[command.didHash];
+    if (!ids.add(command.id)) revert VmAlreadyExists();
+    // Compute position
+    uint256 vmCount = ids.length();
     if (vmCount > type(uint8).max) revert TooManyVerificationMethods();
     uint8 position = uint8(vmCount);
     idHash = HashUtils.calculateIdHash(command.didHash, command.id);
@@ -90,8 +89,9 @@ abstract contract VMStorage is IVMStorage, VMHooks {
     VerificationMethod storage vm = _vmByNsAndId[command.didHash][command.id];
     vm.id = command.id;
     vm.type_ = command.type_;
-    vm.publicKeyMultibase = command.publicKeyMultibase;
-    vm.blockchainAccountId = command.blockchainAccountId;
+    // The slot of a new VM is zero (removal deletes the struct), so an empty value needs no write
+    if (command.publicKeyMultibase.length != 0) vm.publicKeyMultibase = command.publicKeyMultibase;
+    if (command.blockchainAccountId.length != 0) vm.blockchainAccountId = command.blockchainAccountId;
     vm.ethereumAddress = command.ethereumAddress;
     vm.relationships = command.relationships;
     vm.expiration = command.expiration;
@@ -134,8 +134,8 @@ abstract contract VMStorage is IVMStorage, VMHooks {
     // Ethereum Address or actual signature validation
     vm.expiration = uint88(expiration);
     //Event
-    emit VmValidated(vm.id);
-    return (vm.id);
+    emit VmValidated(vmId);
+    return vmId;
   }
 
   /**
@@ -148,13 +148,14 @@ abstract contract VMStorage is IVMStorage, VMHooks {
     VerificationMethod storage vm = _vmByNsAndId[didHash][id];
     if (vm.expiration <= block.timestamp) revert VmAlreadyExpired();
     vm.expiration = uint88(block.timestamp);
-    emit VmExpirationUpdated(didHash, id, true, vm.expiration);
+    emit VmExpirationUpdated(didHash, id, true, uint88(block.timestamp));
   }
 
   function _removeAllVms(bytes32 didHash) internal virtual override {
-    uint256 len = _vmIds[didHash].length();
+    EnumerableSet.Bytes32Set storage ids = _vmIds[didHash];
+    uint256 len = ids.length();
     while (len > 0) {
-      bytes32 lastId = _vmIds[didHash].at(len - 1);
+      bytes32 lastId = ids.at(len - 1);
       // Delete VM payload
       delete _vmByNsAndId[didHash][lastId];
       // Delete positionHash mappings stored at creation time
@@ -163,8 +164,10 @@ abstract contract VMStorage is IVMStorage, VMHooks {
       delete _vmIdByPositionHash[storedPositionHash];
       delete _didHashByPositionHash[storedPositionHash];
       // Remove from set
-      _vmIds[didHash].remove(lastId);
-      len--;
+      ids.remove(lastId);
+      unchecked {
+        --len; // loop guard proves len > 0
+      }
     }
   }
 
@@ -220,7 +223,8 @@ abstract contract VMStorage is IVMStorage, VMHooks {
     override
     returns (uint256 expiration, address ethereumAddress, bytes1 relationships)
   {
-    VerificationMethod memory vm = _getVm(didHash, vmId, 0);
+    // vmId == 0 still yields zeros: no write path stores under key 0 (createVm defaults the id to "vm-0")
+    VerificationMethod storage vm = _vmByNsAndId[didHash][vmId];
     return (vm.expiration, vm.ethereumAddress, vm.relationships);
   }
 
@@ -254,10 +258,9 @@ abstract contract VMStorage is IVMStorage, VMHooks {
     if (vmId == bytes32(0) || sender == address(0)) {
       revert MissingRequiredParameter();
     }
-    // Get VM
-    VerificationMethod memory vm = _vmByNsAndId[didHash][vmId];
-    // Check if VM exists (has an id set)
-    if (vm.id == bytes32(0)) return false;
+    // Get VM by storage pointer (no copy). A missing VM has ethereumAddress == 0 and sender != 0 is enforced above,
+    // so the ownership comparison below is already false for it.
+    VerificationMethod storage vm = _vmByNsAndId[didHash][vmId];
     // Check if sender owns this VM and has authentication relationship (0x01)
     return (vm.ethereumAddress == sender && (vm.relationships & bytes1(0x01)) == bytes1(0x01));
   }
@@ -281,11 +284,12 @@ abstract contract VMStorage is IVMStorage, VMHooks {
       revert MissingRequiredParameter();
     }
     if (relationship > bytes1(0x1F)) revert VmRelationshipOutOfRange();
-    // Get VM
-    VerificationMethod memory vm = _vmByNsAndId[didHash][id];
+    // Get VM by storage pointer: only the slots actually read are loaded (no copy of the dynamic bytes)
+    VerificationMethod storage vm = _vmByNsAndId[didHash][id];
     // Check if the VM exists and is not expired
     // Note: expiration == 0 means never validated (invalid VM)
-    if (vm.expiration == 0 || vm.expiration <= block.timestamp) revert VmAlreadyExpired();
+    uint88 expiration = vm.expiration;
+    if (expiration == 0 || expiration <= block.timestamp) revert VmAlreadyExpired();
     // Check if the sender is in the VM and if the VM relationship is the same as the one provided
     return (vm.ethereumAddress == sender && (vm.relationships & relationship) == relationship);
   }
