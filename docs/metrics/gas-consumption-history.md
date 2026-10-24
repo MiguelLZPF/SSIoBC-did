@@ -250,7 +250,7 @@ One figure looks alarming and is not: `W3CResolver.checkMethods` moves from a 5,
 - **Controller Update**: €0.25 (average 50,000 gas)
 
 #### Comparative Analysis
-Traditional DID systems (ERC-1056) require event reconstruction, making historical queries expensive. SSIoBC-did trades higher creation cost for:
+Measured against ERC-1056 in [ERC-1056 Gas Comparison](../analysis/research-validation.md#erc-1056-gas-comparison). SSIoBC-did trades higher write cost for:
 - **Direct Storage Access**: No event parsing required
 - **Immediate Resolution**: W3C-compliant response in single call
 - **Predictable Costs**: Fixed gas patterns for all operations
@@ -289,7 +289,7 @@ Traditional DID systems (ERC-1056) require event reconstruction, making historic
 - **W3C Compliance**: No performance penalty for standard adherence
 
 #### Comparison with Related Work
-- **ERC-1056**: Lower creation cost, higher resolution cost
+- **ERC-1056**: measured per operation in [ERC-1056 Gas Comparison](../analysis/research-validation.md#erc-1056-gas-comparison)
 - **EBSI**: Privacy-focused but requires mediators
 - **LACChain**: Enhanced governance with bureaucratic overhead
 - **ONCHAINID**: Pre-W3C standards with different gas patterns
