@@ -48,4 +48,9 @@ interface IServiceStorage {
 
   /// @dev Thrown when service endpoint is empty on create/update
   error ServiceEndpointCannotBeEmpty();
+
+  /// @dev Thrown when adding a new service would push the list past 255 entries. Service positions are `uint8`
+  /// (`getServiceListLength` and `getService` take and return `uint8` in the ABI), so a 256th entry would wrap its
+  /// position to 0 and make the list length untruthful. The cap keeps the existing ABI instead of widening it.
+  error TooManyServices();
 }

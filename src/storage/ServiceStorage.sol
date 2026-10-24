@@ -85,7 +85,10 @@ abstract contract ServiceStorage is IServiceStorage {
     if (!exists) {
       bool added = _serviceIds[serviceDidHash].add(id);
       assert(added);
-      position = uint8(_serviceIds[serviceDidHash].length());
+      // Same cap as VMStorage: positions are uint8, so a 256th entry would wrap to 0 and lose the service
+      uint256 serviceCount = _serviceIds[serviceDidHash].length();
+      if (serviceCount > type(uint8).max) revert TooManyServices();
+      position = uint8(serviceCount);
       _servicePositionByNsAndId[serviceDidHash][id] = position;
       // The id of an existing service never changes, so it is written only when the service is new
       service.id = id;
