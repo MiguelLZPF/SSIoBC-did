@@ -135,7 +135,7 @@ Gas measurements are deterministic when:
 
 ### Key Metrics (v1.7.0)
 
-Median gas per call from `FOUNDRY_PROFILE=ci forge test --gas-report --no-match-path "test/{stress,performance}/*"`, measured on 2026-10-27 at the release commit (`6f54f55`, `src/` identical to the tag), Foundry 1.8.1, solc 0.8.36, EVM osaka, optimizer 200 runs. The medians are taken over the calls the test suite makes, so they are indicative; the single-call, cold-state figures used for the ERC-1056 comparison are in the table above. Raw output: `docs/assets/data/gasreport-v1.7.0.txt`.
+Median gas per call from `FOUNDRY_PROFILE=ci forge test --gas-report --no-match-path "test/{stress,performance}/*"`, measured on 2026-10-27 at the release commit (`6f54f55`, `src/` identical to the tag), Foundry 1.8.1, solc 0.8.36, EVM osaka, optimizer 200 runs. The medians are taken over the calls the test suite makes, so they are indicative and must not be subtracted from the v1.2.0 or v1.6.0 medians as the effect of the gas pass (v1.7.0 added tests, which changes the call mix); the single-call, cold-state figures used for the ERC-1056 comparison are in the table above. Raw output: `docs/assets/data/gasreport-v1.7.0.txt`.
 
 | Operation | Full W3C | Native | Notes |
 |-----------|---------:|-------:|-------|

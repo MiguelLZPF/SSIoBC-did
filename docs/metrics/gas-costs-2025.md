@@ -272,7 +272,7 @@ At 2025 average conditions (2.7 Gwei, €2,633.18/ETH):
 **v1.7.0 Analysis (October 2026, same 2025 baseline: 2.7 Gwei, €2,633.18/ETH):**
 - Gas Price: 2.7 Gwei (baseline held constant)
 - ETH Price: €2,633.18 (baseline held constant)
-- Create DID (DidManager, median): 278,089 gas → €1.98 (**2.0% reduction** from v1.5.0/v1.6.0)
+- Create DID (DidManager, median): 278,089 gas → €1.98 (2.0% lower than the v1.5.0/v1.6.0 median; a cross-suite median, so part of it can be call mix)
 - Create DID (DidManagerNative, median): 211,700 gas → €1.51
 - Deactivate DID (median): 39,818 gas → €0.28
 - Update Controller (median): 29,786 gas → €0.21

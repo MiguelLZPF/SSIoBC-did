@@ -243,7 +243,9 @@ Measured on 2026-10-27 at commit `6f54f55` (`src/` and `test/` are the release c
 ```
 
 
-**Median gas, v1.6.0 -> v1.7.0 (functions whose median moved):**
+Each median comes from its own release's test suite. v1.7.0 added tests, so a median can also move because the mix of calls changed, not only because the code did. The per-test comparison above (-9.14% snapshot, -9.53% isolate, same test set) is the measure of the code change; this table is kept for continuity with earlier releases.
+
+**Median gas, v1.6.0 -> v1.7.0 (functions whose median moved; cross-suite, not the effect of the code alone):**
 
 | Contract | Function | v1.6.0 | v1.7.0 | Change | Change (%) |
 |---|---|---|---|---|---|
@@ -270,7 +272,7 @@ Measured on 2026-10-27 at commit `6f54f55` (`src/` and `test/` are the release c
 | W3CResolverNative | resolve | 383,863 | 240,078 | -143,785 | -37.46% |
 | W3CResolverNative | resolveVm | 123,610 | 83,884 | -39,726 | -32.14% |
 
-**Reading these numbers:** `isAuthorized` falls by 12,612 gas on `DidManager` (-41.78%), `resolve` by 141,892 (-39.52%) on `W3CResolver` and 143,785 (-37.46%) on `W3CResolverNative`, and every state-changing call on `DidManager` that checks a VM relationship falls by about 11,000 to 12,000 gas. The Native variant barely moves because its VM is already a single packed slot, so a memory copy was one SLOAD. Native `expireVm` is the one rise (+706, +1.63%); it comes from a different call mix, not from a code change in that function. `resolve` at 255 verification methods costs 25,858,238 gas on `W3CResolver` and 18,984,153 on `W3CResolverNative` (`includeExpired = false`, as logged by `ListLimits.unit.t.sol`), both under the 50,000,000 gas default `eth_call` cap of geth.
+**Reading these numbers (cross-suite medians, see the note above the table):** `isAuthorized` falls by 12,612 gas on `DidManager` (-41.78%), `resolve` by 141,892 (-39.52%) on `W3CResolver` and 143,785 (-37.46%) on `W3CResolverNative`, and every state-changing call on `DidManager` that checks a VM relationship falls by about 11,000 to 12,000 gas. The Native variant barely moves because its VM is already a single packed slot, so a memory copy was one SLOAD. Native `expireVm` is the one rise (+706, +1.63%); it comes from a different call mix, not from a code change in that function. `resolve` at 255 verification methods costs 25,858,238 gas on `W3CResolver` and 18,984,153 on `W3CResolverNative` (`includeExpired = false`, as logged by `ListLimits.unit.t.sol`), both under the 50,000,000 gas default `eth_call` cap of geth.
 
 **Cost tables.** `createDid` on `DidManager` moved by -2.02%, which is above the 1% bar, so `gas-costs-2025.md` carries a v1.7.0 entry at the document's fixed 2025 market baseline.
 
