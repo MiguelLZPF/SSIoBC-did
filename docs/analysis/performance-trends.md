@@ -225,6 +225,20 @@ The cross-metric analysis validates key research claims:
 - **Gas Predictability**: O(1) for all DID operations
 - **Storage Trade-offs**: Native variant ~80% less storage per VM vs Full W3C
 
+### Phase 7: Off-Chain Authorization to Release Closure (v1.4.0 - v1.7.0)
+
+This phase is summarised here and measured in `docs/metrics/`; the numbers are not repeated in this document so they have one home.
+
+#### Key Developments
+- v1.4.0 and v1.5.0: `msg.sender` identity with the `onlyDirectEOA` guard, `isAuthorizedOffChain` and ERC-1271 contract-signer support, conformant DID-string rendering. These add bytecode to the managers and resolvers (see the v1.5.0 rows in [Contract Size History](../metrics/contract-size-history.md)).
+- v1.6.0: toolchain refresh only (Foundry 1.8.1, solc 0.8.36); no source change.
+- v1.7.0: a gas and bytecode pass with every output pinned byte for byte, then two list-limit fixes (a DID with 255 verification methods resolves, the 256th service is refused), and a measured gas comparison with ERC-1056. All four contracts are smaller than in v1.6.0; see the v1.7.0 sections of [Contract Size History](../metrics/contract-size-history.md) and [Gas Consumption History](../metrics/gas-consumption-history.md).
+
+#### Performance Characteristics
+- **Size Plateau Broken Downward**: the 11-12.5 kB plateau of v1.3.0 became a decline, because the optimizations removed memory copies instead of trading features for bytes.
+- **Gas Predictability**: no output changed; the gas pass lowered per-test gas by 9.14% on an identical test set without altering any output.
+- **Coverage**: see [Test Coverage History](../metrics/test-coverage-history.md#v170-coverage-snapshot).
+
 ## Predictive Analysis
 
 ### Validated Predictions from v0.8.0
@@ -284,7 +298,7 @@ The cross-metric analysis validates key research claims:
 ### Supporting Evidence
 - [Screenshot Archives](../assets/screenshots/) - Visual performance documentation
 - [Size Data Files](../assets/data/) - Numerical comparison data
-- Version tracking: Git tags v0.1.0 through v1.3.0
+- Version tracking: Git tags v0.1.0 through v1.7.0 (v1.4.0 was never tagged separately)
 
 ### Academic Context
 - PhD thesis: "SSIoBC – Decentralized Identifiers [X.XX].md"
@@ -293,4 +307,4 @@ The cross-metric analysis validates key research claims:
 
 ---
 
-*Analysis based on complete performance dataset spanning SSIoBC-did development from v0.1.0 through v1.3.0, supporting comprehensive PhD research validation*
+*Analysis based on complete performance dataset spanning SSIoBC-did development from v0.1.0 through v1.7.0, supporting comprehensive PhD research validation*
