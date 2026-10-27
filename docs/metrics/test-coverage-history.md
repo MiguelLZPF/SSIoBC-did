@@ -125,7 +125,7 @@ The measured line count fell by 23 after the gas pass restructured code in `src/
 
 | Scope | v1.6.0 | v1.7.0 |
 |---|---|---|
-| default local profile (fuzz/invariant excluded) | 371 | 402 |
+| default local profile (fuzz/invariant excluded, no path exclusion) | 371 | 453 |
 | `FOUNDRY_PROFILE=ci`, stress/performance excluded (the CI gate) | 383 | 428 |
 | `FOUNDRY_PROFILE=ci`, no path exclusion | 397 | 479 |
 
@@ -317,4 +317,4 @@ Coverage data supports PhD thesis claims about:
 
 ---
 
-*Last Updated: v1.7.0 (2026-10-27) - 479 tests under the CI profile (428 with stress/performance excluded, the CI coverage scope; 402 under the default profile). Coverage on `src/*` only: 99.39% lines, 99.17% statements, 96.40% branches, 98.89% functions. v1.2.2 through v1.3.1, and v1.4.0 (never tagged), are not measured.*
+*Last Updated: v1.7.0 (2026-10-27) - 479 tests under the CI profile (428 with stress/performance excluded, the CI coverage scope; 453 under the default profile). Coverage on `src/*` only: 99.39% lines, 99.17% statements, 96.40% branches, 98.89% functions. v1.2.2 through v1.3.1, and v1.4.0 (never tagged), are not measured.*
