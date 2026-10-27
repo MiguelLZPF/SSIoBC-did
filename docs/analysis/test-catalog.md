@@ -21,19 +21,21 @@
   - [ListLimits.unit.t.sol](#12-listlimitsunittsol--9-tests)
   - [ResolverGoldenOutput.unit.t.sol](#13-resolvergoldenoutputunittsol--24-tests)
   - [SparseControllers.unit.t.sol](#14-sparsecontrollersunittsol--10-tests)
+  - [Configuration.unit.t.sol](#15-configurationunittsol--2-tests)
 - [Fuzz Tests](#fuzz-tests)
-  - [DidManager.fuzz.t.sol](#15-didmanagerfuzztsol--10-tests)
-  - [DidManagerNative.fuzz.t.sol](#16-didmanagernativefuzztsol--11-tests)
+  - [DidManager.fuzz.t.sol](#16-didmanagerfuzztsol--10-tests)
+  - [DidManagerNative.fuzz.t.sol](#17-didmanagernativefuzztsol--11-tests)
 - [Integration Tests](#integration-tests)
-  - [DidLifecycle.integration.t.sol](#17-didlifecycleintegrationtsol--6-tests)
-  - [KeyAgreementE2E.t.sol](#18-keyagreemente2etsol--3-tests)
+  - [DidLifecycle.integration.t.sol](#18-didlifecycleintegrationtsol--6-tests)
+  - [KeyAgreementE2E.t.sol](#19-keyagreemente2etsol--3-tests)
 - [Invariant Tests](#invariant-tests)
-  - [SystemInvariants.t.sol](#19-systeminvariantstsol--7-invariants)
-  - [NativeSystemInvariants.t.sol](#20-nativesysteminvariantstsol--8-invariants)
+  - [SystemInvariants.t.sol](#20-systeminvariantstsol--7-invariants)
+  - [NativeSystemInvariants.t.sol](#21-nativesysteminvariantstsol--8-invariants)
 - [Performance Tests](#performance-tests)
-  - [GasOptimization.performance.t.sol](#21-gasoptimizationperformancetsol--8-tests)
+  - [GasOptimization.performance.t.sol](#22-gasoptimizationperformancetsol--8-tests)
+  - [EthrDidComparison.performance.t.sol](#23-ethrdidcomparisonperformancetsol--37-tests)
 - [Stress Tests](#stress-tests)
-  - [StressTest.t.sol](#22-stresstesttsol--6-tests)
+  - [StressTest.t.sol](#24-stresstesttsol--6-tests)
 - [Helper & Fixture Files](#helper--fixture-files)
 - [Coverage by Production Contract](#coverage-by-production-contract)
 
@@ -43,15 +45,15 @@
 
 | Category | Count | Files |
 |----------|------:|------:|
-| Unit Tests | 394 | 14 |
+| Unit Tests | 396 | 15 |
 | Fuzz Tests | 21 | 2 |
 | Integration Tests | 9 | 2 |
 | Invariant Tests | 15 | 2 |
-| Performance Tests | 8 | 1 |
+| Performance Tests | 45 | 2 |
 | Stress Tests | 6 | 1 |
-| **TOTAL** | **453** | **22** |
+| **TOTAL** | **492** | **24** |
 
-> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 414 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 453 run under the CI profiles.
+> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 453 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 492 test functions run under the CI profiles, which forge 1.8.1 reports as 479 because it counts each invariant suite as one test.
 
 ---
 
@@ -682,9 +684,24 @@ Behaviour lock added before the gas pass touched `_isControllerFor`: the loop mu
 
 ---
 
+### 15. `Configuration.unit.t.sol` — 2 tests
+
+**File**: `test/unit/Configuration.unit.t.sol`
+**Contract**: `ConfigurationUnitTest` (2)
+**Primary targets**: `Configuration.getNetwork()`, `Configuration.storeDeployment()`, `Configuration.retrieveDeployment()` (deployment tooling in `script/`, not a production contract)
+
+Each test holds both of its scenarios in one function on purpose: `vm.setEnv` mutates the shared process environment and forge runs test functions in parallel, so two functions that set the same variable would race.
+
+| # | Test Name | What It Does | Production Functions & Contracts Touched | Notable Setup |
+|---|-----------|-------------|------------------------------------------|---------------|
+| 1 | `test_getNetwork_readsNetworkNameWithChainIdFallback` | `getNetwork()` returns the chain id and the `NETWORK_NAME` value, and falls back to `chain-<id>` when the variable is empty | `Configuration.getNetwork()` | `vm.setEnv("NETWORK_NAME", ...)`, `vm.chainId(6660)` and `vm.chainId(424242)` |
+| 2 | `test_storeAndRetrieveDeployment_roundTripsAndReplaces` | A stored deployment is read back field for field, and storing the same chain id and name again replaces the entry instead of appending | `Configuration.storeDeployment()`, `Configuration.retrieveDeployment(chainId, name)` | temp ledger file under `.temp/`, `DEPLOYMENTS_PATH` set per scenario |
+
+---
+
 ## Fuzz Tests
 
-### 15. `DidManager.fuzz.t.sol` — 10 tests
+### 16. `DidManager.fuzz.t.sol` — 10 tests
 
 **File**: `test/fuzz/DidManager.fuzz.t.sol`
 **Contract**: `DidManagerFuzzTest`
@@ -705,7 +722,7 @@ Behaviour lock added before the gas pass touched `_isControllerFor`: the loop mu
 
 ---
 
-### 16. `DidManagerNative.fuzz.t.sol` — 11 tests
+### 17. `DidManagerNative.fuzz.t.sol` — 11 tests
 
 **File**: `test/fuzz/DidManagerNative.fuzz.t.sol`
 **Contract**: `DidManagerNativeFuzzTest`
@@ -721,7 +738,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ## Integration Tests
 
-### 17. `DidLifecycle.integration.t.sol` — 6 tests
+### 18. `DidLifecycle.integration.t.sol` — 6 tests
 
 **File**: `test/integration/DidLifecycle.integration.t.sol`
 **Contract**: `DidLifecycleIntegrationTest`
@@ -738,7 +755,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ---
 
-### 18. `KeyAgreementE2E.t.sol` — 3 tests
+### 19. `KeyAgreementE2E.t.sol` — 3 tests
 
 **File**: `test/integration/KeyAgreementE2E.t.sol`
 **Contract**: `KeyAgreementE2ETest`
@@ -754,7 +771,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ## Invariant Tests
 
-### 19. `SystemInvariants.t.sol` — 7 invariants
+### 20. `SystemInvariants.t.sol` — 7 invariants
 
 **File**: `test/invariant/SystemInvariants.t.sol`
 **Contract**: `SystemInvariantsTest`
@@ -773,7 +790,7 @@ Same 10 tests as above adapted for native **plus**:
 
 ---
 
-### 20. `NativeSystemInvariants.t.sol` — 8 invariants
+### 21. `NativeSystemInvariants.t.sol` — 8 invariants
 
 **File**: `test/invariant/NativeSystemInvariants.t.sol`
 **Contract**: `NativeSystemInvariantsTest`
@@ -789,7 +806,7 @@ Same 7 invariants as above for native variant **plus**:
 
 ## Performance Tests
 
-### 21. `GasOptimization.performance.t.sol` — 8 tests
+### 22. `GasOptimization.performance.t.sol` — 8 tests
 
 **File**: `test/performance/GasOptimization.performance.t.sol`
 **Contract**: `GasOptimizationPerformanceTest`
@@ -809,9 +826,28 @@ Same 7 invariants as above for native variant **plus**:
 
 ---
 
+### 23. `EthrDidComparison.performance.t.sol` — 37 tests
+
+**File**: `test/performance/EthrDidComparison.performance.t.sol`
+**Contract**: `EthrDidComparisonPerformanceTest` (37)
+**Purpose**: Gas of SSIoBC-did (Full and Native) against the ERC-1056 registry (`ethr-did-registry` 1.3.0, test-only submodule under `lib/`), one operation per test, reported in `docs/analysis/research-validation.md#erc-1056-gas-comparison`
+**CI**: Excluded from the `test` and `coverage` jobs (path filter), runs in `ci_thorough`; ceilings sit 5% above the measured values
+
+Each test marks the target cold (`vm.cool`), makes one top-level call and reads `vm.lastFrameGas()`, which excludes the 21,000 intrinsic gas and the calldata gas. Payloads are equal on both sides. Each test logs `GAS|<label>|<gas>|calldata=<gas>` and asserts the value is above zero and under its ceiling.
+
+| # | Test Name | What It Does | Operations Measured | Metrics |
+|---|-----------|-------------|---------------------|---------|
+| 1-12 | `test_Full_CreateDid`, `test_Full_CreateVm_EthAddress`, `test_Full_CreateVm_PublicKey_N1` / `_N3` / `_N5`, `test_Full_ValidateVm`, `test_Full_UpdateController`, `test_Full_UpdateService`, `test_Full_Resolve_N1` / `_N3` / `_N5`, `test_Full_IsAuthorized` | The Full variant, one operation per test; `_N1`, `_N3`, `_N5` run on a document that already holds 1, 3 or 5 VMs | `createDid`, `createVm`, `validateVm`, `updateController`, `updateService`, `resolve`, `isAuthorized` | Callee-frame gas, calldata gas, ceiling |
+| 13-24 | `test_Native_CreateDid`, `test_Native_CreateVm_EthAddress`, `test_Native_CreateVm_PublicKey_N1` / `_N3` / `_N5`, `test_Native_ValidateVm`, `test_Native_UpdateController`, `test_Native_UpdateService`, `test_Native_Resolve_N1` / `_N3` / `_N5`, `test_Native_IsAuthorized` | The same twelve operations on the Native variant | same | same |
+| 25-37 | `test_Ethr_ImplicitCreate_IsFree`, `test_Ethr_ChangeOwner`, `test_Ethr_AddDelegate`, `test_Ethr_SetAttribute_Key_N0` / `_N1` / `_N3` / `_N5`, `test_Ethr_SetAttribute_Service_N0` / `_N1` / `_N3` / `_N5`, `test_Ethr_IdentityOwner`, `test_Ethr_ValidDelegate` | ERC-1056: implicit creation (asserts 0 gas), owner change, delegate, key and service attributes with 0, 1, 3 and 5 existing attributes, and the two on-chain views | `changeOwner`, `addDelegate`, `setAttribute`, `identityOwner`, `validDelegate` | Callee-frame gas, calldata gas, ceiling |
+
+The table groups tests that share a shape; the count in the heading is the number of test functions in the file (12 + 12 + 13 = 37).
+
+---
+
 ## Stress Tests
 
-### 22. `StressTest.t.sol` — 6 tests
+### 24. `StressTest.t.sol` — 6 tests
 
 **File**: `test/stress/StressTest.t.sol`
 **Contract**: `StressTest`
@@ -861,7 +897,7 @@ These files are not test files but support the test infrastructure:
 
 ---
 
-**Last Updated**: 2026-10-24
-**Total Test Count**: 453 (414 in the default profile; fuzz/invariant run under CI profiles)
+**Last Updated**: 2026-10-27 (v1.7.0)
+**Total Test Count**: 492 test functions in 24 files (453 in the default profile; fuzz/invariant run under CI profiles)
 **Test Framework**: Foundry (forge test)
 **Coverage Target**: >90% (enforced in CI/CD)
