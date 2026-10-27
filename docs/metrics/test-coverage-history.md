@@ -24,6 +24,7 @@ The project has maintained comprehensive test coverage throughout development, w
 #### Coverage Evidence by Version
 
 - [v1.6.0 coverage summary (`forge coverage --report summary`)](../assets/data/coverage-v1.6.0.txt)
+- [v1.7.0 coverage summary (`forge coverage --report summary`)](../assets/data/coverage-v1.7.0.txt)
 
 **From v1.6.0 the evidence is text, not an image.** A screenshot of a terminal cannot be grepped,
 diffed, or checked by a linter, so nobody notices when it stops matching the tables above it, and a
@@ -66,6 +67,7 @@ v1.5.0.
 | **v1.2.1** | **>98%** | **See below** | **100%** | **>90%** | **317 total tests (+28 isAuthorized, +11 native fuzz, +8 native invariant, +2 expireVm), removed redundant authenticate()** |
 | **v1.5.0** | **98.83%** | **673/681** | **98.86% (87/88)** | **94.96% (132/139)** | **See "v1.5.0 Coverage Snapshot" below** |
 | v1.6.0 | 98.83% | 673/681 | 98.86% (87/88) | 94.96% (132/139) | Toolchain only (Foundry 1.8.1, solc 0.8.36); identical to v1.5.0, see snapshot below |
+| **v1.7.0** | **99.39%** | **654/658** | **98.89% (89/90)** | **96.40% (134/139)** | **Gas pass + list-limit fixes + behaviour-lock and ERC-1056 tests; see snapshot below** |
 
 **Versions not measured in this pass:** v1.2.2 through v1.3.1 (git tags exist for all of them) and v1.4.0 (never tagged; see `contract-size-history.md`) are not filled in above. Recovering their coverage would require checking out each old tag and re-running `forge coverage` at that commit, which this update deliberately does not do (no branches created, no tags checked out; only the current working tree at v1.5.0 was measured).
 
@@ -107,6 +109,27 @@ The same two files still fall short of 100%: `src/W3CResolverBase.sol` (88.89% l
 The 15 invariants still run and still pass; only the arithmetic of the total changed. Anyone comparing a v1.6.0 test count against an earlier release needs to know which forge produced it.
 
 **All 397 pass, which was not true before this release.** `test_GasBenchmark_CreateMultipleServices_ScalingAnalysis` in `test/performance/` asserted service creation stays under 200,000 gas while measuring 225,926 on its first, cold-storage iteration. That is not a regression from the toolchain bump: the identical 225,926 was reproduced on `main` before any change on this branch, so the `thorough` job that runs this scope on push to `main` was already red. The first two rows exclude `test/performance/`, which is why the pull-request gate stayed green and hid it. The budget was raised to 240,000 in v1.6.0; see CHANGELOG.md.
+
+### v1.7.0 Coverage Snapshot
+
+Measured on 2026-10-27 at commit `6f54f55` with `FOUNDRY_PROFILE=ci forge coverage --report lcov --no-match-path "test/{stress,performance}/*"` (Foundry 1.8.1, solc 0.8.36), then reading the `src/*` records of the LCOV file, which is the filter the CI `coverage` job applies before its 90% gate. The `--report summary` output is committed as [coverage-v1.7.0.txt](../assets/data/coverage-v1.7.0.txt).
+
+- **Lines**: 99.39% (654/658), up from 98.83% (673/681)
+- **Statements**: 99.17% (841/848)
+- **Branches**: 96.40% (134/139), up from 94.96% (132/139)
+- **Functions**: 98.89% (89/90)
+
+The measured line count fell by 23 after the gas pass restructured code in `src/`, and the percentages rose; the behaviour-lock tests (`ResolverGoldenOutput`, `SparseControllers`) and the 255-limit tests are the likely cause of the higher branch figure, though no per-test attribution was run. Two `src/` files remain below 100%: `src/W3CResolverBase.sol` (89.47% lines, 17/19; 75.00% functions, 3/4) and `src/storage/VMStorage.sol` (97.83% lines, 90/92; 82.61% branches, 19/23). The `--report summary` Total row (89.20% lines) spans `src/`, `test/` and `script/`, and is not the gate.
+
+**Test counts** (forge 1.8.1, which counts an invariant suite as one test):
+
+| Scope | v1.6.0 | v1.7.0 |
+|---|---|---|
+| default local profile (fuzz/invariant excluded) | 371 | 402 |
+| `FOUNDRY_PROFILE=ci`, stress/performance excluded (the CI gate) | 383 | 428 |
+| `FOUNDRY_PROFILE=ci`, no path exclusion | 397 | 479 |
+
+The growth is the behaviour-lock tests from the gas pass, the list-limit tests and the ERC-1056 comparison under `test/performance/`.
 
 ## Quality Metrics
 
@@ -294,4 +317,4 @@ Coverage data supports PhD thesis claims about:
 
 ---
 
-*Last Updated: v1.5.0 - 410 total tests under the CI profile (396 with stress/performance excluded, matching the CI coverage job's own scope; 371 under the default local profile). Coverage on `src/*` only (CI's own filtered gate): 98.83% lines, 98.43% statements, 94.96% branches, 98.86% functions. v1.2.2 through v1.3.1, and v1.4.0 (never tagged), are not measured in this pass; see the note above the v1.5.0 row. Fuzz/invariant excluded from default local runs; included in CI profiles (`ci`, `ci_thorough`).*
+*Last Updated: v1.7.0 (2026-10-27) - 479 tests under the CI profile (428 with stress/performance excluded, the CI coverage scope; 402 under the default profile). Coverage on `src/*` only: 99.39% lines, 99.17% statements, 96.40% branches, 98.89% functions. v1.2.2 through v1.3.1, and v1.4.0 (never tagged), are not measured.*

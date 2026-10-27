@@ -45,12 +45,14 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | **v1.3.1** | **12.9 kB** | **10.8 kB** | **11.3 kB** | **11.4 kB** | **Off-chain auth: isAuthorizedOffChain() + lifecycle flows docs + 24 signature-based tests** |
 | **v1.5.0** | **13.9 kB** | **11.8 kB** | **12.3 kB** | **12.4 kB** | **ERC-1271 contract-signer support (`isAuthorizedOffChainWithSigner`) + conformant DID-string rendering (`trimMethodSegment`) + `onlyDirectEOA` thinned to an internal-function guard; also carries v1.4.0's msg.sender migration, never tagged separately and released together with v1.5.0 (see note below)** |
 | v1.6.0 | 13.9 kB | 11.8 kB | 12.3 kB | 12.4 kB | Toolchain only: Foundry 1.8.1, solc 0.8.36, forge-std 1.16.2, OpenZeppelin 5.7.0 (no source changes) |
+| **v1.7.0** | **12.9 kB** | **9.6 kB** | **12.1 kB** | **10.1 kB** | **Gas and bytecode pass (storage-pointer reads, in-place array shrinking, shared DID prefix) + list-limit fixes (255 VMs resolve, services capped at 255)** |
 
 ### Visual Documentation
 
 #### Size Evidence by Version
 
 - [v1.6.0 sizes (`forge build --sizes`)](../assets/data/sizes-v1.6.0.txt)
+- [v1.7.0 sizes (`forge build --sizes`)](../assets/data/sizes-v1.7.0.txt)
 
 **From v1.6.0 the evidence is text, not an image.** A screenshot of a terminal cannot be grepped,
 diffed, or checked by a linter, so nobody notices when it stops matching the tables above it, and a
@@ -429,6 +431,37 @@ The v1.6.0 release changes no Solidity in `src/`. It moves the toolchain forward
 
 **Net impact**: both managers shrink slightly and both resolvers are byte-identical, so the release costs nothing in EIP-170 headroom; the smallest margin is `DidManager` at 10,669 bytes.
 
+### v1.7.0 Gas and Bytecode Pass (October 2026)
+
+The v1.7.0 release is the first since v1.5.0 to change Solidity in `src/`. Two groups of changes land together. The gas pass (PR #42) rewrites storage reads, array building and DID-string formatting in the managers and resolvers without changing behaviour; every output is pinned byte for byte by `ResolverGoldenOutput.unit.t.sol` and `SparseControllers.unit.t.sol`. The list-limit fixes (PR #43) add a few bytes back: the resolvers now loop with a `uint8` counter so a DID with 255 verification methods resolves, and `ServiceStorage` reverts `TooManyServices()` on the 256th service. Both variants carry the changes; `ServiceStorage` and the resolver base are shared.
+
+#### v1.7.0 Contract Sizes (measured via `forge build --sizes`, default profile)
+```
+| Contract             | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|----------------------|-------------------|---------------------|----------------------|-----------------------|
+| DidManager           | 12,928            | 12,956              | 11,648               | 36,196                |
+| DidManagerNative     | 12,141            | 12,169              | 12,435               | 36,983                |
+| W3CResolver          | 9,595             | 9,739               | 14,981               | 39,413                |
+| W3CResolverNative    | 10,116            | 10,260              | 14,460               | 38,892                |
+```
+
+**Key Changes:**
+1. **Storage-pointer reads** (`_isVmRelationship`, `_getVmForAuth`, ownership checks): the VM struct is no longer copied to memory when only three fields are needed, which removes the struct-copy code from `DidManager`.
+2. **Resolvers build less memory**: the DID prefix is formatted once per `resolve`, result arrays shrink in place instead of being copied, hex encoding reads a constant table, and packed service strings are copied with `mcopy`. The gas-pass ledger attributes the resolver shrinkage to these commits.
+3. **List-limit fixes**: +36 bytes on each manager and +15 (`W3CResolver`) and +40 (`W3CResolverNative`) on the resolvers, measured against the gas-pass branch head just before them (12,892, 12,105, 9,580 and 10,076 bytes; that head was measured before the merge, so treat the split as approximate).
+4. Foundry 1.8.1, solc 0.8.36 and the dependencies are unchanged from v1.6.0, so the comparison below measures source changes only.
+
+**Size Impact (v1.6.0 -> v1.7.0):**
+
+| Contract | v1.6.0 (B) | v1.7.0 (B) | Change (B) | Change (%) |
+|---|---|---|---|---|
+| DidManager | 13,907 | 12,928 | -979 | -7.04% |
+| DidManagerNative | 12,294 | 12,141 | -153 | -1.24% |
+| W3CResolver | 11,845 | 9,595 | -2,250 | -19.00% |
+| W3CResolverNative | 12,367 | 10,116 | -2,251 | -18.20% |
+
+**Net impact**: every contract shrinks, the resolvers by about a fifth, so the smallest EIP-170 margin is now `DidManagerNative` at 12,435 bytes (it was `DidManager` at 10,669). Evidence: [sizes-v1.7.0.txt](../assets/data/sizes-v1.7.0.txt).
+
 #### Trade-off Analysis
 
 The v1.0 architecture provides:
@@ -498,4 +531,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v1.5.0 - ERC-1271 contract-signer support, conformant DID-string rendering, `onlyDirectEOA` guard thinning (also carries v1.4.0's msg.sender migration, never tagged separately; see the v1.5.0 section above)*
+*Last Updated: v1.7.0 (2026-10-27) - gas and bytecode pass plus list-limit fixes; all four contracts shrink against v1.6.0. See the v1.7.0 section above.*
