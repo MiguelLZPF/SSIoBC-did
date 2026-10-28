@@ -808,8 +808,8 @@ The system provides two variants sharing a common base, each optimized for diffe
 
 | Variant | VM Storage | Contract Size | Use Case |
 |---------|-----------|--------------|----------|
-| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,885 B | General-purpose DID with any key type |
-| **Ethereum-Native** (DidManagerNative) | 1-slot per VM + overflow publicKeyMultibase for keyAgreement (ethereumAddress + relationships + expiration = 32 bytes) | 11,277 B | Ethereum-only DIDs, ~12% smaller bytecode |
+| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,928 B | General-purpose DID with any key type |
+| **Ethereum-Native** (DidManagerNative) | 1-slot per VM + overflow publicKeyMultibase for keyAgreement (ethereumAddress + relationships + expiration = 32 bytes) | 12,141 B | Ethereum-only DIDs, ~6% smaller bytecode |
 
 Both variants share (via Template Method pattern):
 - **DidAggregate**: All shared DID lifecycle logic — expiration, controllers, auth (incl. `isAuthorized`), services, parameter validation (`_validateTripleParams`, `_validateAuthorizedParams`, `_validateViewParams`). Calls abstract VM hooks.
@@ -1022,7 +1022,7 @@ struct VerificationMethod {
 - `publicKeyMultibase`: Read from overflow storage for keyAgreement VMs, empty for others
 - `blockchainAccountId`: Derived as CAIP-10 from `ethereumAddress` + `block.chainid`
 
-**Contract Size**: 11,709 B runtime
+**Contract Size**: 10,116 B runtime (v1.7.0)
 
 ### Key Design Patterns
 
@@ -1687,7 +1687,7 @@ script/
 
 ---
 
-**Last Updated**: 2026-09-06
-**Version**: v1.5.0
+**Last Updated**: 2026-10-27
+**Version**: v1.7.0
 **Purpose**: Single source of truth for SSIoBC-did project knowledge
 **Referenced By**: CLAUDE.md, docs/README.md

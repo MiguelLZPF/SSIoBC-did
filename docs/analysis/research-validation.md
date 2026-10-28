@@ -74,7 +74,7 @@ Unlike event-based approaches (ERC-1056, LACChain) that require off-chain indexe
 
 ### ERC-1056 Gas Comparison
 
-Measured against the ERC-1056 reference registry (`uport-project/ethr-did-registry` 1.3.0, tag commit `22b55e5`). SSIoBC-did v1.7.0 candidate, measured on the pull request that added this comparison (#44), on 2026-10-24, with Foundry 1.8.1, solc 0.8.36, EVM osaka, optimizer 200 runs. Reproduce with:
+Measured against the ERC-1056 reference registry (`uport-project/ethr-did-registry` 1.3.0, tag commit `22b55e5`). SSIoBC-did v1.7.0, first measured on the pull request that added this comparison (#44) on 2026-10-24, and confirmed at the release commit on 2026-10-27 (all 37 logged values identical), with Foundry 1.8.1, solc 0.8.36, EVM osaka, optimizer 200 runs. Reproduce with:
 
 ```bash
 FOUNDRY_PROFILE=ci_thorough forge test --match-path test/performance/EthrDidComparison.performance.t.sol -vv
@@ -133,16 +133,23 @@ Gas measurements are deterministic when:
 3. Same test inputs are provided (via Fixtures constants)
 4. Same EVM version is targeted
 
-### Key Metrics (v1.2.0)
+### Key Metrics (v1.7.0)
 
-| Operation | Gas Cost | Notes |
-|-----------|----------|-------|
-| DID Creation | ~250K | Includes default VM creation |
-| VM Addition | ~150K | Varies by key material |
-| VM Validation | ~50K | Signature verification |
-| Service Update | ~80K | Dynamic bytes storage |
-| DID Resolution | ~350K | Full W3C document assembly |
-| Controller Update | ~60K | Storage write + auth check |
+Median gas per call from `FOUNDRY_PROFILE=ci forge test --gas-report --no-match-path "test/{stress,performance}/*"`, measured on 2026-10-27 at the release commit (`6f54f55`, `src/` identical to the tag), Foundry 1.8.1, solc 0.8.36, EVM osaka, optimizer 200 runs. The medians are taken over the calls the test suite makes, so they are indicative and must not be subtracted from the v1.2.0 or v1.6.0 medians as the effect of the gas pass (v1.7.0 added tests, which changes the call mix); the single-call, cold-state figures used for the ERC-1056 comparison are in the table above. Raw output: `docs/assets/data/gasreport-v1.7.0.txt`.
+
+| Operation | Full W3C | Native | Notes |
+|-----------|---------:|-------:|-------|
+| DID creation (`createDid`) | 278,089 | 211,700 | Includes the default VM |
+| VM addition (`createVm`) | 254,031 | 185,629 | Varies by key material |
+| VM validation (`validateVm`) | 35,357 | 33,354 | Proof of control by the VM's address |
+| Service update (`updateService`) | 186,234 | 186,147 | Dynamic bytes storage |
+| DID resolution (`resolve`) | 217,128 | 240,078 | Full W3C document assembly, `eth_call` for an off-chain caller |
+| Controller update (`updateController`) | 29,786 | 29,933 | Storage write plus authorization check |
+| Authorization check (`isAuthorized`) | 17,578 | 17,550 | View |
+
+Runtime size (`forge build --sizes`, same date): `DidManager` 12,928 B, `DidManagerNative` 12,141 B, `W3CResolver` 9,595 B, `W3CResolverNative` 10,116 B, all against the 24,576 B EIP-170 limit. Test coverage on `src/` is 99.39% lines (654/658) and 96.40% branches (134/139), measured the same day (`docs/assets/data/coverage-v1.7.0.txt`). Resolving a DID that holds the maximum 255 verification methods costs 25,858,238 gas on `W3CResolver` and 18,984,153 on `W3CResolverNative` (`includeExpired = false`, logged by `ListLimits.unit.t.sol`, `forge test --match-path test/unit/ListLimits.unit.t.sol -vv`, 2026-10-27), under the 50,000,000 gas default `eth_call` cap of geth.
+
+The v1.2.0 block this section replaces held rounded estimates (for example about 250K for DID creation), not medians, so the two blocks are not comparable row by row. The like-for-like comparison is the same-test-set measurement in `docs/metrics/gas-consumption-history.md`, where the gas pass lowered per-test gas by 9.14%.
 
 See `docs/metrics/gas-consumption-history.md` for version-by-version tracking.
 
@@ -153,18 +160,18 @@ See `docs/metrics/gas-consumption-history.md` for version-by-version tracking.
 ### Coverage Requirements
 
 - **Minimum threshold**: 90% (enforced in CI/CD)
-- **Current coverage**: >90% across all source contracts
+- **Current coverage**: 99.39% lines and 96.40% branches on `src/` (v1.7.0, 2026-10-27)
 - **VMStorageNative**: 100% coverage (all metrics)
 
 ### Test Categories
 
 | Category | Count | Purpose |
 |----------|-------|---------|
-| Unit tests | 258 | Individual function behavior |
+| Unit tests | 396 | Individual function behavior |
 | Fuzz tests | 21 | Property-based edge cases |
 | Invariant tests | 15 | System-wide properties |
 | Integration tests | 9 | Cross-contract workflows |
-| Performance tests | 8 | Gas benchmarking |
+| Performance tests | 45 | Gas benchmarking and the ERC-1056 comparison |
 | Stress tests | 6 | Performance under load |
 
 ### Coverage as Evidence
@@ -193,7 +200,7 @@ High test coverage validates:
 - Full W3C variant supports arbitrary key types and multi-slot VMs
 - Ethereum-Native variant packs each VM into a single 32-byte slot
 - Both share DidAggregate (aggregate root), VMHooks (shared ancestor), ServiceStorage, and HashUtils
-- Native variant achieves ~13% bytecode size reduction
+- Native manager is 6.1% smaller than the Full manager (`DidManagerNative` 12,141 B against `DidManager` 12,928 B at v1.7.0)
 
 ### Claim 3: Gas-Efficient On-Chain Storage
 
@@ -202,6 +209,7 @@ High test coverage validates:
 - Storage packing: Native VMs in 1 slot (address + relationships + expiration)
 - ServiceStorage: 96% storage reduction via dynamic bytes (v1.0.1)
 - Custom errors: ~50 bytes bytecode savings per error site
+- Gas pass (v1.7.0): storage-pointer reads and in-place array shrinking cut per-test gas by 9.14% on an identical test set; `DidManager` shrank 979 B and the resolvers about 2.25 kB each against v1.6.0
 - Optimizer tuned for deployment size (200 runs)
 
 ### Claim 4: W3C DID Core Compliance

@@ -28,6 +28,7 @@ This document provides comprehensive storage layout analysis for the SSIoBC-did 
 
 **Contract Version:** v1.3.0
 **Last Updated:** March 2026
+**Layout status:** the storage layout is unchanged through v1.7.0. No state variable, mapping or struct field was added, removed or reordered in `src/` between v1.3.0 and v1.7.0 (checked 2026-10-27 against `git diff v1.3.0 HEAD -- src`; the only new declaration is a `constant`, which occupies no slot).
 
 ---
 

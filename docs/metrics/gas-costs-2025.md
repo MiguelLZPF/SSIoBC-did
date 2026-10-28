@@ -3,7 +3,7 @@
 **Document Version:** 1.3
 **Analysis Date:** February 5, 2026
 **Contract Version:** v1.1.0 (bytecode optimization)
-**Last Comparative Update:** September 6, 2026 (v1.5.0 entry added; see Comparative Analysis)
+**Last Comparative Update:** October 27, 2026 (v1.7.0 entry added; see Comparative Analysis)
 **Purpose:** Economic feasibility analysis for PhD research validation
 
 ## Table of Contents
@@ -269,6 +269,18 @@ At 2025 average conditions (2.7 Gwei, €2,633.18/ETH):
 
 **Note:** this entry reuses the document's original 2025 average market assumptions (2.7 Gwei, €2,633.18/ETH) rather than live 2026 prices, for direct comparability with the v1.0/v1.0.1/v1.1.0 entries above, exactly as this document's existing convention already does across entries spanning multiple actual dates. No live 2026 ETH or gas price was looked up for this entry. Gas figures are from `FOUNDRY_PROFILE=ci forge test --gas-report --no-match-path "test/{stress,performance}/*"`; contract sizes are from `forge build --sizes` (default profile).
 
+**v1.7.0 Analysis (October 2026, same 2025 baseline: 2.7 Gwei, €2,633.18/ETH):**
+- Gas Price: 2.7 Gwei (baseline held constant)
+- ETH Price: €2,633.18 (baseline held constant)
+- Create DID (DidManager, median): 278,089 gas → €1.98 (2.0% lower than the v1.5.0/v1.6.0 median; a cross-suite median, so part of it can be call mix)
+- Create DID (DidManagerNative, median): 211,700 gas → €1.51
+- Deactivate DID (median): 39,818 gas → €0.28
+- Update Controller (median): 29,786 gas → €0.21
+- Update Service (median): 186,234 gas → €1.32
+- Deployment (DidManager + W3CResolver, formula per Methodology above, using v1.7.0 initcode sizes 12,956 B and 9,739 B): 4,603,000 gas → €32.73 (**12.4% reduction** from v1.5.0)
+
+**Note on v1.7.0:** gas figures are from `FOUNDRY_PROFILE=ci forge test --gas-report --no-match-path "test/{stress,performance}/*"` at commit `6f54f55`; contract sizes are from `forge build --sizes` (default profile). As for v1.5.0, no live 2026 market price was looked up. The test suite grew since v1.5.0, so per-function medians are taken over different call sets; see [gas-consumption-history.md](./gas-consumption-history.md#v170-gas-snapshot-october-2026) for the same-test-set comparison.
+
 **Key Observations:**
 1. **CreateDID gas decreased:** 313,898 → 283,522 gas (10% reduction in v1.0.1)
    - Continued optimization from VMStorage improvements
@@ -437,12 +449,12 @@ CreateDID:
 
 ---
 
-**Note:** This document captures the v1.1.0 gas analysis snapshot as its baseline, with later versions (v1.0.1 through v1.5.0) appended above at the same fixed 2025 market assumptions for comparability. For the full measured gas tables and contract sizes at each version, see [gas-consumption-history.md](./gas-consumption-history.md) and [contract-size-history.md](./contract-size-history.md). v1.2.2 through v1.3.1, and v1.4.0 (never tagged; folded into v1.5.0 per CHANGELOG.md), are not measured anywhere in this document.
+**Note:** This document captures the v1.1.0 gas analysis snapshot as its baseline, with later versions (v1.0.1 through v1.7.0) appended above at the same fixed 2025 market assumptions for comparability. For the full measured gas tables and contract sizes at each version, see [gas-consumption-history.md](./gas-consumption-history.md) and [contract-size-history.md](./contract-size-history.md). v1.2.2 through v1.3.1, and v1.4.0 (never tagged; folded into v1.5.0 per CHANGELOG.md), are not measured anywhere in this document.
 
 **Document Maintenance:**
 - Next update: When significant gas cost changes occur or new features are added
 - Version history: Track in git commits
-- Last comparative entry added: v1.5.0 (September 6, 2026), reusing the 2025 baseline assumptions above
+- Last comparative entry added: v1.7.0 (October 27, 2026), reusing the 2025 baseline assumptions above
 - Cross-references: See `docs/metrics/test-coverage-history.md` for test coverage metrics
 
 **Related Documentation:**

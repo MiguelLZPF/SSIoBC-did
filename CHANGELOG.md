@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Table of Contents
 
 - [Unreleased](#unreleased)
+- [1.7.0 — 2026-10-27](#170--2026-10-27)
 - [1.6.0 — 2026-09-07](#160--2026-09-07)
 - [1.5.0 — 2026-09-06](#150--2026-09-06)
 - [1.4.0 — 2026-06-10](#140--2026-06-10)
@@ -26,9 +27,74 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Deployment tooling. No `src/` Solidity changed, so no ABI moved and no bytecode differs.
+## [1.7.0] — 2026-10-27
+
+Gas and bytecode pass, two list-limit fixes, a measured gas comparison with ERC-1056 and
+deployment tooling. The project is closed for the PhD defence at this release.
+
+`src/` changes. No function selector moved and no storage slot changed: the only ABI addition is
+the custom error `TooManyServices()` in `IServiceStorage`. Two behaviours differ from v1.6.0, and
+both were bugs:
+
+- `resolve` now works on a DID that holds the maximum 255 verification methods, on both
+  variants. It panicked (0x11, arithmetic overflow) before.
+- A new 256th service now reverts with `TooManyServices()`. Before, its `uint8` position wrapped
+  to 0 and `getServiceListLength` reported the wrong length. Updating an existing service on a
+  full list, and adding one after deleting one, still work.
+
+Every contract is smaller than in v1.6.0 (DidManager -979 B, DidManagerNative -153 B,
+W3CResolver -2,250 B, W3CResolverNative -2,251 B) and the gas of most operations falls. The
+metrics below were measured once at the release content with forge 1.8.1 and solc 0.8.36.
 
 ### Added
+
+- **A measured gas comparison with the ERC-1056 registry** (#44). `lib/ethr-did-registry`
+  (`uport-project/ethr-did-registry` 1.3.0, test-only submodule),
+  `test/performance/EthrDidComparison.performance.t.sol` (37 tests, run by the `thorough` job
+  only) and the table in `docs/analysis/research-validation.md#erc-1056-gas-comparison`. The
+  off-chain replay cost of ERC-1056 is stated, not counted as zero. The numbers were re-run at
+  the release commit and did not change.
+- **Behaviour-lock tests** added before the gas pass touched the code:
+  `ResolverGoldenOutput.unit.t.sol` (24 tests, resolver output pinned byte for byte) and
+  `SparseControllers.unit.t.sol` (10 tests), plus `ListLimits.unit.t.sol` (9 tests) for the
+  255-entry limits.
+- **v1.7.0 evidence** under `docs/assets/data/`: `sizes-v1.7.0.txt`, `gasreport-v1.7.0.txt`,
+  `coverage-v1.7.0.txt`, with a v1.7.0 block in each file of `docs/metrics/`.
+
+### Changed
+
+- **Gas and bytecode pass** (#42). Storage-pointer reads in the VM checks, in-place shrinking of
+  result arrays, the DID prefix formatted once per `resolve`, a constant hex table and `mcopy`
+  for packed strings. Every output is unchanged. On an identical test set `forge snapshot`
+  falls 9.14% and the isolate sum 9.53%. Median gas, v1.6.0 to v1.7.0: `DidManager.isAuthorized`
+  30,190 to 17,578 (-41.78%), `W3CResolver.resolve` 359,020 to 217,128 (-39.52%),
+  `W3CResolverNative.resolve` 383,863 to 240,078 (-37.46%), `DidManager.createDid` 283,813 to
+  278,089 (-2.02%). The medians cover different call sets in the two releases; the same-test-set
+  figures are the reliable ones (`docs/metrics/gas-consumption-history.md`).
+- **Contract sizes** (runtime): DidManager 12,928 B, DidManagerNative 12,141 B, W3CResolver
+  9,595 B, W3CResolverNative 10,116 B. EIP-170 limit is 24,576 B.
+- **Coverage** on `src/`: 99.39% lines (654/658), 96.40% branches, 98.89% functions. Tests: 479
+  under the CI profile (428 without stress and performance), 453 on the default profile.
+- **Research documents** brought to v1.7.0: Key Metrics in `research-validation.md`,
+  `performance-trends.md`, `storage-layout-analysis.md` (layout unchanged since v1.3.0),
+  `test-catalog.md` (492 test functions in 24 files) and the roadmap, retitled Future Work and
+  Improvement Roadmap.
+
+### Fixed
+
+- **`resolve` panicked on a DID with 255 verification methods** (#43), on `W3CResolver` and
+  `W3CResolverNative`. The resolvers now loop with a 0-based `uint8` counter. Resolving 255 VMs
+  costs about 25.9 million gas on the Full resolver and 19.0 million on the Native one, under
+  the 50 million gas default `eth_call` cap of geth.
+- **A 256th service wrapped its position** (#43). `ServiceStorage` now reverts
+  `TooManyServices()` when the list would exceed 255, so positions and
+  `getServiceListLength` stay truthful. The ABI keeps `uint8` for both.
+
+### Deployment tooling
+
+Deployment tooling, merged since v1.6.0. No `src/` Solidity changed in these changes.
+
+#### Added
 
 - **Network profiles.** A network is a `networks/<name>.env` file, selected with
   `make <target> NETWORK=<name>`. Local Anvil and any remote chain are the same kind of
@@ -43,7 +109,7 @@ Deployment tooling. No `src/` Solidity changed, so no ABI moved and no bytecode 
   `forge test` stays hermetic.
 - **`test/unit/Configuration.unit.t.sol`**, covering `getNetwork` and the ledger round trip.
 
-### Changed
+#### Changed
 
 - **`.deployments.json` is keyed `chainId -> contractName`** instead of an append-only array,
   so a redeploy on a persistent chain replaces rather than accumulates.
@@ -52,14 +118,14 @@ Deployment tooling. No `src/` Solidity changed, so no ABI moved and no bytecode 
 - **`.env.example`** no longer advertises `PORT`, `HARDFORK`, `ACCOUNT_NUMBER`, `MNEMONIC` or
   `ANVIL_CONFIG_OUT`. Nothing read them.
 
-### Fixed
+#### Fixed
 
 - **`Configuration.retrieveDeployment()` could not work.** It parsed `"."` of a JSON array and
   decoded the result into a single struct. It now takes `(chainId, name)`.
 - **`docs/analysis/deployment-guide.md` documented the wrong resolver signature**, as
   `deploy(bool,string,bool,address)` with the address last. The manager comes first.
 
-### Removed
+#### Removed
 
 - **`latest-anvil-config.json`**, tracked at the repository root with private keys in it,
   referenced by nothing, listing stale accounts under a name that did not match the
@@ -513,6 +579,7 @@ why this is a minor bump and not a patch.
 - `ServiceStorage` contract for service endpoint management
 - Basic DID creation and VM creation functionality
 
+[1.7.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.3.1...v1.5.0
 [1.4.0]: https://github.com/MiguelLZPF/SSIoBC-did/commit/9db204fe70fca8803e57ce459465a2a76a4ed120

@@ -1,5 +1,18 @@
-# SSIoBC-did — Community & Improvement Roadmap
+# SSIoBC-did — Future Work and Improvement Roadmap
 
+> **Project status (2026-10-27).** The project closed for the PhD defence at **v1.7.0**. Everything
+> below that is not marked as shipped is future work, not a commitment. What shipped, and where:
+>
+> | # | Idea | Shipped at v1.7.0 |
+> |---|------|-------------------|
+> | 1 | ERC-1271 controller signatures | Partial: `isAuthorizedOffChainWithSigner` on both variants (ERC-6492 not shipped) |
+> | 3 | EIP-7702 and `tx.origin` removal | Partial: `tx.origin` removed from auth, `onlyDirectEOA` guard, and the EIP-7702 limit of that guard written up in `threat-model.md` ("Limit of the Guard Under EIP-7702") |
+> | 12 | ethr-did benchmark | Reduced to the measured gas comparison with ERC-1056 in `research-validation.md` (no migration adapter, no latency harness) |
+> | 19 | W3C conformance vectors | Partial: DID syntax conformance only |
+> | 23 | Zenodo, preprint, topics | Pending: the DOI is minted after the v1.7.0 release is published |
+>
+> The list-limit fixes and the gas pass that also shipped in v1.7.0 were not roadmap items.
+>
 > A prioritized catalogue of 24 concrete ways to strengthen the project technically and make it
 > genuinely community-friendly / adoptable. Each idea states **What**, **Why it matters**,
 > **How to implement** (concrete, repo-aware), **Strengths**, **Weaknesses/Risks**, and an
@@ -76,16 +89,16 @@ What is **missing / weak** (the opportunity surface):
 
 ## Implementation Status
 
-> Verified 2026-08-24 by a direct scan of the working tree (`find src test`, marker-file
+> Verified 2026-08-24 (rows #1, #3, #12, #19, #21, #23 and #24 re-checked 2026-10-27) by a direct scan of the working tree (`find src test`, marker-file
 > existence check, `forge build` + `forge test` → 325/325 passing on the default profile).
 > Status values: **Done** (shipped and tested), **Partial** (some sub-goals shipped),
 > **Not started** (no artifact exists in the repo).
 
 | # | Idea | Status | Evidence |
 |---|------|--------|----------|
-| 1 | ERC-1271 / ERC-6492 controller sigs | **Partial** | `isAuthorizedOffChainWithSigner` shipped on both variants via OZ `SignatureChecker`; 21 tests in `test/unit/AuthorizeOffChainErc1271.unit.t.sol`. Missing: ERC-6492, and contract-owned VMs (see blocker below) |
+| 1 | ERC-1271 / ERC-6492 controller sigs | **Partial** | `isAuthorizedOffChainWithSigner` shipped on both variants via OZ `SignatureChecker`; 24 tests in `test/unit/AuthorizeOffChainErc1271.unit.t.sol`. Missing: ERC-6492, and contract-owned VMs (see blocker below) |
 | 2 | ERC-7579 DID validator module | Not started | no `DidValidator.sol` |
-| 3 | EIP-7702 path + remove `tx.origin` | **Partial** | `tx.origin` purged from auth; `onlyDirectEOA` guard + `DirectEOACallRequired` shipped; `test/unit/DirectEOAGuard.unit.t.sol` (20 tests). Missing: mock-EntryPoint / smart-account test suite, EIP-7702 documentation |
+| 3 | EIP-7702 path + remove `tx.origin` | **Partial** | `tx.origin` purged from auth; `onlyDirectEOA` guard + `DirectEOACallRequired` shipped; `test/unit/DirectEOAGuard.unit.t.sol` (20 tests). The EIP-7702 position is documented in `docs/analysis/threat-model.md` ("Limit of the Guard Under EIP-7702"). Missing: mock-EntryPoint / smart-account test suite |
 | 4 | ERC-6551 token-bound subjects | Not started | — |
 | 5 | Register DID method (W3C) | Not started | no `docs/spec/` <!-- path-ignore --> |
 | 6 | DIF Universal Resolver driver | Not started | — |
@@ -94,21 +107,21 @@ What is **missing / weak** (the opportunity surface):
 | 9 | EIP-712 typed data | Not started | `isAuthorizedOffChain` still raw `ecrecover(messageHash,v,r,s)`, no domain separator |
 | 10 | CAIP-10 / did:pkh import | Not started | — |
 | 11 | EAS / Verax bridge | Not started | — |
-| 12 | ethr-did benchmark | Not started | no comparison table in `docs/metrics/` |
+| 12 | ethr-did benchmark | **Reduced, shipped** | measured gas comparison with the ERC-1056 registry: `test/performance/EthrDidComparison.performance.t.sol` (37 tests) and the table in `docs/analysis/research-validation.md#erc-1056-gas-comparison`. Not shipped: the migration adapter and the resolution-latency harness |
 | 13 | TypeScript SDK | Not started | no `packages/` |
 | 14 | Subgraph + Ponder | Not started | no `subgraph/`, no `indexer/` |
 | 15 | Multibase helper | Not started | — |
 | 16 | `examples/` + tutorial | Not started | no `examples/` |
 | 17 | Docs site (`forge doc`) | Not started | single CI workflow, no Pages job |
 | 18 | Halmos symbolic verification | Not started | no halmos tests, no CI job |
-| 19 | W3C conformance vectors | **Partial** | DID *syntax* conformance shipped: `test/unit/DidStringConformance.unit.t.sol` (10 tests) asserts the emitted string against the DID Core v1.0 section 3.1 ABNF, and the `;` filler leak it caught is fixed. Missing: full document-level vectors (`test/vectors/*.json`) and the `w3c/did-test-suite` run |
+| 19 | W3C conformance vectors | **Partial** | DID *syntax* conformance shipped: `test/unit/DidStringConformance.unit.t.sol` (23 tests) asserts the emitted string against the DID Core v1.0 section 3.1 ABNF, and the `;` filler leak it caught is fixed. Missing: full document-level vectors (`test/vectors/*.json`) and the `w3c/did-test-suite` run |
 | 20 | Mutation testing + Echidna | Not started | — |
-| 21 | Public testnet deploys | Not started | `.deployments.json` still records only private chain 6660 |
+| 21 | Public testnet deploys | Not started | the deploy tooling exists (`Makefile`, `networks/<name>.env`, `make smoke`), but `.deployments.json` still records only private chain 6660 |
 | 22 | ERC draft | Not started | — |
-| 23 | Zenodo / preprint / topics | Not started | `CITATION.cff` exists, no DOI |
-| 24 | Onboarding / devcontainer | Not started | no `Makefile`, no `.devcontainer/`, no `docs/adr/` <!-- path-ignore --> |
+| 23 | Zenodo / preprint / topics | **Pending** | `CITATION.cff` exists at v1.7.0; the DOI is minted when the release is published, topics are set after that |
+| 24 | Onboarding / devcontainer | Not started | a `Makefile` exists now (network targets); still no `.devcontainer/`, no `docs/adr/` <!-- path-ignore --> |
 
-**Score: 3 of 24 partially done, 21 not started.** Ideas #1, #3 and #19 have touched code so far.
+**Score at v1.7.0: 3 of 24 partially done (#1, #3, #19), 1 reduced and shipped (#12), 1 pending the DOI (#23), 19 not started.**
 
 ### Blocking conflict discovered during implementation
 
@@ -251,6 +264,8 @@ keep DID state in the account's *associated* storage, or have the module cache a
 ### 3. EIP-7702 controller path + remove tx.origin from auth
 
 > **Status (v1.4.0, 2026-06-10)**: the `tx.origin` → `msg.sender` migration + `onlyDirectEOA` guard **shipped** in v1.4.0. Remaining open: the ERC-1271 path (#1) and the AA test suite (mock EntryPoint + smart account).
+>
+> **Status (v1.7.0, 2026-10-27)**: the EIP-7702 position is written up in `docs/analysis/threat-model.md` ("Limit of the Guard Under EIP-7702"): the guard no longer proves that no contract is in the call chain. The mock-EntryPoint suite stays future work.
 
 **What.** Two linked moves. (a) Document & support EOA controllers that have "upgraded in place" via
 **EIP-7702** (live since Pectra, May 2025) — they keep their address but gain smart-account behavior.
@@ -392,6 +407,8 @@ attestations as W3C VCs via #7.
 **Effort 3 · Community 3 · Research 3.**
 
 ### 12. ethr-did benchmark + migration adapter
+
+> **Status (v1.7.0, 2026-10-27)**: the gas half shipped, reduced to a measured table (operation by operation, with the off-chain replay cost of ERC-1056 stated, not hidden): see `docs/analysis/research-validation.md#erc-1056-gas-comparison`. The migration adapter and the resolution-latency harness are future work.
 
 **What.** A rigorous, published **head-to-head** vs ERC-1056/ethr-did (the dominant EVM DID method): gas cost
 (create / add-key / resolve), storage model, resolution latency, and feature matrix — plus a thin adapter that
@@ -539,6 +556,8 @@ opinionated; expect pushback on full-on-chain storage cost. **Effort 4 · Commun
 
 ### 23. Academic reproducibility & discoverability
 
+> **Status (v1.7.0, 2026-10-27)**: `CITATION.cff` and the committed text evidence under `docs/assets/data/` are in place. The Zenodo DOI is minted when the v1.7.0 release is published; the preprint, topics and awesome-list entries remain open.
+
 **What.** Mint a **Zenodo DOI** for tagged releases (GitHub→Zenodo integration), publish a preprint (arXiv) with a
 **reproducible artifact** (one-command rebuild of all gas/coverage/benchmark numbers), add **GitHub topics**
 (`did`, `ssi`, `w3c`, `ethereum`, `account-abstraction`, `verifiable-credentials`), and submit to relevant
@@ -567,7 +586,7 @@ new contributors. Lowering "time to first passing build" is the strongest predic
 | # | Idea | Effort | Community | Research | Tier | Status |
 |---|------|:--:|:--:|:--:|---|---|
 | 1 | ERC-1271/6492 controller sigs | 2 | 3 | 3 | **Do first** | Partial |
-| 3 | EIP-7702 + remove tx.origin | 3 | 4 | 4 | **Do first** | Partial (v1.4.0) |
+| 3 | EIP-7702 + remove tx.origin | 3 | 4 | 4 | **Do first** | Partial (v1.4.0; EIP-7702 note in v1.7.0) |
 | 13 | TypeScript SDK | 4 | 5 | 1 | **Do first** | Not started |
 | 15 | Multibase helper | 1 | 4 | 1 | **Quick win** | Not started |
 | 21 | Public testnet deploys | 3 | 4 | 2 | **Do first** | Not started |
@@ -577,14 +596,14 @@ new contributors. Lowering "time to first passing build" is the strongest predic
 | 14 | Subgraph + Ponder | 3 | 4 | 2 | High value | Not started |
 | 19 | W3C conformance vectors | 3 | 3 | 5 | **Research-critical** | Partial |
 | 2 | ERC-7579 DID module | 5 | 4 | 5 | **Flagship** | Not started |
-| 12 | ethr-did benchmark | 3 | 3 | 4 | Research-critical | Not started |
+| 12 | ethr-did benchmark | 3 | 3 | 4 | Research-critical | Reduced, shipped (v1.7.0) |
 | 18 | Halmos verification | 3 | 2 | 4 | Research | Not started |
 | 22 | ERC draft | 4 | 4 | 4 | Strategic | Not started |
 | 8 | Configurable @context | 1 | 3 | 3 | Quick win | Not started |
 | 17 | Docs site | 2 | 3 | 2 | Quick win | Not started |
 | 24 | Onboarding/devcontainer | 1 | 4 | 1 | Quick win | Not started |
 | 16 | examples/ + tutorial | 2 | 4 | 1 | After SDK | Not started |
-| 23 | Zenodo/preprint/topics | 2 | 3 | 4 | Quick win | Not started |
+| 23 | Zenodo/preprint/topics | 2 | 3 | 4 | Quick win | Pending (DOI after the v1.7.0 release) |
 | 6 | Universal Resolver driver | 2 | 4 | 2 | After 5+7 | Not started |
 | 10 | CAIP-10/did:pkh import | 2 | 3 | 2 | Nice-to-have | Not started |
 | 11 | EAS/Verax bridge | 3 | 3 | 3 | Optional module | Not started |
