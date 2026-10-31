@@ -269,6 +269,24 @@ Makefile: the limiter is the right default for a public endpoint, so disabling i
 globally would be wrong for any profile that targets one. See
 [`networks/example.env`](../../networks/example.env) for the exact line.
 
+**A chain on a newer fork can charge far more for contract creation than forge
+simulates.** Sepolia's fork active since 2026-10-06 (newer than Osaka) charged about
+5.5 times the Osaka cost to create `DidManager`: `eth_estimateGas` returned 20,361,853
+gas against 2.85M in forge's Osaka simulation. Forge's default 130% estimate
+multiplier then runs out of gas on the real chain. The profile that worked:
+
+```
+FORGE_EXTRA_ARGS="--slow --gas-estimate-multiplier 1000 --with-gas-price 100000 --priority-gas-price 10"
+```
+
+The fee cap matters as much as the multiplier. Without it forge picked a 1 gwei tip
+and one failed attempt cost 0.0168 Sepolia ETH; with it the whole four-contract
+deploy cost 0.0000000017 ETH (prices are in wei). Dry-run first against the target:
+build the init code and run `cast estimate --create <initcode> --rpc-url "$RPC_URL"`,
+then compare the result with the forge simulation before broadcasting. The gas
+figures from such a chain are not comparable with the Osaka figures in
+`docs/metrics/`.
+
 ## Adding a Network
 
 ```sh

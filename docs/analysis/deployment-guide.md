@@ -151,7 +151,8 @@ across restarts) are documented once, in
 rather than repeated per chain here.
 
 - **Mainnet**: Use conservative gas prices, verify high-value operations
-- **Goerli/Sepolia**: Free testnet ETH, suitable for integration testing
+- **Sepolia**: Free testnet ETH, suitable for integration testing. v1.7.0 is deployed there; addresses in the [README](../../README.md#live-on-sepolia). Creation costs far more than forge simulates on its current fork, see [Chain Traits That Bite](network-configuration.md#chain-traits-that-bite)
+- **Goerli**: Retired testnet
 - **Local (Anvil)**: `make anvil` starts one matching `foundry.toml`'s `evm_version`; `networks/local.env` targets it
 - **L2 (Optimism, Arbitrum)**: Lower gas costs, verify L2-specific behavior
 

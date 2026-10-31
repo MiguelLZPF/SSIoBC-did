@@ -16,6 +16,7 @@ W3C-compliant fully on-chain DID management system built with Solidity and the F
 - [Quick Start](#quick-start)
 - [Creating a New DID](#creating-a-new-did)
 - [Deployment](#deployment)
+- [Live on Sepolia](#live-on-sepolia)
 - [Advantages](#advantages)
 - [Citation](#citation)
 - [Contributing](#contributing)
@@ -141,6 +142,23 @@ did:method0:method1:method2:id
 
 Addresses are recorded in `.deployments.json`, keyed by chain ID and contract
 name. Full reference: [docs/analysis/network-configuration.md](docs/analysis/network-configuration.md).
+
+## Live on Sepolia
+
+The [v1.7.0 release](https://github.com/MiguelLZPF/SSIoBC-did/releases/tag/v1.7.0) (commit `3074fe1`) is deployed on Sepolia (chain 11155111). The runtime bytecode of all four contracts equals the local v1.7.0 build, and all four are verified on Sourcify (status `match`).
+
+| Contract | Address | Explorers |
+|---|---|---|
+| DidManager | `0x0a886818C4ECe895831A91A402440645a1f8fa79` | [Etherscan](https://sepolia.etherscan.io/address/0x0a886818C4ECe895831A91A402440645a1f8fa79), [Sourcify](https://repo.sourcify.dev/11155111/0x0a886818C4ECe895831A91A402440645a1f8fa79) |
+| W3CResolver | `0xEc721b2dcD4D319f4Daf0DBB0E2F3C734dc7c72E` | [Etherscan](https://sepolia.etherscan.io/address/0xEc721b2dcD4D319f4Daf0DBB0E2F3C734dc7c72E), [Sourcify](https://repo.sourcify.dev/11155111/0xEc721b2dcD4D319f4Daf0DBB0E2F3C734dc7c72E) |
+| DidManagerNative | `0xc8E8FFb3E1634eC7aCE8619DAbbE8B9e37c98C16` | [Etherscan](https://sepolia.etherscan.io/address/0xc8E8FFb3E1634eC7aCE8619DAbbE8B9e37c98C16), [Sourcify](https://repo.sourcify.dev/11155111/0xc8E8FFb3E1634eC7aCE8619DAbbE8B9e37c98C16) |
+| W3CResolverNative | `0x89db86945C63042b38F5D6d395381b8C2E0eFd56` | [Etherscan](https://sepolia.etherscan.io/address/0x89db86945C63042b38F5D6d395381b8C2E0eFd56), [Sourcify](https://repo.sourcify.dev/11155111/0x89db86945C63042b38F5D6d395381b8C2E0eFd56) |
+
+A smoke run (`make smoke NETWORK=sepolia`) created and resolved
+`did:lzpf:main:296228102100e1025017d9c8e413c56cc966f95fbeef49d815e283d723b9b1ef`
+([createDid tx](https://sepolia.etherscan.io/tx/0x654e6ca8e3a137bad414d26288bd77772142efdbd79ba60b04ce39506a83a52d)).
+Gas on today's Sepolia is not comparable with the figures in `docs/metrics/`; see
+[Chain Traits That Bite](docs/analysis/network-configuration.md#chain-traits-that-bite).
 
 ## Advantages
 
