@@ -116,7 +116,7 @@ What is **missing / weak** (the opportunity surface):
 | 18 | Halmos symbolic verification | Not started | no halmos tests, no CI job |
 | 19 | W3C conformance vectors | **Partial** | DID *syntax* conformance shipped: `test/unit/DidStringConformance.unit.t.sol` (23 tests) asserts the emitted string against the DID Core v1.0 section 3.1 ABNF, and the `;` filler leak it caught is fixed. Missing: full document-level vectors (`test/vectors/*.json`) and the `w3c/did-test-suite` run |
 | 20 | Mutation testing + Echidna | Not started | — |
-| 21 | Public testnet deploys | Not started | the deploy tooling exists (`Makefile`, `networks/<name>.env`, `make smoke`), but `.deployments.json` still records only private chain 6660 |
+| 21 | Public testnet deploys | Done for Sepolia | v1.7.0 is live and verified on Sepolia ([README](../../README.md#live-on-sepolia)); Hoodi and CREATE2 same-address deployment are not done |
 | 22 | ERC draft | Not started | — |
 | 23 | Zenodo / preprint / topics | **Pending** | `CITATION.cff` exists at v1.7.0; the DOI is minted when the release is published, topics are set after that |
 | 24 | Onboarding / devcontainer | Not started | a `Makefile` exists now (network targets); still no `.devcontainer/`, no `docs/adr/` <!-- path-ignore --> |
@@ -529,6 +529,8 @@ publishable quality metric; a second fuzzer finds what the first misses (diversi
 
 ### 21. Deterministic multichain deployments + verification
 
+**Status (2026-10-31).** Done for Sepolia: v1.7.0 is deployed and verified on Sourcify, with the addresses in the [README](../../README.md#live-on-sepolia) and `.deployments.json`. Not done: Hoodi and the CREATE2 deterministic same-address deployment.
+
 **What.** Deploy to public testnets (**Sepolia**, **Hoodi** — Holesky's successor) with **CREATE2 deterministic
 same-address-multichain** addresses, verify on **Etherscan + Sourcify**, and maintain a real `deployments.json`
 registry (today only private chain 6660 is recorded).
@@ -589,7 +591,7 @@ new contributors. Lowering "time to first passing build" is the strongest predic
 | 3 | EIP-7702 + remove tx.origin | 3 | 4 | 4 | **Do first** | Partial (v1.4.0; EIP-7702 note in v1.7.0) |
 | 13 | TypeScript SDK | 4 | 5 | 1 | **Do first** | Not started |
 | 15 | Multibase helper | 1 | 4 | 1 | **Quick win** | Not started |
-| 21 | Public testnet deploys | 3 | 4 | 2 | **Do first** | Not started |
+| 21 | Public testnet deploys | 3 | 4 | 2 | **Do first** | Done for Sepolia |
 | 7 | did-resolver JS pkg | 3 | 5 | 2 | **High value** | Not started |
 | 5 | Register DID method | 2 | 4 | 3 | **Quick win** | Not started |
 | 9 | EIP-712 signatures | 3 | 3 | 4 | High value | Not started |

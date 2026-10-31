@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deployments
+
+- v1.7.0 deployed to Sepolia (chain 11155111) with `make deploy NETWORK=sepolia`: all four contracts, runtime bytecode equal to the local build and verified on Sourcify. Addresses are in `.deployments.json` and the [README](README.md#live-on-sepolia). Sepolia's current fork charges about 5.5 times the Osaka cost for contract creation, so the deploy needed a gas-estimate multiplier and a fee cap; see `docs/analysis/network-configuration.md`.
+
 ## [1.7.0] — 2026-10-27
 
 Gas and bytecode pass, two list-limit fixes, a measured gas comparison with ERC-1056 and
