@@ -66,5 +66,39 @@
       "tag": "DeployAll",
       "timestamp": 1788863870
     }
+  },
+  "11155111": {
+    "DidManager": {
+      "address": "0x0a886818C4ECe895831A91A402440645a1f8fa79",
+      "bytecodeHash": "0xc1a850023adf8df5ff2f1d94d94da097910c286748feda08a051a6b720eff217",
+      "networkName": "sepolia",
+      "proxyAddress": "0x0000000000000000000000000000000000000000",
+      "tag": "v1.7.0",
+      "timestamp": 1793473704
+    },
+    "W3CResolver": {
+      "address": "0xEc721b2dcD4D319f4Daf0DBB0E2F3C734dc7c72E",
+      "bytecodeHash": "0x44e82ab623354d8006e7599f080d382ea1561e4ece48328939627590453a4858",
+      "networkName": "sepolia",
+      "proxyAddress": "0x0000000000000000000000000000000000000000",
+      "tag": "v1.7.0",
+      "timestamp": 1793473704
+    },
+    "DidManagerNative": {
+      "address": "0xc8E8FFb3E1634eC7aCE8619DAbbE8B9e37c98C16",
+      "bytecodeHash": "0x9236eab8c0a28aa8d2e5ad0d11ce7f18cec01f2b3f8bd2d54f821f513d57e19c",
+      "networkName": "sepolia",
+      "proxyAddress": "0x0000000000000000000000000000000000000000",
+      "tag": "v1.7.0",
+      "timestamp": 1793473704
+    },
+    "W3CResolverNative": {
+      "address": "0x89db86945C63042b38F5D6d395381b8C2E0eFd56",
+      "bytecodeHash": "0x8d354918d0fe956767ef2629a557ce27a6ee215c50071ee72fe5ec9aee955461",
+      "networkName": "sepolia",
+      "proxyAddress": "0x0000000000000000000000000000000000000000",
+      "tag": "v1.7.0",
+      "timestamp": 1793473704
+    }
   }
 }
