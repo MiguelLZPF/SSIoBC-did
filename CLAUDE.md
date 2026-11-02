@@ -153,10 +153,11 @@ did:method0:method1:method2:id
 
 ### Testing Patterns
 
-- **Base Class**: Inherit from `SharedTest.sol` for common utilities
+- **Base Class**: Inherit from `test/helpers/TestBase.sol` (Full variant) or `TestBaseNative.sol` (Native variant): manager deployment, `_setupUser(s)`, `_startPrank` / `_stopPrank`
+- **Pranks**: always use `_startPrank(user)`, which calls `vm.startPrank(user, user)`; a one-arg prank leaves `tx.origin` unchanged and trips `onlyDirectEOA`
 - **Naming**: `ContractName.t.sol` for test files
-- **Helpers**: `_createDid()`, `_createVm()` from SharedTest
-- **Constants**: Use `DEFAULT_RANDOM_*`, `DEFAULT_VM_*`, etc.
+- **Helpers**: library functions in `DidTestHelpers.sol` / `DidTestHelpersNative.sol` (`createDefaultDid(vm, didManager)`, `createDefaultVm`, `createVm`, `warpTo`)
+- **Constants**: `Fixtures.sol` (`DEFAULT_RANDOM_*`, `DEFAULT_VM_*`, etc.)
 - **Events**: Test using `vm.recordLogs()` and log analysis
 
 ### Gas Optimization Focus
@@ -344,7 +345,7 @@ When developing or reviewing smart contracts for this DID/SSI project, the follo
 
 ---
 
-**Last Updated**: 2026-09-07
+**Last Updated**: 2026-11-02
 **Architecture**: Simplified 2-file system (CLAUDE.md + PROJECT.md)
 **Agent config**: `.claude/skills/` and `.claude/settings.json` are committed; `.claude/settings.local.json` is per-machine and ignored.
 **Skill models**: `metrics-update` and `release-prep` pin `model: sonnet` because they are mechanical. `solidity-review` inherits the session model because it is judgment work, and fans out to Sonnet subagents only for a full audit.
