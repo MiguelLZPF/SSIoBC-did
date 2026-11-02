@@ -183,7 +183,7 @@ Mirrors tests 1, 5, 7, 9, 4, 11 and 13 above against `DidManagerNative`.
 
 | # | Test Name | What It Does | Production Functions & Contracts Touched | Notable Setup |
 |---|-----------|-------------|------------------------------------------|---------------|
-| 5 | `test_CreateVm_Should_CreateVerificationMethod_When_ValidParametersProvided` | VM created with all fields stored correctly | `DidManager.createVm()` → `VMStorage._createVmInternal()` → `HashUtils.calculatePositionHash()` → `EnumerableSet.add()` | Standard VM params from `SharedTest` |
+| 5 | `test_CreateVm_Should_CreateVerificationMethod_When_ValidParametersProvided` | VM created with all fields stored correctly | `DidManager.createVm()` → `VMStorage._createVmInternal()` → `HashUtils.calculatePositionHash()` → `EnumerableSet.add()` | Standard VM params from `Fixtures` and `DidTestHelpers` |
 | 6 | `test_RevertWhen_CreateVm_WithEmptyMethods` | Empty methods reverts `MissingRequiredParameter` | `createVm()` → validation | methods=bytes32(0) |
 | 7 | `test_RevertWhen_CreateVm_WithEmptyRelationships` | Empty relationships reverts `MissingRequiredParameter` | `createVm()` → validation | relationships=0 |
 | 8 | `test_CreateVm_Should_RevertWithDidExpired_When_SenderDidIsExpired` | Expired sender DID prevents VM creation | `createVm()` → `_isExpired()` on sender | `vm.warp()` past sender expiration |
@@ -871,8 +871,10 @@ These files are not test files but support the test infrastructure:
 
 | File | Purpose | Key Contents |
 |------|---------|-------------|
-| `test/helpers/SharedTest.sol` | Base test contract inherited by all tests | `_createDid()`, `_createVm()`, default constants (`DEFAULT_RANDOM_*`, `DEFAULT_VM_*`), manager deployment, prank helpers |
-| `test/helpers/Fixtures.sol` | Test fixture data | `emptyVmPublicKeyMultibase()`, default values, fixture structs |
+| `test/helpers/TestBase.sol` | Base test contract (Full variant) | manager and resolver deployment (`_deployDidManager()`), `_setupUser(s)`, `_startPrank` / `_stopPrank` (two-arg prank, so `tx.origin` matches) |
+| `test/helpers/TestBaseNative.sol` | Base test contract (Native variant) | `_deployDidManagerNative()`, `_setupUser(s)`, `_startPrank` / `_stopPrank` |
+| `test/helpers/DidTestHelpers.sol`, `DidTestHelpersNative.sol` | Library helpers per variant | `createDefaultDid()`, `createDid()`, `createDefaultVm()`, `createVm()`, `warpTo()`, `warpToFuture()` |
+| `test/helpers/Fixtures.sol` | Test fixture data | `emptyVmPublicKeyMultibase()`, default constants (`DEFAULT_RANDOM_*`, `DEFAULT_VM_*`), fixture structs |
 | `test/helpers/DidManagerHandler.sol` | Invariant test handler (Full W3C) | Random DID/VM creation, ghost variables for invariant tracking, `vm.prank()` management |
 | `test/helpers/DidManagerNativeHandler.sol` | Invariant test handler (Native) | Native variant handler with keyAgreement enforcement tracking |
 
