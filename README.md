@@ -81,7 +81,7 @@ DidManagerNative = VMStorageNative + DidAggregate (VMHooks + ServiceStorage)
 # Build contracts
 forge build
 
-# Run all tests (453 tests on the default profile, >90% coverage)
+# Run the default-profile tests (453 tests; 479 with FOUNDRY_PROFILE=ci, the badge count; >90% coverage)
 forge test
 
 # Run tests with coverage report
