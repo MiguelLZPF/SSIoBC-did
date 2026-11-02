@@ -4,5 +4,4 @@
 # never add a line by hand to silence a fresh break.
 path docs/analysis/test-catalog.md test/helpers/DidManagerHandler.sol
 path docs/analysis/test-catalog.md test/helpers/DidManagerNativeHandler.sol
-path docs/analysis/test-catalog.md test/helpers/SharedTest.sol
 path docs/metrics/gas-costs-2025.md docs/analysis/coverage-history.md
