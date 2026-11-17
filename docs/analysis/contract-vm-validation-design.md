@@ -1,6 +1,7 @@
 # Contract Address as a Validated Verification Method (v1.8.0 design, Phase 1)
 
-**Status**: Phase 1 design, waiting for the owner's decision. No change in `src/`.
+**Status**: approved by the owner on 2026-11-17 (D1 = A, D2 = A, D3 = A). Phase 2 plan written; D5 and D6 open.
+**Visual summary**: [contract-vm-validation-map.html](./contract-vm-validation-map.html) (generator: `contract-vm-validation-map.py`).
 **Date**: 2026-11-17. **Base**: `main` 69715b6 (v1.7.0 source). **Branch**: `feat/contract-vm-validation`.
 
 ## Table of Contents
@@ -13,6 +14,7 @@
 - [Alternatives Compared](#alternatives-compared)
 - [Decisions for the Owner](#decisions-for-the-owner)
 - [Ranked Findings](#ranked-findings)
+- [Reactivation Fix](#reactivation-fix)
 - [Phase 2 Outline](#phase-2-outline)
 - [What the Other Repositories Must Change](#what-the-other-repositories-must-change)
 - [Not Covered](#not-covered)
@@ -385,6 +387,15 @@ decides otherwise, for this one function.
 | D3 | Accept that a validated ERC-1271 contract passes `isAuthorizedOffChainWithSigner` | A: accept and document. B: block contract signers in that view | A |
 | D4 | Only if D1 = B: reject EIP-7702 delegated accounts on the `owner()` path | A: reject (`0xef0100` prefix). B: allow | A |
 
+**Decided 2026-11-17**: D1 = A, D2 = A, D3 = A. D4 does not apply.
+
+Two more, from the [reactivation fix](#reactivation-fix); the plan is written for the recommended option of each:
+
+| # | Decision | Options | Recommended |
+|---|---|---|---|
+| D5 | Self-reactivation of a DID that has controllers | A: needs the controller rule, as every other write (the DID's own key cannot undo a controller's deactivation). B: keep the bypass, check key expiry only | A |
+| D6 | A deactivated DID with no controller whose keys have all expired can never be reactivated | A: accept and document. B: keep a way back in (which is the behaviour being removed) | A |
+
 D2 option B would add a `revert` that fails the repository's trust-boundary test and would need a
 code-length read on the EOA path. D3 option B would undo roadmap idea #1 for every contract.
 
@@ -407,14 +418,58 @@ cited lines. "Status" says what this revision did.
 | 9 | minor | Full variant: a VM without an address is active at creation with no consent, so validation protects `isAuthorized`, not the resolved document | reviewer | read (`VMStorage.sol:69-75`) | Point 8, item 5 |
 | 10 | minor | Three wrong line citations | reviewer | verified | Fixed |
 | 11 | note | A controller talked into naming an open generic-call contract (a multicall, a router) makes its DID, and every DID it controls, usable by anyone in VClaim and Trust | reviewer | assumed | Phase 2: warning in the threat model here; reported for vclaim and trust |
-| 12 | note | One observation about existing behaviour outside this design (it is not opened, widened or used by any option) was confirmed by a test and reported to the owner directly | reviewer | verified | Not part of this document |
+| 12 | major | Existing behaviour, not caused by this design: self-reactivation accepts an expired or never-validated key and skips the controller rule | reviewer, then self | verified (`probe-reactivation`) | Owner ruled it unintended; fixed in this branch, see [Reactivation Fix](#reactivation-fix) |
 | 13 | note | Native variant always resolves a VM as an ECDSA key type, which is not true for a contract | self | read (`W3CResolverNative.sol:21`) | Reported under other repositories; presentation only |
 | 14 | note | Nothing found: memory safety and gas handling of the (c) helper; reentrancy, front-running and EOA phishing on `validateVm` under (a) | reviewer | read | none needed |
 
 Kept as is on the reviewer's advice: the structure of the core argument, the alternatives table,
 the reasoning for D2 and D3, the five rules for (c), the other-repositories table.
 
+## Reactivation Fix
+
+Found by the review, outside the original scope, and included in this branch by the owner's
+decision of 2026-11-17 ("if it is expired no reactivation possible").
+
+**Today (v1.0.2 to v1.7.0).** On the self path (`senderId == targetId`) `reactivateDid` checks only
+`_isVmOwner`: the caller's address is in a VM that has the `0x01` bit
+(`src/DidAggregate.sol:125-130`, `src/storage/VMStorage.sol:257-266`, read). It does not check that
+the VM was validated, that it is unexpired, or that the caller passes the controller rule. This was
+a documented choice (`docs/analysis/did-lifecycle-flows.md:336`: "Validates `_isVmOwner` only").
+Verified on unchanged source, both variants (`probe-reactivation.t.sol.txt`, and cases 9 and 10 of
+the first probe run):
+
+| # | Case | Result today |
+|---|---|---|
+| 1 | key was validated, then expired by the owner; DID deactivated; that key reactivates | succeeds |
+| 2 | key was named but never validated; DID deactivated; that address reactivates | succeeds |
+| 3 | DID has a controller; the controller deactivates it; the DID's own key reactivates | succeeds |
+| 4 | no controller; DID deactivated; 366 days pass (key lifetime is 365); owner reactivates | succeeds, owner still not authorized |
+| 5 | no controller; owner deactivates and reactivates at once | succeeds, owner authorized |
+
+In cases 1 to 3 the caller gains no authentication afterwards, but it undoes a deactivation it had
+no right to undo, and the DID's other live keys work again. Case 3 is the heavier one: it bypasses
+the controller.
+
+**Fix.** One rule for both paths: `_isAuthenticated` (a validated, unexpired `0x01` key of the
+caller) and `_isControllerFor`, exactly as `_validateSenderAndTarget` does for the other writes,
+minus the "target is active" check. The `_isVmOwner` hook has no caller left and is deleted (9 hooks
+become 8). No ABI change. Revert names change on the self path: an expired, pending or missing key
+gives `VmAlreadyExpired` (it gave success or `NotAuthenticatedAsSenderId`); a non-controller gives
+`NotAControllerForTargetId`.
+
+**What it costs (D6).** A DID with no controller that stays deactivated until all its
+authentication keys have expired cannot come back. That is consistent with an active DID, which is
+equally stuck once its last authentication key expires, but it is a real change for owners who
+"park" a DID by deactivating it. The remedy is a controller, which can reactivate.
+
+**Deployed contracts.** v1.7.0 on Sepolia is immutable and keeps the old behaviour. The threat
+model must say so.
+
 ## Phase 2 Outline
+
+The full task plan is `.temp/plans/2026-11-17-contract-vm-validation-plan.md` (working file, not
+tracked). It has ten tasks: baseline, `validateVm`, property tests with mutation proof, the reactivation rule, the issuer integration test, a whole-branch code review, docs, metrics, the final gate, release preparation up to the tag. The outline below is the earlier summary; where they differ, the plan wins (the code review now runs before docs and metrics, so every published number is taken on a frozen tree).
+
 
 Written for D1 = A; a short note per step says what changes under D1 = B. Detailed plan after
 approval.
@@ -465,12 +520,12 @@ Neither needs a code change for the feature to work. Not edited from here.
 1. ERC-6492 (wallets not yet deployed). Unchanged: not supported.
 2. Letting a contract perform DID writes. The 7 document writes stay direct-EOA under every option.
 3. A bound on the `expiration` argument of `validateVm`. Existing behaviour, listed as a finding.
-4. The visual map required by the review gate. It draws the end state, which depends on D1; it is
-   drawn with the Phase 2 plan.
 
 ## Decision Log
 
 | Date | Entry |
 |---|---|
 | 2026-11-17 | Phase 1 written. Three probe suites run (63 tests). Verdict: valid; proposal safe with changes; alternative (a) recommended. |
-| 2026-11-17 | Revised after the independent review: 4 major and 4 minor corrections (findings 1 to 4, 7 to 10), probe assertions added. The recommendation holds, now with two conditions. Waiting for D1 to D4. |
+| 2026-11-17 | Revised after the independent review: 4 major and 4 minor corrections (findings 1 to 4, 7 to 10), probe assertions added. The recommendation holds, now with two conditions. |
+| 2026-11-17 | Owner decided D1 = A, D2 = A, D3 = A, and ruled the self-reactivation behaviour unintended: fix in this branch. Reactivation Fix section and decisions D5, D6 added. |
+| 2026-11-17 | Phase 2 plan written and reviewed independently: no blocker, 7 major and 6 minor corrections applied to the plan. Visual map drawn. Task 3 waits for D5 and D6. |

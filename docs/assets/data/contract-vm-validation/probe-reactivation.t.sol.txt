@@ -1,0 +1,154 @@
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity >=0.8.0 <0.9.0;
+
+import { Test, console2 } from "forge-std/Test.sol";
+import { TestBase } from "@test/helpers/TestBase.sol";
+import { TestBaseNative } from "@test/helpers/TestBaseNative.sol";
+import { DidTestHelpers } from "@test/helpers/DidTestHelpers.sol";
+import { DidTestHelpersNative } from "@test/helpers/DidTestHelpersNative.sol";
+import { Fixtures } from "@test/helpers/Fixtures.sol";
+import { IDidManager } from "@interfaces/IDidManager.sol";
+import { DEFAULT_VM_ID } from "@interfaces/IVMStorage.sol";
+import { DEFAULT_VM_ID_NATIVE } from "@interfaces/IVMStorageNative.sol";
+import "@types/DidTypes.sol";
+
+abstract contract ReactivationProbeShared is Test {
+  IDidManager internal mgr;
+  address internal O;
+  address internal P;
+  bytes32 internal methods;
+  bytes32 internal T;
+  bytes32 internal C;
+  bytes32 internal OVM;
+  bytes32 internal PVM;
+
+  function _deploy() internal virtual;
+  function _create(uint256 which) internal virtual returns (bytes32 m, bytes32 id);
+
+  function setUp() public {
+    _deploy();
+    O = vm.addr(Fixtures.TEST_PK_1);
+    P = vm.addr(Fixtures.TEST_PK_2);
+    vm.deal(O, 100 ether);
+    vm.deal(P, 100 ether);
+    OVM = _ownerVm();
+    PVM = _ownerVm();
+    vm.startPrank(O, O);
+    (methods, T) = _create(0);
+    vm.stopPrank();
+    vm.startPrank(P, P);
+    (, C) = _create(1);
+    vm.stopPrank();
+  }
+
+  function _ownerVm() internal pure virtual returns (bytes32);
+
+  function _setController() internal {
+    vm.startPrank(O, O);
+    mgr.updateController(methods, T, OVM, T, C, bytes32(0), 0);
+    vm.stopPrank();
+  }
+
+  function _try(address who, bool deact, bytes32 senderId, bytes32 senderVm) internal returns (bool ok, bytes4 sel) {
+    vm.startPrank(who, who);
+    bytes memory data = deact
+      ? abi.encodeWithSelector(mgr.deactivateDid.selector, methods, senderId, senderVm, T)
+      : abi.encodeWithSelector(mgr.reactivateDid.selector, methods, senderId, senderVm, T);
+    bytes memory ret;
+    (ok, ret) = address(mgr).call(data);
+    vm.stopPrank();
+    if (!ok && ret.length >= 4) {
+      assembly {
+        sel := mload(add(ret, 32))
+      }
+    }
+  }
+
+  function _report(string memory label, bool ok, bytes4 sel) internal pure {
+    console2.log(label, ok ? "SUCCESS" : "REVERT");
+    if (!ok) console2.logBytes4(sel);
+  }
+
+  function _auth() internal view returns (bool) {
+    return mgr.isAuthorized(methods, T, OVM, T, 0x01, O);
+  }
+
+  function test_case1to3_controllersSet() public {
+    _setController();
+    (bool ok, bytes4 sel) = _try(O, true, T, OVM);
+    _report("case1 O deactivate T (controllers set):", ok, sel);
+    console2.log("case1 expected NotAControllerForTargetId selector:");
+    console2.logBytes4(NotAControllerForTargetId.selector);
+    assertEq(ok, false);
+    assertEq(sel, NotAControllerForTargetId.selector);
+
+    (ok, sel) = _try(P, true, C, PVM);
+    _report("case2 P deactivate T via C:", ok, sel);
+    console2.log("case2 getExpiration(T,0):", mgr.getExpiration(methods, T, bytes32(0)));
+    assertTrue(ok);
+    assertEq(mgr.getExpiration(methods, T, bytes32(0)), 0);
+
+    (ok, sel) = _try(O, false, T, OVM);
+    _report("case3 O reactivate T (self path):", ok, sel);
+    console2.log("case3 getExpiration(T,0):", mgr.getExpiration(methods, T, bytes32(0)));
+    console2.log("case3 isAuthorized(O):", _auth());
+    console2.log("case3 getExpiration(T,OVM):", mgr.getExpiration(methods, T, OVM));
+  }
+
+  function test_case4_noControllers_expiredVm() public {
+    (bool ok, bytes4 sel) = _try(O, true, T, OVM);
+    _report("case4 O deactivate:", ok, sel);
+    assertTrue(ok);
+    vm.warp(block.timestamp + 366 days);
+    (ok, sel) = _try(O, false, T, OVM);
+    _report("case4 O reactivate after 366d:", ok, sel);
+    console2.log("case4 getExpiration(T,0):", mgr.getExpiration(methods, T, bytes32(0)));
+    console2.log("case4 isAuthorized(O):", _auth());
+  }
+
+  function test_case5_noControllers_normal() public {
+    (bool ok, bytes4 sel) = _try(O, true, T, OVM);
+    assertTrue(ok);
+    (ok, sel) = _try(O, false, T, OVM);
+    _report("case5 O reactivate immediately:", ok, sel);
+    console2.log("case5 isAuthorized(O):", _auth());
+    assertTrue(ok);
+    assertTrue(_auth());
+  }
+}
+
+contract ReactivationProbeFullTest is ReactivationProbeShared, TestBase {
+  function _deploy() internal override {
+    _deployDidManager();
+    mgr = IDidManager(address(didManager));
+  }
+
+  function _create(uint256 which) internal override returns (bytes32 m, bytes32 id) {
+    DidTestHelpers.CreateDidResult memory r = DidTestHelpers.createDid(
+      vm, didManager, Fixtures.EMPTY_DID_METHODS, which == 0 ? Fixtures.DEFAULT_RANDOM_0 : Fixtures.DEFAULT_RANDOM_1, bytes32(0)
+    );
+    return (r.didInfo.methods, r.didInfo.id);
+  }
+
+  function _ownerVm() internal pure override returns (bytes32) {
+    return DEFAULT_VM_ID;
+  }
+}
+
+contract ReactivationProbeNativeTest is ReactivationProbeShared, TestBaseNative {
+  function _deploy() internal override {
+    _deployDidManagerNative();
+    mgr = IDidManager(address(didManagerNative));
+  }
+
+  function _create(uint256 which) internal override returns (bytes32 m, bytes32 id) {
+    DidTestHelpersNative.CreateDidResult memory r = DidTestHelpersNative.createDid(
+      vm, didManagerNative, Fixtures.EMPTY_DID_METHODS, which == 0 ? Fixtures.DEFAULT_RANDOM_0 : Fixtures.DEFAULT_RANDOM_1, bytes32(0)
+    );
+    return (r.didInfo.methods, r.didInfo.id);
+  }
+
+  function _ownerVm() internal pure override returns (bytes32) {
+    return DEFAULT_VM_ID_NATIVE;
+  }
+}
