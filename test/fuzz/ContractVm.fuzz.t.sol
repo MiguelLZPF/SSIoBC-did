@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { CasesBase, ContractVmFullBase, ContractVmNativeBase, IManager } from "@test/unit/ContractVm.unit.t.sol";
+import { ReactivationCases } from "@test/unit/Reactivation.unit.t.sol";
 
 /**
  * @title ContractVmFuzz
@@ -30,9 +31,50 @@ abstract contract ContractVmFuzzCases is CasesBase {
   }
 }
 
+/// @notice Reactivating needs a live authentication key: no other caller, and no owner past the key lifetime.
+abstract contract ReactivationFuzzCases is ReactivationCases {
+  function testFuzz_ReactivateDid_Should_Revert_When_CallerHasNoLiveAuthenticationKey(address caller, uint32 wait)
+    public
+  {
+    vm.assume(caller != owner && caller != address(0));
+    (bytes32 m, bytes32 t) = _newDid(owner, bytes32("rx-fz"));
+    _addKey(m, t, K_VM, k, R_AUTH, true);
+    vm.prank(owner, owner);
+    IManager(_mgr()).expireVm(m, t, _defaultVmId(), t, K_VM);
+    _deactivate(owner, m, t, _defaultVmId(), t);
+    vm.warp(block.timestamp + uint256(wait));
+
+    vm.prank(caller, caller);
+    vm.expectRevert();
+    IManager(_mgr()).reactivateDid(m, t, _defaultVmId(), t);
+    vm.prank(caller, caller);
+    vm.expectRevert();
+    IManager(_mgr()).reactivateDid(m, t, K_VM, t);
+    assertEq(_exp(m, t), 0, "DID stays deactivated");
+
+    if (wait > 365 days) {
+      vm.expectRevert(VM_ALREADY_EXPIRED);
+      _reactivate(owner, m, t, _defaultVmId(), t);
+      assertEq(_exp(m, t), 0, "owner past the key lifetime is rejected");
+    }
+  }
+}
+
 contract ContractVmFuzzTest is ContractVmFuzzCases, ContractVmFullBase {
   function setUp() public {
     _deployDidManager();
+  }
+}
+
+contract ReactivationFuzzTest is ReactivationFuzzCases, ContractVmFullBase {
+  function setUp() public {
+    _deployDidManager();
+  }
+}
+
+contract ReactivationNativeFuzzTest is ReactivationFuzzCases, ContractVmNativeBase {
+  function setUp() public {
+    _deployDidManagerNative();
   }
 }
 

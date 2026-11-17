@@ -225,19 +225,6 @@ abstract contract VMStorageNative is IVMStorageNative, VMHooks {
   }
 
   /**
-   * @dev Checks if the given sender owns a VM with authentication relationship, without checking expiration.
-   * Used for self-reactivation of deactivated DIDs.
-   */
-  function _isVmOwner(bytes32 didHash, bytes32 vmId, address sender) internal view virtual override returns (bool) {
-    if (vmId == bytes32(0) || sender == address(0)) {
-      revert MissingRequiredParameter();
-    }
-    VerificationMethod memory vm = _vmByNsAndId[didHash][vmId];
-    if (vm.ethereumAddress == address(0)) return false;
-    return (vm.ethereumAddress == sender && (vm.relationships & bytes1(0x01)) == bytes1(0x01));
-  }
-
-  /**
    * @dev Returns the publicKeyMultibase for a native VM. Empty for non-keyAgreement VMs.
    */
   function _getPublicKeyMultibase(bytes32 didHash, bytes32 vmId) internal view returns (bytes memory) {

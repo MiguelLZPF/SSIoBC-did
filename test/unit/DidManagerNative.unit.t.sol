@@ -1324,7 +1324,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
     _stopPrank();
   }
 
-  function test_ReactivateDid_Should_RevertWithNotAuthenticated_When_SelfReactivateWithWrongVm() public {
+  function test_ReactivateDid_Should_RevertWithVmAlreadyExpired_When_SelfReactivateWithWrongVm() public {
     _startPrank(user1);
 
     DidTestHelpersNative.CreateDidResult memory didResult = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
@@ -1335,7 +1335,7 @@ contract DidManagerNativeUnitTest is TestBaseNative {
     );
 
     // Try self-reactivation with a VM ID that doesn't exist (but is non-zero to avoid MissingRequiredParameter)
-    vm.expectRevert(NotAuthenticatedAsSenderId.selector);
+    vm.expectRevert(IVMStorageNative.VmAlreadyExpired.selector);
     didManagerNative.reactivateDid(
       didResult.didInfo.methods, didResult.didInfo.id, Fixtures.VM_ID_CUSTOM, didResult.didInfo.id
     );

@@ -15,14 +15,6 @@ abstract contract VMHooks {
   /// @return True if sender is authenticated for this DID via the given VM.
   function _isAuthenticated(bytes32 didHash, bytes32 vmId, address sender) internal view virtual returns (bool);
 
-  /// @dev Checks if sender owns a VM with authentication, without checking VM expiration.
-  /// Used for self-reactivation of deactivated DIDs where VMs are preserved but DID is inactive.
-  /// @param didHash The hash of the DID.
-  /// @param vmId The identifier of the Verification Method.
-  /// @param sender The EOA address to verify ownership.
-  /// @return True if sender owns the VM with authentication relationship.
-  function _isVmOwner(bytes32 didHash, bytes32 vmId, address sender) internal view virtual returns (bool);
-
   /// @dev Checks if sender holds a specific W3C relationship on a VM.
   /// @param didHash The hash of the DID.
   /// @param id The identifier of the Verification Method.

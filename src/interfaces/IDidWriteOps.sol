@@ -35,7 +35,10 @@ interface IDidWriteOps {
   /// @dev Deactivates a DID permanently.
   function deactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external;
 
-  /// @dev Reactivates a deactivated DID.
+  /// @dev Reactivates a deactivated DID. Requires a live (validated, unexpired) authentication key. On the self
+  /// path that is the only check, so a DID's own live key can reactivate it even after a controller deactivated
+  /// it; on the controller path the sender DID must be active and a controller of the target. A DID with no
+  /// controller whose authentication keys have all expired while it was deactivated cannot be reactivated.
   function reactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId) external;
 
   /// @dev Updates the controller of the DID manager.

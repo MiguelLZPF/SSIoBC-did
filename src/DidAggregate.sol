@@ -59,8 +59,8 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
   /// delegate that lets third parties act as you is a decision made at the wallet, not here.
   /// @dev The check itself. Kept out of the modifier body because a modifier is inlined at every
   /// use site, so the guard would be duplicated 9 times in the deployed bytecode. Measured on
-  /// this repository: inlining costs +158 bytes per manager and saves ~22 gas per guarded call,
-  /// a bad trade under `optimizer_runs = 200`, which is tuned for deployment size. This is the
+  /// this repository (measured on 2026-08 with 10 use sites): inlining costs +158 bytes per manager and saves ~22 gas
+  /// per guarded call, a bad trade under `optimizer_runs = 200`, which is tuned for deployment size. This is the
   /// pattern OpenZeppelin uses (`Ownable._checkOwner`), and it produces byte-identical output to
   /// dropping the modifier entirely while keeping the guard visible in each function signature.
   function _requireDirectEOA() internal view {
@@ -111,8 +111,12 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     updateExpiration({ idHash: targetIdHash, forceExpire: true });
   }
 
-  /// @dev Reactivates a deactivated DID. Authenticates msg.sender; the onlyDirectEOA guard enforces
-  /// direct EOA calls so intermediary contracts cannot impersonate the signing EOA.
+  /// @dev Reactivates a deactivated DID. Both paths require a live (validated, unexpired) authentication
+  /// key for msg.sender; the onlyDirectEOA guard enforces direct EOA calls so intermediary contracts cannot
+  /// impersonate the signing EOA. On the self path (senderId == targetId) that is the only check, so a DID's
+  /// own live key can reactivate it even after a controller deactivated it (owner decision D5). On the
+  /// controller path the sender DID must also be active and a controller of the target. Cost: a DID with no
+  /// controller whose authentication keys have all expired while it was deactivated cannot be reactivated.
   function reactivateDid(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId)
     external
     onlyDirectEOA
@@ -128,29 +132,18 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
       revert DidNotDeactivated();
     }
 
-    // Handle self-reactivation vs controller-reactivation differently
-    if (senderIdHash == targetIdHash) {
-      // Self-reactivation: owner reactivating their own deactivated DID
-      // Skip DID expiration check (it's deactivated), but validate VM ownership
-      if (!_isVmOwner(senderIdHash, senderVmId, msg.sender)) {
-        revert NotAuthenticatedAsSenderId();
-      }
-    } else {
-      // Controller reactivation: another DID is reactivating the target
-      // Sender's DID must be active (not expired/deactivated)
-      if (_isExpired(senderIdHash)) {
-        revert DidExpired();
-      }
-
-      // Sender must be authenticated with a valid VM
-      if (!_isAuthenticated(senderIdHash, senderVmId, msg.sender)) {
-        revert NotAuthenticatedAsSenderId();
-      }
-
-      // Sender must be controller of target
-      if (!_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) {
-        revert NotAControllerForTargetId();
-      }
+    bool isSelf = senderIdHash == targetIdHash;
+    // A controller's own DID must be active; on the self path the DID is the deactivated target
+    if (!isSelf && _isExpired(senderIdHash)) {
+      revert DidExpired();
+    }
+    // Both paths require a live authentication key (reverts VmAlreadyExpired for an expired or never validated VM)
+    if (!_isAuthenticated(senderIdHash, senderVmId, msg.sender)) {
+      revert NotAuthenticatedAsSenderId();
+    }
+    // The controller rule applies on the controller path only
+    if (!isSelf && !_isControllerFor(senderId, senderVmId, senderIdHash, targetIdHash)) {
+      revert NotAControllerForTargetId();
     }
 
     // Reactivate: set expiration to 4 years from now
