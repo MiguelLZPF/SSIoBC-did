@@ -1,0 +1,155 @@
+Mutation proof for contract-held verification methods (Task 2, plan 2026-11-17-contract-vm-validation)
+Date: 2026-11-17. Every command runs with FOUNDRY_PROFILE=ci and one --match-test, so one failing test cannot hide another.
+Each mutation was applied by hand, forge build --force run so no stale artifact is used, the test run, and src restored
+with 'git checkout -- src'. No mutation is committed. Each command runs the Full and the Native suite, hence two FAIL lines.
+Note: a first pass without --force served a stale artifact after a restore and made the control fail; that pass was discarded
+and every mutation was run again with a forced rebuild.
+
+### Mutation 1: onlyDirectEOA back on validateVm
+EDIT src/DidAggregate.sol:86
+  before: "function validateVm(bytes32 positionHash, uint256 expiration) external {"
+  after:  "function validateVm(bytes32 positionHash, uint256 expiration) external onlyDirectEOA {"
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test test_ValidateVm_Should_Activate_When_ContractValidatesItself
+  [FAIL: DirectEOACallRequired()] test_ValidateVm_Should_Activate_When_ContractValidatesItself() (gas: 742678)
+  [FAIL: DirectEOACallRequired()] test_ValidateVm_Should_Activate_When_ContractValidatesItself() (gas: 878439)
+  Ran 2 test suites in 4.66ms (2.88ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 1.44ms (202.33µs CPU time)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 1.44ms (202.38µs CPU time)
+RESTORED git checkout -- src (git status --short src: [ok])
+
+### Mutation 2.1: remove onlyDirectEOA from expireVm
+EDIT src/DidAggregate.sol:90
+  before: "function expireVm(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId, bytes32 vmId)\n    external\n    onlyDirectEOA\n  {"
+  after:  "function expireVm(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId, bytes32 vmId)\n    external\n  {"
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test invariant_NoGuardedWriteSucceedsFromAContract
+  [FAIL: a contract completed a guarded write: 1 != 0]
+  Ran 2 test suites in 50.11ms (81.97ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 33.00ms (31.09ms CPU time)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 48.97ms (47.07ms CPU time)
+RESTORED git checkout -- src (git status --short src: [ok])
+
+### Mutation 2.2: remove onlyDirectEOA from expireVm
+EDIT src/DidAggregate.sol:90
+  before: "function expireVm(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId, bytes32 vmId)\n    external\n    onlyDirectEOA\n  {"
+  after:  "function expireVm(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId, bytes32 vmId)\n    external\n  {"
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test test_RevertWhen_ContractKeyCallsAnyGuardedWrite
+  [FAIL: next call did not revert as expected] test_RevertWhen_ContractKeyCallsAnyGuardedWrite() (gas: 1097336)
+  [FAIL: next call did not revert as expected] test_RevertWhen_ContractKeyCallsAnyGuardedWrite() (gas: 956086)
+  Ran 2 test suites in 4.33ms (3.00ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 1.50ms (272.58µs CPU time)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 1.50ms (278.54µs CPU time)
+RESTORED git checkout -- src (git status --short src: [ok])
+
+### Mutation 2.3: remove onlyDirectEOA from updateService
+EDIT src/DidAggregate.sol:192
+  before: "bytes memory serviceEndpoint\n  ) external onlyDirectEOA {"
+  after:  "bytes memory serviceEndpoint\n  ) external {"
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test invariant_NoGuardedWriteSucceedsFromAContract
+  [FAIL: a contract completed a guarded write: 1 != 0]
+  Ran 2 test suites in 8.86ms (15.18ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 7.58ms (5.58ms CPU time)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 7.60ms (5.65ms CPU time)
+RESTORED git checkout -- src (git status --short src: [ok])
+
+### Mutation 2.4: remove onlyDirectEOA from updateService
+EDIT src/DidAggregate.sol:192
+  before: "bytes memory serviceEndpoint\n  ) external onlyDirectEOA {"
+  after:  "bytes memory serviceEndpoint\n  ) external {"
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test test_RevertWhen_ContractKeyCallsAnyGuardedWrite
+  [FAIL: next call did not revert as expected] test_RevertWhen_ContractKeyCallsAnyGuardedWrite() (gas: 1243339)
+  [FAIL: next call did not revert as expected] test_RevertWhen_ContractKeyCallsAnyGuardedWrite() (gas: 1384806)
+  Ran 2 test suites in 4.94ms (3.41ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 1.71ms (410.92µs CPU time)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 1.71ms (413.54µs CPU time)
+RESTORED git checkout -- src (git status --short src: [ok])
+
+### Mutation 2.5: remove onlyDirectEOA from createVm (both managers)
+EDIT src/DidManager.sol:58
+  before: "function createVm(DidCreateVmCommand memory command) external onlyDirectEOA {"
+  after:  "function createVm(DidCreateVmCommand memory command) external {"
+EDIT src/DidManagerNative.sol:53
+  before: "function createVm(DidCreateVmCommandNative memory command) external onlyDirectEOA {"
+  after:  "function createVm(DidCreateVmCommandNative memory command) external {"
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test invariant_NoGuardedWriteSucceedsFromAContract
+  [FAIL: a contract completed a guarded write: 1 != 0]
+  Ran 2 test suites in 110.64ms (125.85ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 109.64ms (107.41ms CPU time)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 16.21ms (13.98ms CPU time)
+RESTORED git checkout -- src (git status --short src: [ok])
+
+### Mutation 2.6: remove onlyDirectEOA from createVm (both managers)
+EDIT src/DidManager.sol:58
+  before: "function createVm(DidCreateVmCommand memory command) external onlyDirectEOA {"
+  after:  "function createVm(DidCreateVmCommand memory command) external {"
+EDIT src/DidManagerNative.sol:53
+  before: "function createVm(DidCreateVmCommandNative memory command) external onlyDirectEOA {"
+  after:  "function createVm(DidCreateVmCommandNative memory command) external {"
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test test_RevertWhen_ContractKeyCallsAnyGuardedWrite
+  [FAIL: Error != expected error: NotAuthenticatedAsSenderId() != DirectEOACallRequired()] test_RevertWhen_ContractKeyCallsAnyGuardedWrite() (gas: 1044263)
+  [FAIL: Error != expected error: NotAuthenticatedAsSenderId() != DirectEOACallRequired()] test_RevertWhen_ContractKeyCallsAnyGuardedWrite() (gas: 903713)
+  Ran 2 test suites in 4.82ms (3.36ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 1.68ms (335.21µs CPU time)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 1.68ms (377.08µs CPU time)
+RESTORED git checkout -- src (git status --short src: [ok])
+
+### Mutation 3.1: delete the ethereumAddress != sender check in both _validateVm
+EDIT src/storage/VMStorage.sol:133
+  before: "    if (vm.ethereumAddress != sender) revert InvalidSignature(); // This means that the Tx Signer is not the VM's\n    // Ethereum Address or actual signature validation\n"
+  after:  ""
+EDIT src/storage/VMStorageNative.sol:114
+  before: "    if (vm.ethereumAddress != sender) revert InvalidSignature();\n"
+  after:  ""
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test testFuzz_ValidateVm_Should_OnlySucceed_When_CallerIsVmAddress
+  [FAIL: next call did not revert as expected; counterexample: calldata=0x39b68b8b00000000000000000000000000000000000000000000000000000000000000110000000000000000000000000000000000000000000000000000000000002ea7 args=[0x0000000000000000000000000000000000000011, 11943 [1.194e4]]] testFuzz_ValidateVm_Should_OnlySucceed_When_CallerIsVmAddress(address,uint88) (runs: 0, μ: 0, ~: 0)
+  [FAIL: next call did not revert as expected; counterexample: calldata=0x39b68b8b0000000000000000000000005680e4c71d39552734011e01d3a4cd9dcc8d5e940000000000000000000000000000000000000000000000000000000000136de6 args=[0x5680E4C71d39552734011e01d3A4CD9DCC8d5e94, 1273318 [1.273e6]]] testFuzz_ValidateVm_Should_OnlySucceed_When_CallerIsVmAddress(address,uint88) (runs: 0, μ: 0, ~: 0)
+  Ran 2 test suites in 4.93ms (6.03ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 3.02ms (1.86ms CPU time)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 3.02ms (1.87ms CPU time)
+RESTORED git checkout -- src (git status --short src: [ok])
+
+### Mutation 3.2: delete the ethereumAddress != sender check in both _validateVm
+EDIT src/storage/VMStorage.sol:133
+  before: "    if (vm.ethereumAddress != sender) revert InvalidSignature(); // This means that the Tx Signer is not the VM's\n    // Ethereum Address or actual signature validation\n"
+  after:  ""
+EDIT src/storage/VMStorageNative.sol:114
+  before: "    if (vm.ethereumAddress != sender) revert InvalidSignature();\n"
+  after:  ""
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test invariant_ValidatedVmWasValidatedByItsOwnAddress
+  [FAIL: validated by an address it is not bound to: 0x39aa888a89213CFfDE2Ec40F548FD214Faa2Ff48 != 0x983a25418C854f2f356FF8b2C07c7aD8F94A731b]
+  [FAIL: validated by an address it is not bound to: 0xBB92eAE789888Cb24a33C29851991E1E78C579A3 != 0x983a25418C854f2f356FF8b2C07c7aD8F94A731b]
+  Ran 2 test suites in 14.48ms (20.48ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 10.24ms (6.74ms CPU time)
+RESTORED git checkout -- src (git status --short src: [ok])
+
+### Mutation 3.3: delete the ethereumAddress != sender check in both _validateVm
+EDIT src/storage/VMStorage.sol:133
+  before: "    if (vm.ethereumAddress != sender) revert InvalidSignature(); // This means that the Tx Signer is not the VM's\n    // Ethereum Address or actual signature validation\n"
+  after:  ""
+EDIT src/storage/VMStorageNative.sol:114
+  before: "    if (vm.ethereumAddress != sender) revert InvalidSignature();\n"
+  after:  ""
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test invariant_EoaValidationFollowsTheRule
+  [FAIL: EOA validation disagreed with the rule: 1 != 0]
+  Ran 2 test suites in 11.59ms (20.03ms CPU time): 0 tests passed, 2 failed, 0 skipped (2 total tests)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 10.09ms (8.07ms CPU time)
+  Suite result: FAILED. 0 passed; 1 failed; 0 skipped; finished in 9.95ms (7.96ms CPU time)
+RESTORED git checkout -- src (git status --short src: [ok])
+
+### Control 4: unchanged src (forge build --force first), each invariant alone
+git status --short src => [ok] (empty)
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test invariant_ValidatedVmWasValidatedByItsOwnAddress
+  [PASS] invariant_ValidatedVmWasValidatedByItsOwnAddress() (runs: 64, calls: 8192, reverts: 0)
+  Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.61s (1.61s CPU time)
+  Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.62s (1.62s CPU time)
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test invariant_EoaValidationFollowsTheRule
+  [PASS] invariant_EoaValidationFollowsTheRule() (runs: 64, calls: 8192, reverts: 0)
+  Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 587.42ms (585.48ms CPU time)
+  Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 609.52ms (607.58ms CPU time)
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test invariant_NoGuardedWriteSucceedsFromAContract
+  [PASS] invariant_NoGuardedWriteSucceedsFromAContract() (runs: 64, calls: 8192, reverts: 0)
+  Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 591.78ms (589.58ms CPU time)
+  Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 608.87ms (606.77ms CPU time)
+COMMAND FOUNDRY_PROFILE=ci forge test --match-test invariant_HandlerReachedContractPaths
+  [PASS] invariant_HandlerReachedContractPaths() (runs: 64, calls: 8192, reverts: 0)
+  Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 620.41ms (618.29ms CPU time)
+  Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 638.58ms (636.47ms CPU time)
