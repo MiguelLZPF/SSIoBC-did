@@ -33,7 +33,7 @@ interface IManager is IDidWriteOps, IDidReadOps, IDidAuth { }
 // Shared cases (run on both variants)
 // =========================================================================
 
-abstract contract Cases is Test {
+abstract contract CasesBase is Test {
   event VmValidated(bytes32 indexed id);
 
   bytes4 internal constant INVALID_SIGNATURE = bytes4(keccak256("InvalidSignature()"));
@@ -44,18 +44,11 @@ abstract contract Cases is Test {
   bytes1 internal constant R_ASSERTION = 0x02;
   bytes1 internal constant R_ALL = 0x1F;
   bytes32 internal constant VM_T = bytes32("vm-t");
-  bytes32 internal constant META_SALT = bytes32("meta-salt");
 
   address internal owner = makeAddr("owner");
   address internal admin = makeAddr("admin");
   address internal stranger = makeAddr("stranger");
   address internal relayer = makeAddr("relayer");
-
-  // Set in setUp for the metamorphic case (the creating transaction must end before the redeploy)
-  MetamorphicFactory internal factory;
-  bytes32 internal metaMethods;
-  bytes32 internal metaId;
-  address internal metaAddress;
 
   function _mgr() internal view virtual returns (address);
   function _defaultVmId() internal pure virtual returns (bytes32);
@@ -69,14 +62,6 @@ abstract contract Cases is Test {
     view
     virtual
     returns (bytes memory);
-
-  function _initMeta() internal {
-    factory = new MetamorphicFactory();
-    (metaMethods, metaId) = _newDid(owner, bytes32("meta-did"));
-    metaAddress = factory.predict(META_SALT);
-    bytes32 pos = _newVm(owner, metaMethods, metaId, VM_T, metaAddress, R_ASSERTION);
-    assertEq(factory.deployValidator(META_SALT, _mgr(), pos), metaAddress, "validator at predicted address");
-  }
 
   function _auth(bytes32 methods, bytes32 id, bytes32 vmId, bytes1 rel, address key) internal view returns (bool) {
     return IManager(_mgr()).isAuthorized(methods, id, vmId, id, rel, key);
@@ -102,7 +87,9 @@ abstract contract Cases is Test {
     c[5] = abi.encodeCall(IDidWriteOps.updateController, (methods, id, vmId, id, id, vmId, 0));
     c[6] = abi.encodeCall(IDidWriteOps.updateService, (methods, id, vmId, id, bytes32("svc"), bytes("t"), bytes("e")));
   }
+}
 
+abstract contract Cases is CasesBase {
   // 1
   function test_ValidateVm_Should_Activate_When_ContractValidatesItself() public {
     (bytes32 m, bytes32 id) = _newDid(owner, bytes32("r1"));
@@ -277,18 +264,6 @@ abstract contract Cases is Test {
     opener.exec(_mgr(), _validateCalldata(bytes32("nope")));
   }
 
-  // 11
-  function test_ValidateVm_Should_KeepAddressBinding_When_CodeChangesAfterValidation() public {
-    assertEq(metaAddress.code.length, 0, "validator destroyed itself");
-    assertTrue(_auth(metaMethods, metaId, VM_T, R_ASSERTION, metaAddress), "authorized with no code");
-
-    address redeployed = factory.deployRuntime(META_SALT, type(OpenCaller).runtimeCode);
-
-    assertEq(redeployed, metaAddress, "same address, different code");
-    assertGt(redeployed.code.length, 0, "new code present");
-    assertTrue(_auth(metaMethods, metaId, VM_T, R_ASSERTION, metaAddress), "binding survives the redeploy");
-  }
-
   // 12
   function test_DeactivateReactivate_Should_PreserveContractVm() public {
     (bytes32 m, bytes32 id) = _newDid(owner, bytes32("r12"));
@@ -309,15 +284,44 @@ abstract contract Cases is Test {
 }
 
 // =========================================================================
+// Metamorphic case: its own setUp, so a failure here cannot hide the other tests
+// =========================================================================
+
+abstract contract MetamorphicCases is CasesBase {
+  bytes32 internal constant META_SALT = bytes32("meta-salt");
+
+  // Set in setUp for the metamorphic case (the creating transaction must end before the redeploy)
+  MetamorphicFactory internal factory;
+  bytes32 internal metaMethods;
+  bytes32 internal metaId;
+  address internal metaAddress;
+
+  function _initMeta() internal {
+    factory = new MetamorphicFactory();
+    (metaMethods, metaId) = _newDid(owner, bytes32("meta-did"));
+    metaAddress = factory.predict(META_SALT);
+    bytes32 pos = _newVm(owner, metaMethods, metaId, VM_T, metaAddress, R_ASSERTION);
+    assertEq(factory.deployValidator(META_SALT, _mgr(), pos), metaAddress, "validator at predicted address");
+  }
+
+  // 11
+  function test_ValidateVm_Should_KeepAddressBinding_When_CodeChangesAfterValidation() public {
+    assertEq(metaAddress.code.length, 0, "validator destroyed itself");
+    assertTrue(_auth(metaMethods, metaId, VM_T, R_ASSERTION, metaAddress), "authorized with no code");
+
+    address redeployed = factory.deployRuntime(META_SALT, type(OpenCaller).runtimeCode);
+
+    assertEq(redeployed, metaAddress, "same address, different code");
+    assertGt(redeployed.code.length, 0, "new code present");
+    assertTrue(_auth(metaMethods, metaId, VM_T, R_ASSERTION, metaAddress), "binding survives the redeploy");
+  }
+}
+
+// =========================================================================
 // Full W3C Variant
 // =========================================================================
 
-contract ContractVmUnitTest is Cases, TestBase {
-  function setUp() public {
-    _deployDidManager();
-    _initMeta();
-  }
-
+abstract contract ContractVmFullBase is CasesBase, TestBase {
   function _mgr() internal view override returns (address) {
     return address(didManager);
   }
@@ -381,12 +385,7 @@ contract ContractVmUnitTest is Cases, TestBase {
 // Ethereum-Native Variant
 // =========================================================================
 
-contract ContractVmNativeUnitTest is Cases, TestBaseNative {
-  function setUp() public {
-    _deployDidManagerNative();
-    _initMeta();
-  }
-
+abstract contract ContractVmNativeBase is CasesBase, TestBaseNative {
   function _mgr() internal view override returns (address) {
     return address(didManagerNative);
   }
@@ -439,5 +438,31 @@ contract ContractVmNativeUnitTest is Cases, TestBaseNative {
     returns (bytes memory)
   {
     return abi.encodeCall(IDidManagerNative.createVm, (_cmd(methods, id, vmId, key, rel)));
+  }
+}
+
+contract ContractVmUnitTest is Cases, ContractVmFullBase {
+  function setUp() public {
+    _deployDidManager();
+  }
+}
+
+contract ContractVmNativeUnitTest is Cases, ContractVmNativeBase {
+  function setUp() public {
+    _deployDidManagerNative();
+  }
+}
+
+contract ContractVmMetamorphicTest is MetamorphicCases, ContractVmFullBase {
+  function setUp() public {
+    _deployDidManager();
+    _initMeta();
+  }
+}
+
+contract ContractVmNativeMetamorphicTest is MetamorphicCases, ContractVmNativeBase {
+  function setUp() public {
+    _deployDidManagerNative();
+    _initMeta();
   }
 }
