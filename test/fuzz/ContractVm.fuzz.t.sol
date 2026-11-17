@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { CasesBase, ContractVmFullBase, ContractVmNativeBase, IManager } from "@test/unit/ContractVm.unit.t.sol";
-import { ReactivationCases } from "@test/unit/Reactivation.unit.t.sol";
+import { ReactivationBase } from "@test/unit/Reactivation.unit.t.sol";
 
 /**
  * @title ContractVmFuzz
@@ -32,7 +32,7 @@ abstract contract ContractVmFuzzCases is CasesBase {
 }
 
 /// @notice Reactivating needs a live authentication key: no other caller, and no owner past the key lifetime.
-abstract contract ReactivationFuzzCases is ReactivationCases {
+abstract contract ReactivationFuzzCases is ReactivationBase {
   function testFuzz_ReactivateDid_Should_Revert_When_CallerHasNoLiveAuthenticationKey(address caller, uint32 wait)
     public
   {
@@ -41,18 +41,24 @@ abstract contract ReactivationFuzzCases is ReactivationCases {
     _addKey(m, t, K_VM, k, R_AUTH, true);
     vm.prank(owner, owner);
     IManager(_mgr()).expireVm(m, t, _defaultVmId(), t, K_VM);
+    uint256 defaultVmExpiry = _vmExp(m, t, _defaultVmId());
     _deactivate(owner, m, t, _defaultVmId(), t);
     vm.warp(block.timestamp + uint256(wait));
+    // A VM is live while expiration > block.timestamp; _isAuthenticated reverts VmAlreadyExpired otherwise,
+    // and returns false (NotAuthenticatedAsSenderId) for a live key that is not the caller's.
+    bool defaultVmLive = defaultVmExpiry > block.timestamp;
+
+    // K_VM was expired explicitly: VmAlreadyExpired for any caller.
+    vm.prank(caller, caller);
+    vm.expectRevert(VM_ALREADY_EXPIRED);
+    IManager(_mgr()).reactivateDid(m, t, K_VM, t);
 
     vm.prank(caller, caller);
-    vm.expectRevert();
+    vm.expectRevert(defaultVmLive ? NOT_AUTHENTICATED : VM_ALREADY_EXPIRED);
     IManager(_mgr()).reactivateDid(m, t, _defaultVmId(), t);
-    vm.prank(caller, caller);
-    vm.expectRevert();
-    IManager(_mgr()).reactivateDid(m, t, K_VM, t);
     assertEq(_exp(m, t), 0, "DID stays deactivated");
 
-    if (wait > 365 days) {
+    if (!defaultVmLive) {
       vm.expectRevert(VM_ALREADY_EXPIRED);
       _reactivate(owner, m, t, _defaultVmId(), t);
       assertEq(_exp(m, t), 0, "owner past the key lifetime is rejected");

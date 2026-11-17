@@ -9,7 +9,7 @@ import { CasesBase, ContractVmFullBase, ContractVmNativeBase, IManager } from "@
  * @notice reactivateDid has one authorization rule: a live authentication key (D5 = B, D6 = A).
  * @dev Runs on both variants. `o` owns DID T, `k` is a second EOA, `p` owns DID C.
  */
-abstract contract ReactivationCases is CasesBase {
+abstract contract ReactivationBase is CasesBase {
   event DidReactivated(bytes32 indexed targetDidHash);
 
   bytes4 internal constant NOT_AUTHENTICATED = bytes4(keccak256("NotAuthenticatedAsSenderId()"));
@@ -37,6 +37,10 @@ abstract contract ReactivationCases is CasesBase {
     emit DidReactivated(HashUtils.calculateIdHash(m, target));
   }
 
+  function _vmExp(bytes32 m, bytes32 id, bytes32 vmId) internal view returns (uint256) {
+    return IManager(_mgr()).getExpiration(m, id, vmId);
+  }
+
   function _exp(bytes32 m, bytes32 id) internal view returns (uint256) {
     return IManager(_mgr()).getExpiration(m, id, 0);
   }
@@ -55,7 +59,10 @@ abstract contract ReactivationCases is CasesBase {
     vm.prank(owner, owner);
     IManager(_mgr()).updateController(m, t, _defaultVmId(), t, c, bytes32(0), 0);
   }
+}
 
+/// @dev The unit cases; the fuzz suites inherit only ReactivationBase, so these do not run again there.
+abstract contract ReactivationCases is ReactivationBase {
   // 1
   function test_RevertWhen_ReactivateDid_SelfWithExpiredKey() public {
     (bytes32 m, bytes32 t) = _newDid(owner, bytes32("rx1"));

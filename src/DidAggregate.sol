@@ -58,10 +58,11 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
   /// authenticated address is exactly the account that signed the transaction. Choosing a
   /// delegate that lets third parties act as you is a decision made at the wallet, not here.
   /// @dev The check itself. Kept out of the modifier body because a modifier is inlined at every
-  /// use site, so the guard would be duplicated 9 times in the deployed bytecode. Measured on
-  /// this repository (measured on 2026-08 with 10 use sites): inlining costs +158 bytes per manager and saves ~22 gas
-  /// per guarded call, a bad trade under `optimizer_runs = 200`, which is tuned for deployment size. This is the
-  /// pattern OpenZeppelin uses (`Ownable._checkOwner`), and it produces byte-identical output to
+  /// use site, so the guard would be duplicated at each of the 7 use sites per deployed
+  /// manager (5 in DidAggregate, 2 in each manager). Measured on this repository when there were 8 per manager:
+  /// inlining cost +158 bytes per manager and saved ~22 gas per guarded call, a bad trade under `optimizer_runs = 200`,
+  /// which is tuned for deployment size. This is the pattern OpenZeppelin uses (`Ownable._checkOwner`), and it produces
+  /// byte-identical output to
   /// dropping the modifier entirely while keeping the guard visible in each function signature.
   function _requireDirectEOA() internal view {
     if (msg.sender != tx.origin) {
@@ -137,7 +138,8 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
     if (!isSelf && _isExpired(senderIdHash)) {
       revert DidExpired();
     }
-    // Both paths require a live authentication key (reverts VmAlreadyExpired for an expired or never validated VM)
+    // Both paths require a live authentication key (_isAuthenticated reverts VmAlreadyExpired for an expired, never
+    // validated or missing VM)
     if (!_isAuthenticated(senderIdHash, senderVmId, msg.sender)) {
       revert NotAuthenticatedAsSenderId();
     }
