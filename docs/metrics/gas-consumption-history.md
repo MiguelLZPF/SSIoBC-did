@@ -23,6 +23,7 @@ This document tracks gas consumption evolution across SSIoBC-did versions, provi
 
 - [v1.6.0 gas report (`forge test --gas-report`)](../assets/data/gasreport-v1.6.0.txt)
 - [v1.7.0 gas report (`forge test --gas-report`)](../assets/data/gasreport-v1.7.0.txt)
+- [v1.8.0 gas report (`forge test --gas-report`)](../assets/data/gasreport-v1.8.0.txt)
 
 **From v1.6.0 the evidence is text, not an image.** A screenshot of a terminal cannot be grepped,
 diffed, or checked by a linter, so nobody notices when it stops matching the tables above it, and a
@@ -276,9 +277,83 @@ Each median comes from its own release's test suite. v1.7.0 added tests, so a me
 
 **Cost tables.** `createDid` on `DidManager` moved by -2.02%, which is above the 1% bar, so `gas-costs-2025.md` carries a v1.7.0 entry at the document's fixed 2025 market baseline.
 
+### v1.8.0 Gas Snapshot (November 2026)
+
+Measured on 2026-11-17 at commit `1b910d8` (`src/` and `test/` are identical to `043bf6c`; the commits after it change documentation only), Foundry 1.8.1, solc 0.8.36, evm osaka, `optimizer_runs = 200`: `FOUNDRY_PROFILE=ci forge test --gas-report --no-match-path "test/{stress,performance}/*"`. 486 tests executed. The tables are the Min, Avg, Median, Max and Calls columns of that report, in the shape of the v1.7.0 snapshot. Evidence: [gasreport-v1.8.0.txt](../assets/data/gasreport-v1.8.0.txt).
+
+**Read the Median column, and read the delta table as indicative only.** The suite grew from 428 to 486 tests in the gate scope, and the new tests call `validateVm` and `reactivateDid` far more often than before (`DidManager.validateVm`: 559 calls then, 4,168 now; `DidManager.reactivateDid`: 14 then, 569 now), so each median is over a different set of calls. The code-level effect on `validateVm` is small: its Max did not move (35,357 then, 35,365 now on `DidManager`; 33,354 then, 33,362 now on `DidManagerNative`) and its Min fell by 369 and 81 gas. The Median fell by about 12% on both variants because the median call is now a different path. No same-test-set comparison against v1.7.0 was run for this release.
+
+#### DidManager
+```
+| Function | Min | Avg | Median | Max | Calls |
+|---|---|---|---|---|---|
+| createDid | 22,120 | 268,677 | 278,089 | 278,681 | 6,936 |
+| createVm | 30,040 | 270,957 | 254,307 | 389,292 | 5,194 |
+| deactivateDid | 24,480 | 39,397 | 39,818 | 44,844 | 298 |
+| reactivateDid | 24,480 | 28,918 | 28,336 | 57,136 | 569 |
+| updateController | 27,480 | 43,996 | 29,786 | 86,369 | 659 |
+| updateService | 29,030 | 185,570 | 186,234 | 1,996,009 | 858 |
+| validateVm | 28,445 | 32,463 | 31,043 | 35,365 | 4,168 |
+| isVmRelationship | 688 | 6,111 | 6,117 | 6,117 | 3,146 |
+| isAuthorized | 752 | 16,830 | 17,578 | 21,992 | 319 |
+| isAuthorizedOffChain | 719 | 20,122 | 21,094 | 25,497 | 284 |
+| isAuthorizedOffChainWithSigner | 876 | 12,448 | 9,735 | 25,434 | 20 |
+```
+
+#### DidManagerNative
+```
+| Function | Min | Avg | Median | Max | Calls |
+|---|---|---|---|---|---|
+| createDid | 22,120 | 204,907 | 211,700 | 212,292 | 7,090 |
+| createVm | 27,360 | 206,075 | 185,629 | 253,958 | 5,406 |
+| deactivateDid | 24,480 | 39,397 | 39,752 | 42,575 | 288 |
+| reactivateDid | 22,680 | 28,852 | 28,485 | 57,070 | 566 |
+| updateController | 29,897 | 44,417 | 29,933 | 86,392 | 638 |
+| updateService | 30,618 | 183,884 | 186,147 | 248,435 | 295 |
+| validateVm | 28,463 | 31,024 | 29,104 | 33,362 | 5,192 |
+| isVmRelationship | 666 | 6,021 | 6,029 | 6,029 | 1,808 |
+| isAuthorized | 730 | 11,948 | 17,550 | 21,964 | 1,603 |
+| isAuthorizedOffChain | 719 | 20,579 | 21,088 | 21,088 | 268 |
+| isAuthorizedOffChainWithSigner | 876 | 13,153 | 12,240 | 25,428 | 9 |
+```
+
+#### Resolvers
+```
+| Contract | Function | Min | Avg | Median | Max | Calls |
+|---|---|---|---|---|---|---|
+| W3CResolver | resolve | 210,542 | 1,217,867 | 218,450 | 24,213,554 | 52 |
+| W3CResolver | resolveService | 646 | 32,341 | 40,083 | 63,402 | 5 |
+| W3CResolver | resolveVm | 795 | 98,376 | 109,429 | 118,782 | 10 |
+| W3CResolver | checkMethods | 259 | 6,125 | 4,755 | 15,610 | 271 |
+| W3CResolverNative | resolve | 192,069 | 1,331,884 | 240,078 | 17,068,388 | 32 |
+| W3CResolverNative | resolveService | 646 | 41,482 | 40,192 | 63,298 | 5 |
+| W3CResolverNative | resolveVm | 795 | 75,456 | 83,884 | 89,379 | 9 |
+```
+
+**Median gas, v1.7.0 -> v1.8.0 (functions whose median moved; cross-suite, not the effect of the code alone):**
+
+| Contract | Function | v1.7.0 | v1.8.0 | Change | Change (%) |
+|---|---|---|---|---|---|
+| DidManager | createVm | 254,031 | 254,307 | +276 | +0.11% |
+| DidManager | expireVm | 43,933 | 43,298 | -635 | -1.45% |
+| DidManager | getExpiration | 2,762 | 2,887 | +125 | +4.53% |
+| DidManager | reactivateDid | 47,207 | 28,336 | -18,871 | -39.98% |
+| DidManager | validateVm | 35,357 | 31,043 | -4,314 | -12.20% |
+| DidManagerNative | deactivateDid | 35,169 | 39,752 | +4,583 | +13.03% |
+| DidManagerNative | expireVm | 44,031 | 43,315 | -716 | -1.63% |
+| DidManagerNative | getExpiration | 2,850 | 2,969 | +119 | +4.18% |
+| DidManagerNative | reactivateDid | 28,284 | 28,485 | +201 | +0.71% |
+| DidManagerNative | validateVm | 33,354 | 29,104 | -4,250 | -12.74% |
+| W3CResolver | checkMethods | 7,695 | 4,755 | -2,940 | -38.21% |
+| W3CResolver | resolve | 217,128 | 218,450 | +1,322 | +0.61% |
+
+**Reading these numbers:** `createDid`, `isAuthorized` and the other headline operations did not move. `DidManager.reactivateDid` reads 47,207 then 28,336 (-39.98%) only because the v1.7.0 median was over 14 calls and the v1.8.0 median is over 569; the Min (24,480) is identical and the Max rose by 46 gas (57,090 to 57,136). `DidManagerNative.deactivateDid` (+13.03%, 21 calls then, 288 now) is a call-mix effect. The `getExpiration` rows (+125 and +119 gas) and `W3CResolver.checkMethods` (an `external pure` helper the contract never calls, -2,940 over the same 271 calls) were not investigated further: the resolver bytecode is identical to v1.7.0, so no resolver change explains them. `W3CResolver` and `W3CResolverNative` runtime sizes are unchanged from v1.7.0.
+
+**Cost tables.** No headline operation (`createDid`, `createVm`, `resolve`, `isAuthorized`, `createService`) moved by 1% or more, so `gas-costs-2025.md` is not updated for v1.8.0.
+
 ## Method-Level Gas Analysis
 
-*The figures below predate the dual-variant architecture and are kept for historical continuity. For the latest measured values (v1.7.0, both variants), see the [v1.7.0 Gas Snapshot](#v170-gas-snapshot-october-2026) under Gas Evolution by Version.*
+*The figures below predate the dual-variant architecture and are kept for historical continuity. For the latest measured values (v1.8.0, both variants), see the [v1.8.0 Gas Snapshot](#v180-gas-snapshot-november-2026) under Gas Evolution by Version.*
 
 ### Core DID Operations
 
@@ -442,4 +517,4 @@ Performance data referenced in:
 
 ---
 
-*Last Updated: v1.7.0 (2026-10-27) - gas pass and list-limit fixes. See the v1.7.0 Gas Snapshot for the measured figures and the same-test-set comparison; v1.2.2 through v1.3.1 are not measured.*
+*Last Updated: v1.8.0 (2026-11-17) - contract-held verification methods; see the v1.8.0 Gas Snapshot. The v1.7.0 Gas Snapshot holds the same-test-set comparison for the gas pass; v1.2.2 through v1.3.1 are not measured.*

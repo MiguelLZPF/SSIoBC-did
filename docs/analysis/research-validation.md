@@ -160,7 +160,7 @@ See `docs/metrics/gas-consumption-history.md` for version-by-version tracking.
 ### Coverage Requirements
 
 - **Minimum threshold**: 90% (enforced in CI/CD)
-- **Current coverage**: 99.39% lines and 96.40% branches on `src/` (v1.7.0, 2026-10-27)
+- **Current coverage**: 99.53% lines and 96.99% branches on `src/` (v1.8.0, 2026-11-17)
 - **VMStorageNative**: 100% coverage (all metrics)
 
 ### Test Categories
@@ -200,7 +200,7 @@ High test coverage validates:
 - Full W3C variant supports arbitrary key types and multi-slot VMs
 - Ethereum-Native variant packs each VM into a single 32-byte slot
 - Both share DidAggregate (aggregate root), VMHooks (shared ancestor), ServiceStorage, and HashUtils
-- Native manager is 6.1% smaller than the Full manager (`DidManagerNative` 12,141 B against `DidManager` 12,928 B at v1.7.0)
+- Native manager is 6.8% smaller than the Full manager (`DidManagerNative` 11,897 B against `DidManager` 12,766 B at v1.8.0)
 
 ### Claim 3: Gas-Efficient On-Chain Storage
 

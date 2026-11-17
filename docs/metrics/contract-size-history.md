@@ -46,6 +46,7 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 | **v1.5.0** | **13.9 kB** | **11.8 kB** | **12.3 kB** | **12.4 kB** | **ERC-1271 contract-signer support (`isAuthorizedOffChainWithSigner`) + conformant DID-string rendering (`trimMethodSegment`) + `onlyDirectEOA` thinned to an internal-function guard; also carries v1.4.0's msg.sender migration, never tagged separately and released together with v1.5.0 (see note below)** |
 | v1.6.0 | 13.9 kB | 11.8 kB | 12.3 kB | 12.4 kB | Toolchain only: Foundry 1.8.1, solc 0.8.36, forge-std 1.16.2, OpenZeppelin 5.7.0 (no source changes) |
 | **v1.7.0** | **12.9 kB** | **9.6 kB** | **12.1 kB** | **10.1 kB** | **Gas and bytecode pass (storage-pointer reads, in-place array shrinking, shared DID prefix) + list-limit fixes (255 VMs resolve, services capped at 255)** |
+| **v1.8.0** | **12.8 kB** | **9.6 kB** | **11.9 kB** | **10.1 kB** | **Contract-held verification methods: `validateVm` drops `onlyDirectEOA`, `reactivateDid` needs a live authentication key on both paths, `_isVmOwner` hook deleted (8 hooks)** |
 
 ### Visual Documentation
 
@@ -53,6 +54,7 @@ This document tracks the evolution of contract sizes across SSIoBC-did versions,
 
 - [v1.6.0 sizes (`forge build --sizes`)](../assets/data/sizes-v1.6.0.txt)
 - [v1.7.0 sizes (`forge build --sizes`)](../assets/data/sizes-v1.7.0.txt)
+- [v1.8.0 sizes (`forge build --sizes`)](../assets/data/sizes-v1.8.0.txt)
 
 **From v1.6.0 the evidence is text, not an image.** A screenshot of a terminal cannot be grepped,
 diffed, or checked by a linter, so nobody notices when it stops matching the tables above it, and a
@@ -462,6 +464,36 @@ The v1.7.0 release is the first since v1.5.0 to change Solidity in `src/`. Two g
 
 **Net impact**: every contract shrinks, the resolvers by about a fifth, so the smallest EIP-170 margin is now `DidManagerNative` at 12,435 bytes (it was `DidManager` at 10,669). Evidence: [sizes-v1.7.0.txt](../assets/data/sizes-v1.7.0.txt).
 
+### v1.8.0 Contract-Held Verification Methods (November 2026)
+
+The v1.8.0 changes touch the two managers and the shared `DidAggregate`; the resolvers are byte for byte unchanged. `validateVm` no longer carries `onlyDirectEOA`, so a contract can validate a verification method bound to its own address. `reactivateDid` requires a live authentication key on both the self path and the controller path. The `_isVmOwner` hook is deleted, so `VMHooks` declares 8 hooks instead of 9. No function, event or error was added, removed or re-typed. Design: [contract-vm-validation-design.md](../analysis/contract-vm-validation-design.md).
+
+#### v1.8.0 Contract Sizes (measured via `forge build --sizes`, default profile)
+```
+| Contract             | Runtime Size (B) | Initcode Size (B) | Runtime Margin (B) | Initcode Margin (B) |
+|----------------------|-------------------|---------------------|----------------------|-----------------------|
+| DidManager           | 12,766            | 12,794              | 11,810               | 36,358                |
+| DidManagerNative     | 11,897            | 11,925              | 12,679               | 37,227                |
+| W3CResolver          | 9,595             | 9,739               | 14,981               | 39,413                |
+| W3CResolverNative    | 10,116            | 10,260              | 14,460               | 38,892                |
+```
+
+**Key Changes:**
+1. The `onlyDirectEOA` call is gone from `validateVm` on both managers; the caller check is the address bound to the VM.
+2. `reactivateDid` uses one liveness rule (`_isAuthenticated`) for both paths, and the `_isVmOwner` hook with its two implementations is removed.
+3. Foundry 1.8.1, solc 0.8.36 and the dependencies are unchanged from v1.7.0, so the comparison below measures source changes only. The per-change split of the saved bytes was not measured.
+
+**Size Impact (v1.7.0 -> v1.8.0):**
+
+| Contract | v1.7.0 (B) | v1.8.0 (B) | Change (B) | Change (%) |
+|---|---|---|---|---|
+| DidManager | 12,928 | 12,766 | -162 | -1.25% |
+| DidManagerNative | 12,141 | 11,897 | -244 | -2.01% |
+| W3CResolver | 9,595 | 9,595 | 0 | 0.00% |
+| W3CResolverNative | 10,116 | 10,116 | 0 | 0.00% |
+
+**Net impact**: both managers shrink and the resolvers do not move, so the smallest EIP-170 margin is now `DidManager` at 11,810 bytes (it was `DidManagerNative` at 12,435 in v1.7.0, which has itself grown to 12,679). Evidence: [sizes-v1.8.0.txt](../assets/data/sizes-v1.8.0.txt).
+
 #### Trade-off Analysis
 
 The v1.0 architecture provides:
@@ -531,4 +563,4 @@ This size evolution supports the PhD thesis on **"SSIoBC DID Manager: First full
 
 ---
 
-*Last Updated: v1.7.0 (2026-10-27) - gas and bytecode pass plus list-limit fixes; all four contracts shrink against v1.6.0. See the v1.7.0 section above.*
+*Last Updated: v1.8.0 (2026-11-17) - contract-held verification methods; both managers shrink against v1.7.0 (-162 B and -244 B), the resolvers are unchanged. See the v1.8.0 section above.*
