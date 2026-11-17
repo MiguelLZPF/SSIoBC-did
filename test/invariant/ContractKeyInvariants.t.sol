@@ -93,6 +93,10 @@ abstract contract ContractKeyHandlerBase is Test {
     return tracked.length;
   }
 
+  function contractKeyAt(uint256 i) external view returns (address) {
+    return contractKeys[i];
+  }
+
   function trackedAt(uint256 i) external view returns (bytes32) {
     return tracked[i];
   }
@@ -180,7 +184,9 @@ abstract contract ContractKeyHandlerBase is Test {
     VmRef memory r = vmRefs[pos];
     DidRef memory d = dids[r.didIndex];
     vm.prank(d.owner, d.owner);
-    MGR.call(abi.encodeCall(IDidWriteOps.expireVm, (d.methods, d.id, _defaultVmId(), d.id, r.vmId)));
+    // A refusal is an allowed outcome: the action only tries to expire.
+    (bool expired,) = MGR.call(abi.encodeCall(IDidWriteOps.expireVm, (d.methods, d.id, _defaultVmId(), d.id, r.vmId)));
+    expired;
   }
 
   // =========================================================================
@@ -378,6 +384,11 @@ abstract contract ContractKeyInvariantsCases is StdInvariant, Test {
 
   function _targetHandler() internal {
     targetContract(address(handler));
+    // The fuzzer sends from known addresses and sets tx.origin to the sender. A contract can never be tx.origin,
+    // and a contract key as sender would satisfy msg.sender == tx.origin: not a reachable state.
+    for (uint256 i; i < 3; i++) {
+      excludeSender(handler.contractKeyAt(i));
+    }
     bytes4[] memory selectors = new bytes4[](6);
     selectors[0] = ContractKeyHandlerBase.createDid.selector;
     selectors[1] = ContractKeyHandlerBase.createPendingVm.selector;
@@ -411,6 +422,15 @@ abstract contract ContractKeyInvariantsCases is StdInvariant, Test {
   /// @notice A handler that never reaches the paths proves nothing.
   function invariant_HandlerReachedContractPaths() public view {
     if (handler.totalCalls() < REACH_AFTER_CALLS) return;
+    _assertReached();
+  }
+
+  /// @dev Runs once at the end of every invariant run, whatever the depth: the reach counters must all be > 0.
+  function afterInvariant() public view {
+    _assertReached();
+  }
+
+  function _assertReached() internal view {
     assertGt(handler.contractValidationAttempts(), 0, "no contract validation attempted");
     assertGt(handler.contractWriteAttempts(), 0, "no contract guarded write attempted");
     assertGt(handler.eoaRightAttempts(), 0, "no EOA validation by the bound address attempted");
@@ -419,6 +439,7 @@ abstract contract ContractKeyInvariantsCases is StdInvariant, Test {
 }
 
 /// forge-config: ci.invariant.depth = 128
+/// forge-config: ci_thorough.invariant.depth = 128
 contract ContractKeyInvariantsTest is ContractKeyInvariantsCases, TestBase {
   function setUp() public {
     _deployDidManager();
@@ -428,6 +449,7 @@ contract ContractKeyInvariantsTest is ContractKeyInvariantsCases, TestBase {
 }
 
 /// forge-config: ci.invariant.depth = 128
+/// forge-config: ci_thorough.invariant.depth = 128
 contract ContractKeyInvariantsNativeTest is ContractKeyInvariantsCases, TestBaseNative {
   function setUp() public {
     _deployDidManagerNative();
