@@ -42,7 +42,7 @@ docs/
 │   ├── threat-model.md                # Security threat analysis
 │   ├── contract-vm-validation-design.md # v1.8.0 design: contract-held verification methods
 │   ├── research-validation.md         # Academic findings & validation
-│   └── test-catalog.md               # Exhaustive test case catalog (343 tests)
+│   └── test-catalog.md               # Exhaustive test case catalog (556 tests)
 └── assets/                             # Supporting data & evidence
     ├── screenshots/                    # Organized visual documentation
     │   ├── contract-size/              # Size reports by version
@@ -110,17 +110,18 @@ Security analysis and threat assessment:
 - Controller delegation security considerations
 - Multi-method DID namespace collision prevention
 - Verification method cryptographic attack surfaces
+- Contract-held verification methods and the reactivation rule (v1.8.0)
 
 ### [Contract VM Validation Design](./analysis/contract-vm-validation-design.md)
-Phase 1 design for v1.8.0, letting a smart contract hold a validated verification method:
+Design for v1.8.0 (implemented on the branch, not released): a smart contract holds a validated verification method, and `reactivateDid` needs a live key:
 - Ten security questions answered with test evidence (`assets/data/contract-vm-validation/`)
 - Three alternatives compared, with measured size and gas
 - Ranked findings from an independent review, and the decisions left to the owner
 
 ### 🧪 [Test Catalog](./analysis/test-catalog.md)
-Exhaustive catalog of all 343 test cases:
+Exhaustive catalog of all 556 test cases:
 - Every test function with exact name, one-liner description, and detailed function/contract mapping
-- Organized by category: unit (284), fuzz (21), integration (9), invariant (15), performance (8), stress (6)
+- Organized by category: unit (438), fuzz (27), integration (17), invariant (23), performance (45), stress (6)
 - Coverage mapping per production contract
 - Helper and fixture file documentation
 

@@ -96,9 +96,9 @@ What is **missing / weak** (the opportunity surface):
 
 | # | Idea | Status | Evidence |
 |---|------|--------|----------|
-| 1 | ERC-1271 / ERC-6492 controller sigs | **Partial** | `isAuthorizedOffChainWithSigner` shipped on both variants via OZ `SignatureChecker`; 24 tests in `test/unit/AuthorizeOffChainErc1271.unit.t.sol`. Missing: ERC-6492, and contract-owned VMs (see blocker below) |
+| 1 | ERC-1271 / ERC-6492 controller sigs | **Partial** | `isAuthorizedOffChainWithSigner` shipped on both variants via OZ `SignatureChecker`; 24 tests in `test/unit/AuthorizeOffChainErc1271.unit.t.sol`. Missing: ERC-6492. Contract-owned VMs are possible since v1.8.0 (unreleased; see the resolved second blocker below) |
 | 2 | ERC-7579 DID validator module | Not started | no `DidValidator.sol` |
-| 3 | EIP-7702 path + remove `tx.origin` | **Partial** | `tx.origin` purged from auth; `onlyDirectEOA` guard + `DirectEOACallRequired` shipped; `test/unit/DirectEOAGuard.unit.t.sol` (20 tests). The EIP-7702 position is documented in `docs/analysis/threat-model.md` ("Limit of the Guard Under EIP-7702"). Missing: mock-EntryPoint / smart-account test suite |
+| 3 | EIP-7702 path + remove `tx.origin` | **Partial** | `tx.origin` purged from auth; `onlyDirectEOA` guard + `DirectEOACallRequired` shipped; `test/unit/DirectEOAGuard.unit.t.sol` (22 tests; the guard covers 7 of the 8 writes since v1.8.0, `validateVm` authenticates the VM's own address instead). The EIP-7702 position is documented in `docs/analysis/threat-model.md` ("Limit of the Guard Under EIP-7702"). Missing: mock-EntryPoint / smart-account test suite |
 | 4 | ERC-6551 token-bound subjects | Not started | — |
 | 5 | Register DID method (W3C) | Not started | no `docs/spec/` <!-- path-ignore --> |
 | 6 | DIF Universal Resolver driver | Not started | — |
@@ -127,8 +127,8 @@ What is **missing / weak** (the opportunity surface):
 
 `onlyDirectEOA` (shipped in v1.4.0, idea #3) and the account-abstraction theme (#1, #2, #4)
 pull in opposite directions. The guard rejects **every** call whose `msg.sender` is a contract,
-so a smart account, multisig, or ERC-4337 bundler cannot execute any of the 8 authenticated
-write entry points. Ideas #1/#2/#4 exist precisely to let those contracts act.
+so a smart account, multisig, or ERC-4337 bundler cannot execute any of the 7 guarded
+write entry points (8 before v1.8.0; `validateVm` no longer carries the guard). Ideas #1/#2/#4 exist precisely to let those contracts act.
 
 Three ways out, in order of preference:
 
@@ -146,7 +146,14 @@ This roadmap assumes **option 1** until decided otherwise. Idea #1's implementat
 written against it: ERC-1271 is added to the view path only, and `onlyDirectEOA` is untouched.
 
 
-### Second blocker: a contract cannot own a verification method
+### Second blocker: a contract cannot own a verification method (resolved in v1.8.0)
+
+> **Resolved in v1.8.0 (unreleased), by direct self-validation, not by the signature function
+> sketched below.** `validateVm` lost `onlyDirectEOA`: its caller must be the VM's own address, so
+> a contract validates a VM bound to itself, and nobody can validate a VM bound to another address.
+> The other 7 writes stay direct-EOA. Design, probes and findings:
+> [contract-vm-validation-design.md](contract-vm-validation-design.md). The text below is the
+> problem statement as found on 2026-08-24.
 
 Found while implementing #1 (2026-08-24). Two rules combine to lock contracts out of VM ownership
 entirely, independently of the `onlyDirectEOA` guard:
@@ -213,7 +220,7 @@ not just an EOA. Verify controller signatures via `IERC1271.isValidSignature(has
 with an `ERC-6492` fallback for counterfactual (not-yet-deployed) accounts.
 
 **Why.** Today every auth path does a literal `address ==` comparison (`VMStorage._isVmRelationship`,
-`_isVmOwner`) or `ecrecover` (`isAuthorizedOffChain`). Under any smart wallet that model silently fails —
+`_isAuthenticated`) or `ecrecover` (`isAuthorizedOffChain`). Under any smart wallet that model silently fails —
 the controller cannot prove anything. ERC-1271 is the universal standard the entire AA stack already speaks.
 This is the **prerequisite** for ideas #2 and #3.
 

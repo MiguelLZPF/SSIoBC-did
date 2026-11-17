@@ -27,6 +27,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A contract can hold a validated verification method.** `validateVm` accepts a call from the VM's own address, contract or EOA, so an issuer contract can be a key of its DID and authorize through `isAuthorized`. Design, probes and findings: [contract-vm-validation-design.md](docs/analysis/contract-vm-validation-design.md).
+- Tests: `test/unit/ContractVm.unit.t.sol`, `test/unit/Reactivation.unit.t.sol`, `test/fuzz/ContractVm.fuzz.t.sol`, `test/integration/ContractIssuer.integration.t.sol`, `test/invariant/ContractKeyInvariants.t.sol`, the mocks in `test/mocks/MockContractKeys.sol`, and a mutation proof in `docs/assets/data/contract-vm-validation/mutation-proof.txt`. Counts: 503 tests on the default profile, 537 as forge reports the CI profile, 486 in the CI gate scope.
+- Threat model sections "Contract-Held Verification Methods" and "Reactivation Rule", a deployment guide section for contracts that hold a key, and a visual map of the design.
+
+### Changed
+
+- **`validateVm` no longer carries `onlyDirectEOA`.** The caller must be the VM's own `ethereumAddress`. A contract validating its own VM, also from its constructor, now succeeds where it reverted `DirectEOACallRequired`. A caller that is not the bound address reverts `InvalidSignature`, an unknown position `VmNotFound`. The other 7 authenticated writes stay direct-EOA. No ABI change: no function, event or error was added, removed or re-typed.
+- **`reactivateDid` needs a live authentication key on both paths.** Self-reactivation used to check only that the caller's address was in a VM with the `0x01` bit. Now the key must be validated, unexpired and carry `0x01` (`_isAuthenticated`): an expired, never-validated or missing key reverts `VmAlreadyExpired` (it succeeded before), and a live key without `0x01` reverts `NotAuthenticatedAsSenderId`. The controller rule applies on the controller path only.
+- The internal `_isVmOwner` hook is deleted; `VMHooks` declares 8 hooks (was 9).
+
+### Fixed
+
+- Reactivation by an expired or never-validated key (`probe-reactivation`, both variants). The deployed v1.7.0 contracts keep the old behaviour.
+
+### Security
+
+- **Breaking behaviour, cost 1 (owner decision D6).** A DID with no controller that stays deactivated until all its authentication keys have expired cannot be reactivated. Keep a controller on a DID that is parked.
+- **Accepted residual (owner decision D5).** A controller's deactivation is not final while the DID has a live authentication key of its own, because that key can reactivate it. A controller who wants it final expires those keys first.
+- A contract key binds an address, not code, and a contract that executes arbitrary calls for arbitrary callers can be validated by anyone. See the threat model section "Contract-Held Verification Methods".
+
 ### Deployments
 
 - v1.7.0 deployed to Sepolia (chain 11155111) with `make deploy NETWORK=sepolia`: all four contracts, runtime bytecode equal to the local build and verified on Sourcify. Addresses are in `.deployments.json` and the [README](README.md#live-on-sepolia). Sepolia's current fork charges about 5.5 times the Osaka cost for contract creation, so the deploy needed a gas-estimate multiplier and a fee cap; see `docs/analysis/network-configuration.md`.

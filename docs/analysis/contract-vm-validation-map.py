@@ -252,21 +252,22 @@ def fig_react():
     lx, rx, cw = 16, 372, 332
     y = 14
     bl = ["Self path checked only: the address is in a 0x01 VM."]
-    al = ["One rule for both paths: a live 0x01 key (_isAuthenticated) and the controller rule (_isControllerFor)."]
+    al = ["Both paths need a live 0x01 key (_isAuthenticated); the controller rule stays on the controller path."]
     hh = max(f.box_h(cw, "x", bl), f.box_h(cw, "x", al))
     f.box(lx, y, cw, "Before (v1.0.2 to v1.7.0)", bl, "red", dash=True, h=hh)
     f.box(rx, y, cw, "After (v1.8.0)", al, "ok", h=hh, glow=True)
     y += hh + 16
     cases = [
-        ("Key expired by the owner, DID deactivated, that key reactivates.", "succeeds", "reverts VmAlreadyExpired"),
-        ("Address named but never validated reactivates.", "succeeds", "reverts VmAlreadyExpired"),
-        ("A controller deactivated the DID; the DID's own key reactivates.", "succeeds", "reverts NotAControllerForTargetId"),
+        ("Key expired by the owner, DID deactivated, that key reactivates.", "succeeds", "reverts VmAlreadyExpired", True),
+        ("Address named but never validated reactivates.", "succeeds", "reverts VmAlreadyExpired", True),
+        ("A controller deactivated the DID; the DID's own key reactivates.", "succeeds", "still allowed while that key is live (owner decision D5)", False),
+        ("No controller, deactivated, key lifetime passed: the owner reactivates.", "succeeds", "reverts VmAlreadyExpired", True),
     ]
-    for c, b, a in cases:
-        lines_l = [(c, "bs2"), (b + " (wrongly)", "bs tx-red")]
+    for c, b, a, wrong in cases:
+        lines_l = [(c, "bs2"), (b + (" (wrongly)" if wrong else ""), "bs tx-red" if wrong else "bs tx-ok")]
         lines_r = [(a, "bs tx-ok")]
         h = max(f.box_h(cw, "", lines_l), f.box_h(cw, "", lines_r) + 18)
-        f.box(lx, y, cw, "", lines_l, "red", h=h)
+        f.box(lx, y, cw, "", lines_l, "red" if wrong else "ok", h=h)
         f.box(rx, y, cw, "", [(c, "bs")] + lines_r, "ok", h=h)
         f.line(lx + cw + 4, y + h / 2, rx - 5, y + h / 2, "ln ok", "ok")
         y += h + 10
@@ -361,12 +362,12 @@ def section(title, cap, fig):
 def build():
     out = []
     out.append('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">')
-    out.append("<title>Contract Address as a Validated Verification Method: visual map (v1.8.0, planned)</title><style>%s</style></head><body><main>" % CSS)
+    out.append("<title>Contract Address as a Validated Verification Method: visual map (v1.8.0, implemented on the branch)</title><style>%s</style></head><body><main>" % CSS)
     out.append(
         '<header><h1>Contract Address as a Validated Verification Method</h1>'
         '<p class="lede">End state of v1.8.0. A deployed contract can be an active key of a DID, and still cannot change any DID document. '
         'Visual summary of <code>contract-vm-validation-design.md</code>.</p>'
-        '<span class="status">planned, not built yet</span></header>'
+        '<span class="status">implemented on the branch, not released</span></header>'
     )
     out.append(section("1. Who may call what",
                        "The seven writes accept only the EOA that signed the transaction; validateVm accepts only the VM's own address.",
@@ -378,32 +379,33 @@ def build():
                        "A contract key reaches trust and claim functions by its bit, and never a DID document write.",
                        fig_reach()))
     out.append(section("4. reactivateDid, before and after",
-                       "Three cases that wrongly succeeded now revert, because both paths use the same rule.",
+                       "Three cases that wrongly succeeded now revert, because both paths need a live key. The fourth stays allowed by owner decision D5.",
                        fig_react()))
     out.append(section("5. What the chosen mechanism costs",
                        "Removing the guard on validateVm makes each manager 8 B smaller; the rejected owner() call adds about 100 B.",
                        fig_cost()))
     phases = [
-        ("Task 0", "Baseline"), ("Task 1", "validateVm"), ("Task 2", "Property tests and mutation proof"),
-        ("Task 3", "Reactivation rule"), ("Task 4", "Issuer integration test"), ("Task 5", "Branch code review"), ("Task 6", "Docs"),
-    ("Task 7", "Metrics"), ("Task 8", "Final gate"), ("Task 9", "Release prep (stops before the tag)"),
+        ("Task 0", "Baseline", "done"), ("Task 1", "validateVm", "done"), ("Task 2", "Property tests and mutation proof", "done"),
+        ("Task 3", "Reactivation rule", "done"), ("Task 4", "Issuer integration test", "done"), ("Task 5", "Branch code review", "done"), ("Task 6", "Docs", "in progress"),
+        ("Task 7", "Metrics", "planned"), ("Task 8", "Final gate", "planned"), ("Task 9", "Release prep (stops before the tag)", "planned"),
     ]
-    out.append('<section><h2>6. Phases</h2><p class="cap">Ten tasks, none started.</p><ol class="phases" style="list-style:none">%s</ol></section>' %
-               "".join("<li><b>%s</b>%s<i>planned</i></li>" % (esc(a), esc(b)) for a, b in phases))
+    out.append('<section><h2>6. Phases</h2><p class="cap">Ten tasks: 0 to 5 done, 6 in progress, 7 to 9 planned.</p><ol class="phases" style="list-style:none">%s</ol></section>' %
+               "".join("<li><b>%s</b>%s<i>%s</i></li>" % (esc(a), esc(b), esc(c)) for a, b, c in phases))
     stays = [
         "The address is bound, not its code. A contract that changes its behaviour later keeps the key.",
         "A contract that executes arbitrary calls can be validated by anyone, once a controller names it.",
         "A DID must keep one EOA authentication key; the seven writes need one.",
         "A deactivated DID with no controller and no live key cannot come back.",
+        "A controller's deactivation is not final while the DID has a live key of its own.",
     ]
     out.append('<section><h2>7. What stays true, what to watch</h2><p class="cap">Limits that remain after v1.8.0.</p><div class="panel"><ul class="plain">%s</ul></div></section>' %
                "".join("<li>%s</li>" % esc(s) for s in stays))
     out.append(
-        '<section><h2>8. Open decisions and not covered</h2><p class="cap">Two decisions are still open and wait for the owner.</p><div class="cards">'
-        '<div class="card"><h3>D5 (open): self-reactivation obeys the controller rule</h3>'
-        '<p>Proposed: <b>A</b>. A DID with controllers is reactivated under the controller rule, like every other write. The alternative keeps the bypass and checks key expiry only.</p></div>'
-        '<div class="card"><h3>D6 (open): accept that such a DID cannot come back</h3>'
-        '<p>Proposed: <b>A</b>. Accept and document it: a deactivated DID with no controller whose keys have all expired is stuck. The alternative keeps a way back in, which is the behaviour being removed.</p></div>'
+        '<section><h2>8. Decisions and not covered</h2><p class="cap">Both decisions are taken (owner, 2026-11-17).</p><div class="cards">'
+        '<div class="card"><h3>D5 decided, B: the DID\'s own live key can reactivate</h3>'
+        '<p>Decided: <b>B</b>. The self path checks a live key only; the controller rule applies on the controller path only. A controller\'s deactivation is not final while the DID has a live key of its own.</p></div>'
+        '<div class="card"><h3>D6 decided, A: such a DID cannot come back</h3>'
+        '<p>Decided: <b>A</b>. Accepted and documented: a deactivated DID with no controller whose keys have all expired is stuck. The alternative keeps a way back in, which is the behaviour being removed.</p></div>'
         '</div><p class="cap" style="margin-top:14px">Not covered by this design</p><div class="panel"><ul class="plain">'
         "<li>ERC-6492 (wallets not yet deployed): unchanged, not supported.</li>"
         "<li>Letting a contract perform DID writes: the seven document writes stay direct-EOA.</li>"
