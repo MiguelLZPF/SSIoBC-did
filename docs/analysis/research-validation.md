@@ -174,6 +174,8 @@ See `docs/metrics/gas-consumption-history.md` for version-by-version tracking.
 | Performance tests | 45 | Gas benchmarking and the ERC-1056 comparison |
 | Stress tests | 6 | Performance under load |
 
+The rows count test functions (556 in total). Forge 1.8.1 reports 537 on the `ci` profile because it counts each invariant suite as one test (4 suites holding the 23 invariant functions: 556 - 23 + 4 = 537). The default profile reports 503 because `no_match_test = "testFuzz|invariant"` skips 34 of those 537: the 27 fuzz tests, the 4 invariant suites and 3 unit tests whose names start with `testFuzz` (537 - 34 = 503). The totals are in [`test-totals-v1.8.0.txt`](../assets/data/test-totals-v1.8.0.txt).
+
 ### Coverage as Evidence
 
 High test coverage validates:
