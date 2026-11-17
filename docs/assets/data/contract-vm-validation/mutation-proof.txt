@@ -1,5 +1,5 @@
 Mutation proof for contract-held verification methods (Task 2, plan 2026-11-17-contract-vm-validation)
-The src/DidAggregate.sol line numbers cited below refer to commit 474209e; later commits moved them.
+The src/DidAggregate.sol line numbers cited below refer to commit 474209e, a pre-squash commit that is not on main; later commits moved them. The cited functions are unchanged in 73240bc, the release commit on main (tag v1.8.0).
 Date: 2026-11-17. Every command runs with FOUNDRY_PROFILE=ci and one --match-test, so one failing test cannot hide another.
 Each mutation was applied by hand, forge build --force run so no stale artifact is used, the test run, and src restored
 with 'git checkout -- src'. No mutation is committed. Each command runs the Full and the Native suite, hence two FAIL lines.

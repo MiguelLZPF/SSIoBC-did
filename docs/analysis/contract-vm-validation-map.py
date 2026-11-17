@@ -363,12 +363,12 @@ def section(title, cap, fig):
 def build():
     out = []
     out.append('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">')
-    out.append("<title>Contract Address as a Validated Verification Method: visual map (v1.8.0, implemented on the branch)</title><style>%s</style></head><body><main>" % CSS)
+    out.append("<title>Contract Address as a Validated Verification Method: visual map (v1.8.0, released)</title><style>%s</style></head><body><main>" % CSS)
     out.append(
         '<header><h1>Contract Address as a Validated Verification Method</h1>'
         '<p class="lede">End state of v1.8.0. A deployed contract can be an active key of a DID, and still cannot change any DID document. '
         'Visual summary of <code>contract-vm-validation-design.md</code>.</p>'
-        '<span class="status">implemented on the branch, not released</span></header>'
+        '<span class="status">released as v1.8.0</span></header>'
     )
     out.append(section("1. Who may call what",
                        "The seven writes accept only the EOA that signed the transaction; validateVm accepts only the VM's own address.",
@@ -388,9 +388,9 @@ def build():
     phases = [
         ("Task 0", "Baseline", "done"), ("Task 1", "validateVm", "done"), ("Task 2", "Property tests and mutation proof", "done"),
         ("Task 3", "Reactivation rule", "done"), ("Task 4", "Issuer integration test", "done"), ("Task 5", "Branch code review", "done"), ("Task 6", "Docs", "done"),
-        ("Task 7", "Metrics", "done"), ("Task 8", "Final gate", "done"), ("Task 9", "Release preparation", "waits for the owner: push, pull request, tag"),
+        ("Task 7", "Metrics", "done"), ("Task 8", "Final gate", "done"), ("Task 9", "Release preparation", "done"),
     ]
-    out.append('<section><h2>6. Phases</h2><p class="cap">Ten tasks: 0 to 8 done; 9 (release preparation) waits for the owner: push, pull request, tag.</p><ol class="phases" style="list-style:none">%s</ol></section>' %
+    out.append('<section><h2>6. Phases</h2><p class="cap">Ten tasks, all done: released on 2026-11-17 as tag v1.8.0 (commit 73240bc, pull request #49).</p><ol class="phases" style="list-style:none">%s</ol></section>' %
                "".join("<li><b>%s</b>%s<i>%s</i></li>" % (esc(a), esc(b), esc(c)) for a, b, c in phases))
     stays = [
         "The address is bound, not its code. A contract that changes its behaviour later keeps the key.",

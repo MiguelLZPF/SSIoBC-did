@@ -1,6 +1,6 @@
 # Contract Address as a Validated Verification Method (v1.8.0 design, Phase 1)
 
-**Status**: approved by the owner on 2026-11-17 (D1 = A, D2 = A, D3 = A). Phase 2 implemented on the branch (code, tests and docs), not released. All decisions taken (D5 = B, D6 = A).
+**Status**: approved by the owner on 2026-11-17 (D1 = A, D2 = A, D3 = A). Phase 2 implemented and released on 2026-11-17 as tag v1.8.0 (commit 73240bc, pull request #49). All decisions taken (D5 = B, D6 = A).
 **Visual summary**: [contract-vm-validation-map.html](./contract-vm-validation-map.html) (generator: `contract-vm-validation-map.py`).
 **Date**: 2026-11-17. **Base**: `main` 69715b6 (v1.7.0 source). **Branch**: `feat/contract-vm-validation`.
 
@@ -535,4 +535,5 @@ Neither needs a code change for the feature to work. Not edited from here.
 | 2026-11-17 | Owner decided D1 = A, D2 = A, D3 = A, and ruled the self-reactivation behaviour unintended: fix in this branch. Reactivation Fix section and decisions D5, D6 added. |
 | 2026-11-17 | Phase 2 plan written and reviewed independently: no blocker, 7 major and 6 minor corrections applied to the plan. Visual map drawn. Task 3 waits for D5 and D6. |
 | 2026-11-17 | Owner approved the plan and decided D5 = B (self-reactivation needs a live key only; the controller rule is not added to it) and D6 = A. Plan and this section updated. |
-| 2026-11-17 | Phase 2 implemented: commits 6e7c566..c4cdccb. Not released. |
+| 2026-11-17 | Phase 2 implemented: commits 6e7c566..c4cdccb (squashed into 73240bc on main). |
+| 2026-11-17 | Released as tag v1.8.0 (commit 73240bc, pull request #49). Not deployed: Sepolia still runs v1.7.0. |
