@@ -115,9 +115,11 @@ how the change is otherwise justified.
 
 1. **Identity is `msg.sender`, everywhere.** `tx.origin` is never an identity. It appears
    only inside the `onlyDirectEOA` equality guard.
-2. **Every authenticated write carries `onlyDirectEOA`.** There are eight per variant. A
-   new authenticated write without it reopens the confused-deputy class that v1.4.0 closed
-   (the modifier is defined near the top of `src/DidAggregate.sol`).
+2. **Every authenticated write that changes a DID document carries `onlyDirectEOA`.** There are
+   seven per variant. `validateVm` is the one exception and authenticates `msg.sender` against the
+   VM's own address (design: `docs/analysis/contract-vm-validation-design.md`). A new authenticated
+   write without the guard reopens the confused-deputy class that v1.4.0 closed (the modifier is
+   defined near the top of `src/DidAggregate.sol`).
 3. **Modifier bodies stay a single call into an internal function.** A modifier body is
    inlined at every use site: logic written directly in one cost +158 bytes per manager
    across ten sites and saved about 22 gas per call. Never put a `revert`, a loop, or a

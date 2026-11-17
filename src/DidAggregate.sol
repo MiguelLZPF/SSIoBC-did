@@ -41,7 +41,9 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
   // Modifiers
   // ═══════════════════════════════════════════════════════════════════
 
-  /// @dev Restricts authenticated state-changing entry points to direct EOA calls.
+  /// @dev Restricts the seven authenticated writes that change a DID document (createDid, createVm, expireVm,
+  /// deactivateDid, reactivateDid, updateController, updateService) to direct EOA calls. `validateVm` is
+  /// excluded on purpose: it authenticates msg.sender against the VM's own address (see its NatSpec).
   /// Passes only when msg.sender is the transaction's signing EOA (msg.sender == tx.origin).
   /// This preserves the signature-derived identity guarantee and closes the confused-deputy hole
   /// that `tx.origin`-based authentication left open: a separate contract the user calls cannot
@@ -56,7 +58,7 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
   /// authenticated address is exactly the account that signed the transaction. Choosing a
   /// delegate that lets third parties act as you is a decision made at the wallet, not here.
   /// @dev The check itself. Kept out of the modifier body because a modifier is inlined at every
-  /// use site, so the guard would be duplicated 10 times in the deployed bytecode. Measured on
+  /// use site, so the guard would be duplicated 9 times in the deployed bytecode. Measured on
   /// this repository: inlining costs +158 bytes per manager and saves ~22 gas per guarded call,
   /// a bad trade under `optimizer_runs = 200`, which is tuned for deployment size. This is the
   /// pattern OpenZeppelin uses (`Ownable._checkOwner`), and it produces byte-identical output to
@@ -76,7 +78,12 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
   // Shared write operations (IDidWriteOps — WRITTEN ONCE)
   // ═══════════════════════════════════════════════════════════════════
 
-  function validateVm(bytes32 positionHash, uint256 expiration) external onlyDirectEOA {
+  /// @dev Activates a pending VM. The caller must be the VM's own ethereumAddress (msg.sender), so this is the one
+  /// authenticated write without onlyDirectEOA: a contract, a contract in its constructor, or an EIP-7702 account
+  /// driven by a relayer can validate itself. Consent of a contract is whatever its code allows; a contract that
+  /// executes arbitrary calls for arbitrary callers can be validated, and its expiration chosen, by anyone. The
+  /// address is bound, not its code. See docs/analysis/contract-vm-validation-design.md.
+  function validateVm(bytes32 positionHash, uint256 expiration) external {
     _validateVm(positionHash, expiration, msg.sender);
   }
 

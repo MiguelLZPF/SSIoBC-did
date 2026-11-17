@@ -22,7 +22,11 @@ interface IDidWriteOps {
   /// @dev Creates a new DID.
   function createDid(bytes32 methods, bytes32 random, bytes32 vmId) external;
 
-  /// @dev Validates a Verification Method (VM).
+  /// @dev Activates a pending VM. The caller must be the VM's own ethereumAddress (msg.sender), so this is the one
+  /// authenticated write without onlyDirectEOA: a contract, a contract in its constructor, or an EIP-7702 account
+  /// driven by a relayer can validate itself. Consent of a contract is whatever its code allows; a contract that
+  /// executes arbitrary calls for arbitrary callers can be validated, and its expiration chosen, by anyone. The
+  /// address is bound, not its code. See docs/analysis/contract-vm-validation-design.md.
   function validateVm(bytes32 positionHash, uint256 expiration) external;
 
   /// @dev Expires a Verification Method (VM).
