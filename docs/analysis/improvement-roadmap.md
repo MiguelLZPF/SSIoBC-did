@@ -96,7 +96,7 @@ What is **missing / weak** (the opportunity surface):
 
 | # | Idea | Status | Evidence |
 |---|------|--------|----------|
-| 1 | ERC-1271 / ERC-6492 controller sigs | **Partial** | `isAuthorizedOffChainWithSigner` shipped on both variants via OZ `SignatureChecker`; 24 tests in `test/unit/AuthorizeOffChainErc1271.unit.t.sol`. Missing: ERC-6492. Contract-owned VMs are possible since v1.8.0 (unreleased; see the resolved second blocker below) |
+| 1 | ERC-1271 / ERC-6492 controller sigs | **Partial** | `isAuthorizedOffChainWithSigner` shipped on both variants via OZ `SignatureChecker`; 24 tests in `test/unit/AuthorizeOffChainErc1271.unit.t.sol`. Missing: ERC-6492. Contract-owned VMs are possible since v1.8.0 (released 2026-11-17; see the resolved second blocker below) |
 | 2 | ERC-7579 DID validator module | Not started | no `DidValidator.sol` |
 | 3 | EIP-7702 path + remove `tx.origin` | **Partial** | `tx.origin` purged from auth; `onlyDirectEOA` guard + `DirectEOACallRequired` shipped; `test/unit/DirectEOAGuard.unit.t.sol` (22 tests; the guard covers 7 of the 8 writes since v1.8.0, `validateVm` authenticates the VM's own address instead). The EIP-7702 position is documented in `docs/analysis/threat-model.md` ("Limit of the Guard Under EIP-7702"). Missing: mock-EntryPoint / smart-account test suite |
 | 4 | ERC-6551 token-bound subjects | Not started | — |
@@ -148,7 +148,7 @@ written against it: ERC-1271 is added to the view path only, and `onlyDirectEOA`
 
 ### Second blocker: a contract cannot own a verification method (resolved in v1.8.0)
 
-> **Resolved in v1.8.0 (unreleased), by direct self-validation, not by the signature function
+> **Resolved in v1.8.0 (released 2026-11-17), by direct self-validation, not by the signature function
 > sketched below.** `validateVm` lost `onlyDirectEOA`: its caller must be the VM's own address, so
 > a contract validates a VM bound to itself, and nobody can validate a VM bound to another address.
 > The other 7 writes stay direct-EOA. Design, probes and findings:

@@ -113,7 +113,7 @@ Security analysis and threat assessment:
 - Contract-held verification methods and the reactivation rule (v1.8.0)
 
 ### [Contract VM Validation Design](./analysis/contract-vm-validation-design.md)
-Design for v1.8.0 (implemented on the branch, not released): a smart contract holds a validated verification method, and `reactivateDid` needs a live key:
+Design for v1.8.0 (released on 2026-11-17 as tag v1.8.0, commit 73240bc, pull request #49): a smart contract holds a validated verification method, and `reactivateDid` needs a live key:
 - Ten security questions answered with test evidence (`assets/data/contract-vm-validation/`)
 - Three alternatives compared, with measured size and gas
 - Ranked findings from an independent review, and the decisions left to the owner
