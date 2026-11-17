@@ -135,7 +135,7 @@ The growth is the behaviour-lock tests from the gas pass, the list-limit tests a
 
 ### v1.8.0 Coverage Snapshot
 
-Measured on 2026-11-17 at commit `1b910d8` (`src/` and `test/` identical to `043bf6c`) with `FOUNDRY_PROFILE=ci forge coverage --report lcov --no-match-path "test/{stress,performance}/*"` (Foundry 1.8.1, solc 0.8.36), reading the `src/*` records of the LCOV file, the filter the CI `coverage` job applies before its 90% gate. The `--report summary` output is committed as [coverage-v1.8.0.txt](../assets/data/coverage-v1.8.0.txt).
+Measured on 2026-11-17 at commit `1b910d8` (`src/` and `test/` identical to `c4cdccb`) with `FOUNDRY_PROFILE=ci forge coverage --report lcov --no-match-path "test/{stress,performance}/*"` (Foundry 1.8.1, solc 0.8.36), reading the `src/*` records of the LCOV file, the filter the CI `coverage` job applies before its 90% gate. The `--report summary` output is committed as [coverage-v1.8.0.txt](../assets/data/coverage-v1.8.0.txt).
 
 - **Lines**: 99.53% (642/645), up from 99.39% (654/658)
 - **Statements**: 99.28% (831/837, the sum of the eleven `src/` rows of the summary)
@@ -152,7 +152,7 @@ The measured line count fell by 13 because the `_isVmOwner` hook and its two imp
 | `FOUNDRY_PROFILE=ci`, stress/performance excluded (the CI gate) | 428 | 486 |
 | `FOUNDRY_PROFILE=ci`, no path exclusion | 479 | 537 |
 
-The growth is the contract-key unit, fuzz, integration and invariant tests and the reactivation tests added for this release.
+The growth is the contract-key unit, fuzz, integration and invariant tests and the reactivation tests added for this release. The three totals and their commands are committed in [`test-totals-v1.8.0.txt`](../assets/data/test-totals-v1.8.0.txt).
 
 ## Quality Metrics
 

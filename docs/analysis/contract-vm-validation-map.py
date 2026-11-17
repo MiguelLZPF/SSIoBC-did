@@ -383,14 +383,14 @@ def build():
                        "Three cases that wrongly succeeded now revert, because both paths need a live key. The fourth stays allowed by owner decision D5.",
                        fig_react()))
     out.append(section("5. What the chosen mechanism costs",
-                       "Removing the guard on validateVm makes each manager 8 B smaller; the rejected owner() call adds about 100 B.",
+                       "Removing the guard on validateVm makes each manager 8 B smaller; the rejected owner() call adds about 100 B. Measured for v1.8.0: DidManager 12,766 B and DidManagerNative 11,897 B, 162 B and 244 B below v1.7.0 (docs/assets/data/sizes-v1.8.0.txt).",
                        fig_cost()))
     phases = [
         ("Task 0", "Baseline", "done"), ("Task 1", "validateVm", "done"), ("Task 2", "Property tests and mutation proof", "done"),
         ("Task 3", "Reactivation rule", "done"), ("Task 4", "Issuer integration test", "done"), ("Task 5", "Branch code review", "done"), ("Task 6", "Docs", "done"),
-        ("Task 7", "Metrics", "done"), ("Task 8", "Final gate", "in progress"), ("Task 9", "Release prep (stops before the tag)", "planned"),
+        ("Task 7", "Metrics", "done"), ("Task 8", "Final gate", "done"), ("Task 9", "Release preparation", "waits for the owner: push, pull request, tag"),
     ]
-    out.append('<section><h2>6. Phases</h2><p class="cap">Ten tasks: 0 to 7 done, 8 in progress, 9 planned.</p><ol class="phases" style="list-style:none">%s</ol></section>' %
+    out.append('<section><h2>6. Phases</h2><p class="cap">Ten tasks: 0 to 8 done; 9 (release preparation) waits for the owner: push, pull request, tag.</p><ol class="phases" style="list-style:none">%s</ol></section>' %
                "".join("<li><b>%s</b>%s<i>%s</i></li>" % (esc(a), esc(b), esc(c)) for a, b, c in phases))
     stays = [
         "The address is bound, not its code. A contract that changes its behaviour later keeps the key.",

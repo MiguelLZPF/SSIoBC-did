@@ -167,10 +167,10 @@ See `docs/metrics/gas-consumption-history.md` for version-by-version tracking.
 
 | Category | Count | Purpose |
 |----------|-------|---------|
-| Unit tests | 396 | Individual function behavior |
-| Fuzz tests | 21 | Property-based edge cases |
-| Invariant tests | 15 | System-wide properties |
-| Integration tests | 9 | Cross-contract workflows |
+| Unit tests | 438 | Individual function behavior |
+| Fuzz tests | 27 | Property-based edge cases |
+| Invariant tests | 23 | System-wide properties |
+| Integration tests | 17 | Cross-contract workflows |
 | Performance tests | 45 | Gas benchmarking and the ERC-1056 comparison |
 | Stress tests | 6 | Performance under load |
 

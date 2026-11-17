@@ -21,7 +21,7 @@ The documentation transforms raw performance data collected through screenshots 
 
 - **Contract Size**: DidManager ~12.8kB / DidManagerNative ~11.9kB (v1.8.0, DidAggregate + VMHooks architecture)
 - **Dual-Variant Architecture**: Full W3C compliance (multi-key, multi-type) + Ethereum-Native efficiency (single-key)
-- **Test Coverage**: >90% across 281 tests (unit, fuzz, invariant, integration) - v1.2.4
+- **Test Coverage**: >90% across 537 tests (unit, fuzz, invariant, integration, stress, performance) - v1.8.0
 - **Gas Efficiency**: Optimized through hash-based storage, EnumerableSet, and storage caching
 - **Bytecode Optimization**: 20.2% size reduction in v1.1.0; optimizer_runs tuned to 200 (v1.2.0)
 
