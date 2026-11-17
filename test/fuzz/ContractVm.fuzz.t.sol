@@ -2,13 +2,16 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import { CasesBase, ContractVmFullBase, ContractVmNativeBase, IManager } from "@test/unit/ContractVm.unit.t.sol";
+import { IDidWriteOps } from "@interfaces/IDidWriteOps.sol";
+import { OpenCaller } from "@test/mocks/MockContractKeys.sol";
 import { ReactivationBase } from "@test/unit/Reactivation.unit.t.sol";
 
 /**
  * @title ContractVmFuzz
  * @notice Property: a pending verification method becomes valid for exactly one caller, the address it is bound to.
- * @dev Runs on both variants. The caller is an arbitrary address; the manager only compares msg.sender
- * with the bound address, so the same property covers an EOA and a contract.
+ * @dev Runs on both variants. Two tests: the first sends the call from an arbitrary EOA (two-argument
+ * prank); the second drives validateVm through an OpenCaller contract (msg.sender is the contract,
+ * tx.origin an arbitrary EOA), so a wrong contract caller and a bound contract caller are both covered.
  */
 abstract contract ContractVmFuzzCases is CasesBase {
   /// @notice Any caller other than the bound address reverts InvalidSignature; the bound address succeeds.
@@ -28,6 +31,33 @@ abstract contract ContractVmFuzzCases is CasesBase {
     IManager(_mgr()).validateVm(pos, expiration);
     uint256 expected = expiration == 0 ? block.timestamp + 365 days : uint256(expiration);
     assertEq(IManager(_mgr()).getExpiration(m, id, VM_T), expected, "the bound address validated the VM");
+  }
+
+  /// @notice A contract caller is judged by its own address, not by the EOA behind it.
+  function testFuzz_ValidateVm_Should_BindToContractCaller_When_DrivenThroughOpenCaller(
+    address driver,
+    uint88 expiration
+  ) public {
+    vm.assume(driver != address(0));
+    OpenCaller opener = new OpenCaller();
+    vm.assume(driver != address(opener));
+    address k = makeAddr("bound-key");
+
+    // A VM bound to another address: the contract caller is rejected whoever drives it.
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("fz-c1"));
+    bytes32 pos = _newVm(owner, m, id, VM_T, k, R_ASSERTION);
+    vm.prank(driver, driver);
+    vm.expectRevert(INVALID_SIGNATURE);
+    opener.exec(_mgr(), abi.encodeCall(IDidWriteOps.validateVm, (pos, uint256(expiration))));
+    assertEq(IManager(_mgr()).getExpiration(m, id, VM_T), 0, "VM stays pending after a wrong contract caller");
+
+    // A VM bound to the contract: it validates through the contract.
+    (bytes32 m2, bytes32 id2) = _newDid(owner, bytes32("fz-c2"));
+    bytes32 pos2 = _newVm(owner, m2, id2, VM_T, address(opener), R_ASSERTION);
+    vm.prank(driver, driver);
+    opener.exec(_mgr(), abi.encodeCall(IDidWriteOps.validateVm, (pos2, uint256(expiration))));
+    uint256 expected = expiration == 0 ? block.timestamp + 365 days : uint256(expiration);
+    assertEq(IManager(_mgr()).getExpiration(m2, id2, VM_T), expected, "the bound contract validated the VM");
   }
 }
 
