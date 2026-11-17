@@ -11,7 +11,7 @@ abstract contract VMHooks {
   /// @dev Checks if sender is authenticated (has authentication relationship + valid VM).
   /// @param didHash The hash of the DID.
   /// @param vmId The identifier of the Verification Method.
-  /// @param sender The EOA address to verify.
+  /// @param sender The address to verify (msg.sender, an EOA or a contract).
   /// @return True if sender is authenticated for this DID via the given VM.
   function _isAuthenticated(bytes32 didHash, bytes32 vmId, address sender) internal view virtual returns (bool);
 
@@ -19,7 +19,7 @@ abstract contract VMHooks {
   /// @param didHash The hash of the DID.
   /// @param id The identifier of the Verification Method.
   /// @param relationship The W3C relationship bitmask to check (0x01-0x1F).
-  /// @param sender The EOA address to verify.
+  /// @param sender The address to verify (msg.sender, an EOA or a contract).
   /// @return True if sender has the specified relationship on the VM.
   function _isVmRelationship(bytes32 didHash, bytes32 id, bytes1 relationship, address sender)
     internal
@@ -34,7 +34,7 @@ abstract contract VMHooks {
   /// @dev Validates a VM by setting its expiration timestamp (completes the two-phase creation).
   /// @param positionHash The position hash assigned during VM creation.
   /// @param expiration The expiration timestamp to set (0 = use default).
-  /// @param sender The EOA address that must match the VM's ethereumAddress.
+  /// @param sender The caller (msg.sender), an EOA or a contract, that must match the VM's ethereumAddress.
   /// @return The VM identifier that was validated.
   function _validateVm(bytes32 positionHash, uint256 expiration, address sender) internal virtual returns (bytes32);
 

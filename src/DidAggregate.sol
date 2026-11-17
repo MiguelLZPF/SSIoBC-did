@@ -59,11 +59,12 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
   /// delegate that lets third parties act as you is a decision made at the wallet, not here.
   /// @dev The check itself. Kept out of the modifier body because a modifier is inlined at every
   /// use site, so the guard would be duplicated at each of the 7 use sites per deployed
-  /// manager (5 in DidAggregate, 2 in each manager). Measured on this repository when there were 8 per manager:
-  /// inlining cost +158 bytes per manager and saved ~22 gas per guarded call, a bad trade under `optimizer_runs = 200`,
-  /// which is tuned for deployment size. This is the pattern OpenZeppelin uses (`Ownable._checkOwner`), and it produces
-  /// byte-identical output to
-  /// dropping the modifier entirely while keeping the guard visible in each function signature.
+  /// manager (5 in DidAggregate, 2 in each manager). The figure below was measured when the source
+  /// had 10 use sites, which is 8 per deployed manager: inlining cost +158 bytes per manager and
+  /// saved ~22 gas per guarded call, a bad trade under `optimizer_runs = 200`, which is tuned for
+  /// deployment size. This is the pattern OpenZeppelin uses (`Ownable._checkOwner`), and it
+  /// produces byte-identical output to dropping the modifier entirely while keeping the guard
+  /// visible in each function signature.
   function _requireDirectEOA() internal view {
     if (msg.sender != tx.origin) {
       revert DirectEOACallRequired();
@@ -220,7 +221,7 @@ abstract contract DidAggregate is IDidManager, ServiceStorage, VMHooks {
   /// @param senderVmId The ID of the sender's Verification Method.
   /// @param targetId The ID of the target DID.
   /// @param relationship The required W3C relationship bitmask (0x01-0x1F).
-  /// @param sender The EOA address claiming ownership of the sender VM.
+  /// @param sender The address claiming ownership of the sender VM (an EOA or a contract).
   /// @return True if sender is authorized; false otherwise.
   function isAuthorized(
     bytes32 methods,
