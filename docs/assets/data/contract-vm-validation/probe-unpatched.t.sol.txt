@@ -1,0 +1,405 @@
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity >=0.8.0 <0.9.0;
+
+import { Test, console2 } from "forge-std/Test.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { TestBase } from "@test/helpers/TestBase.sol";
+import { TestBaseNative } from "@test/helpers/TestBaseNative.sol";
+import { DidTestHelpers } from "@test/helpers/DidTestHelpers.sol";
+import { DidTestHelpersNative } from "@test/helpers/DidTestHelpersNative.sol";
+import { Fixtures } from "@test/helpers/Fixtures.sol";
+import {
+  MockERC1271Wallet, MockERC1271AlwaysReject, MockNotAWallet
+} from "@test/mocks/MockERC1271Wallets.sol";
+import { IDidManager } from "@interfaces/IDidManager.sol";
+import { IDidWriteOps } from "@interfaces/IDidWriteOps.sol";
+import { DidCreateVmCommand as FullCmd } from "@types/VmTypes.sol";
+import { DidCreateVmCommandNative as NativeCmd } from "@types/VmTypesNative.sol";
+import { DEFAULT_VM_ID } from "@interfaces/IVMStorage.sol";
+import { DEFAULT_VM_ID_NATIVE } from "@interfaces/IVMStorageNative.sol";
+import "@types/DidTypes.sol";
+
+/// @dev Generic forwarder: msg.sender at the manager is this contract.
+contract ProbeCaller {
+  function exec(address target, bytes calldata data) external returns (bytes memory) {
+    (bool ok, bytes memory ret) = target.call(data);
+    if (!ok) {
+      assembly {
+        revert(add(ret, 32), mload(ret))
+      }
+    }
+    return ret;
+  }
+
+  function execDelegate(address helper, bytes calldata data) external returns (bytes memory) {
+    (bool ok, bytes memory ret) = helper.delegatecall(abi.encodeWithSignature("run(bytes)", data));
+    if (!ok) {
+      assembly {
+        revert(add(ret, 32), mload(ret))
+      }
+    }
+    return ret;
+  }
+}
+
+contract ProbeHop {
+  function forward(address caller, address target, bytes calldata data) external {
+    ProbeCaller(caller).exec(target, data);
+  }
+}
+
+contract ProbeDelegateHelper {
+  address internal immutable TARGET;
+
+  constructor(address t) {
+    TARGET = t;
+  }
+
+  function run(bytes calldata data) external returns (bytes memory) {
+    (bool ok, bytes memory ret) = TARGET.call(data);
+    if (!ok) {
+      assembly {
+        revert(add(ret, 32), mload(ret))
+      }
+    }
+    return ret;
+  }
+}
+
+abstract contract ContractVmProbeShared is Test {
+  IDidManager internal mgr;
+  bytes32 internal methods;
+  bytes32 internal did;
+  address internal owner;
+  address internal stranger = address(0x57A);
+  bytes32 internal constant CVM = bytes32("vm-contract");
+  bytes32 internal constant MSG = keccak256("probe-message");
+  bytes1 internal constant ALL = bytes1(0x1F);
+
+  function _deploy() internal virtual;
+  function _newDid() internal virtual returns (bytes32 m, bytes32 id);
+  function _newVm(bytes32 vmId, address eth, bytes1 rel) internal virtual returns (bytes32 positionHash);
+  function _createVmData(bytes32 vmId, address eth, bytes1 rel) internal view virtual returns (bytes memory);
+  function _ownerVmId() internal pure virtual returns (bytes32);
+
+  function setUp() public {
+    _deploy();
+    owner = vm.addr(Fixtures.TEST_PK_1);
+    vm.deal(owner, 100 ether);
+    vm.deal(stranger, 100 ether);
+    vm.startPrank(owner, owner);
+    (methods, did) = _newDid();
+    vm.stopPrank();
+  }
+
+  function _ownerCreateVm(bytes32 vmId, address eth, bytes1 rel) internal returns (bytes32 pos) {
+    vm.startPrank(owner, owner);
+    pos = _newVm(vmId, eth, rel);
+    vm.stopPrank();
+  }
+
+  function _validateAs(address who, bytes32 pos, uint256 exp) internal {
+    vm.startPrank(who, who);
+    mgr.validateVm(pos, exp);
+    vm.stopPrank();
+  }
+
+  function _validatedContractVm(address c, bytes1 rel) internal returns (bytes32 pos) {
+    pos = _ownerCreateVm(CVM, c, rel);
+    _validateAs(c, pos, 0);
+  }
+
+  function _auth(bytes1 rel, address who) internal view returns (bool) {
+    return mgr.isAuthorized(methods, did, CVM, did, rel, who);
+  }
+
+  // ---- 1 ----
+  function test_case1_contractCallsValidateVm_revertsDirectEOA() public {
+    ProbeCaller c = new ProbeCaller();
+    bytes32 pos = _ownerCreateVm(CVM, address(c), bytes1(0x02));
+    address eoa = address(0xE0A1);
+    vm.startPrank(eoa, eoa);
+    vm.expectRevert(DirectEOACallRequired.selector);
+    c.exec(address(mgr), abi.encodeCall(IDidWriteOps.validateVm, (pos, 0)));
+    vm.stopPrank();
+  }
+
+  function test_case1_nonVmEoaValidateVm_revertsInvalidSignature() public {
+    ProbeCaller c = new ProbeCaller();
+    bytes32 pos = _ownerCreateVm(CVM, address(c), bytes1(0x02));
+    vm.startPrank(stranger, stranger);
+    vm.expectRevert(bytes4(keccak256("InvalidSignature()")));
+    mgr.validateVm(pos, 0);
+    vm.stopPrank();
+  }
+
+  // ---- 2 ----
+  function test_case2_simulatedValidation_andAllBits() public {
+    ProbeCaller c = new ProbeCaller();
+    _validatedContractVm(address(c), ALL);
+    bytes1[5] memory bits = [bytes1(0x01), 0x02, 0x04, 0x08, 0x10];
+    for (uint256 i = 0; i < 5; i++) {
+      assertTrue(_auth(bits[i], address(c)), "contract authorized for bit");
+      assertFalse(_auth(bits[i], stranger), "stranger not authorized for bit");
+    }
+  }
+
+  // ---- 3 ----
+  function _eightCalls() internal view returns (bytes[8] memory d) {
+    d[0] = abi.encodeCall(IDidWriteOps.createDid, (methods, bytes32("probe-random"), bytes32(0)));
+    d[1] = _createVmData(bytes32("vm-x"), address(0xBEEF), bytes1(0x01));
+    d[2] = abi.encodeCall(IDidWriteOps.validateVm, (bytes32(uint256(1)), 0));
+    d[3] = abi.encodeCall(IDidWriteOps.expireVm, (methods, did, CVM, did, bytes32("vm-x")));
+    d[4] = abi.encodeCall(IDidWriteOps.deactivateDid, (methods, did, CVM, did));
+    d[5] = abi.encodeCall(IDidWriteOps.reactivateDid, (methods, did, CVM, did));
+    d[6] = abi.encodeCall(IDidWriteOps.updateController, (methods, did, CVM, did, did, bytes32(0), uint8(0)));
+    d[7] = abi.encodeCall(IDidWriteOps.updateService, (methods, did, CVM, did, bytes32("svc"), bytes("t"), bytes("e")));
+  }
+
+  function test_case3_contractVmAllBits_eightWrites_direct() public {
+    ProbeCaller c = new ProbeCaller();
+    _validatedContractVm(address(c), ALL);
+    bytes[8] memory d = _eightCalls();
+    address eoa = address(0xE0A1);
+    vm.startPrank(eoa, eoa);
+    for (uint256 i = 0; i < 8; i++) {
+      vm.expectRevert(DirectEOACallRequired.selector);
+      c.exec(address(mgr), d[i]);
+    }
+    vm.stopPrank();
+  }
+
+  function test_case3_contractVmAllBits_eightWrites_extraHop() public {
+    ProbeCaller c = new ProbeCaller();
+    ProbeHop hop = new ProbeHop();
+    _validatedContractVm(address(c), ALL);
+    bytes[8] memory d = _eightCalls();
+    address eoa = address(0xE0A1);
+    vm.startPrank(eoa, eoa);
+    for (uint256 i = 0; i < 8; i++) {
+      vm.expectRevert(DirectEOACallRequired.selector);
+      hop.forward(address(c), address(mgr), d[i]);
+    }
+    vm.stopPrank();
+  }
+
+  function test_case3_contractVmAllBits_eightWrites_delegatecall() public {
+    ProbeCaller c = new ProbeCaller();
+    ProbeDelegateHelper h = new ProbeDelegateHelper(address(mgr));
+    _validatedContractVm(address(c), ALL);
+    bytes[8] memory d = _eightCalls();
+    address eoa = address(0xE0A1);
+    vm.startPrank(eoa, eoa);
+    for (uint256 i = 0; i < 8; i++) {
+      vm.expectRevert(DirectEOACallRequired.selector);
+      c.execDelegate(address(h), d[i]);
+    }
+    vm.stopPrank();
+  }
+
+  // ---- 4 ----
+  function _sig(uint256 pk) internal pure returns (uint8 v, bytes32 r, bytes32 s, bytes memory packed) {
+    (v, r, s) = vm.sign(pk, MSG);
+    packed = abi.encodePacked(r, s, v);
+  }
+
+  function _recordOffChain(string memory label, address contractVm, bool expWithSigner) internal {
+    _validatedContractVm(contractVm, ALL);
+    (uint8 v, bytes32 r, bytes32 s, bytes memory packed) = _sig(Fixtures.TEST_PK_2);
+    try mgr.isAuthorizedOffChainWithSigner(methods, did, CVM, did, bytes1(0x01), contractVm, MSG, packed) returns (
+      bool ok
+    ) {
+      console2.log(label, "WithSigner(signer=contract, owner-key sig) =", ok);
+      assertEq(ok, expWithSigner, "WithSigner result");
+    } catch (bytes memory e) {
+      console2.log(label, "WithSigner reverted, data:");
+      console2.logBytes(e);
+    }
+    try mgr.isAuthorizedOffChain(methods, did, CVM, did, bytes1(0x01), MSG, v, r, s) returns (bool ok2) {
+      console2.log(label, "isAuthorizedOffChain(v,r,s) =", ok2);
+      assertFalse(ok2, "v,r,s overload must be false");
+    } catch (bytes memory e) {
+      console2.log(label, "v,r,s reverted, data:");
+      console2.logBytes(e);
+    }
+  }
+
+  function test_case4_offchain_erc1271Wallet() public {
+    _recordOffChain("case4 MockERC1271Wallet", address(new MockERC1271Wallet(vm.addr(Fixtures.TEST_PK_2))), true);
+  }
+
+  function test_case4_offchain_alwaysReject() public {
+    _recordOffChain("case4 AlwaysReject", address(new MockERC1271AlwaysReject()), false);
+  }
+
+  function test_case4_offchain_notAWallet() public {
+    _recordOffChain("case4 MockNotAWallet", address(new MockNotAWallet()), false);
+  }
+
+  // ---- 5 ----
+  function test_case5_ownerExpiresContractVm() public {
+    ProbeCaller c = new ProbeCaller();
+    _validatedContractVm(address(c), ALL);
+    assertTrue(_auth(bytes1(0x01), address(c)));
+    vm.startPrank(owner, owner);
+    mgr.expireVm(methods, did, _ownerVmId(), did, CVM);
+    vm.stopPrank();
+    assertFalse(_auth(bytes1(0x01), address(c)), "after expire (same block)");
+    vm.warp(block.timestamp + 1);
+    assertFalse(_auth(bytes1(0x01), address(c)), "after expire (+1s)");
+  }
+
+  // ---- 6 ----
+  function test_case6_rawStaticcalls() public view {
+    address[4] memory t = [address(2), address(3), address(4), address(0xDEAD0001)];
+    for (uint256 i = 0; i < 4; i++) {
+      (bool ok, bytes memory ret) = t[i].staticcall(hex"8da5cb5b");
+      console2.log("case6 target", t[i]);
+      console2.log("  success", ok);
+      console2.log("  retlen", ret.length);
+      console2.logBytes(ret);
+      assertTrue(ok, "staticcall success");
+      if (i == 0 || i == 1) assertEq(ret.length, 32, "len 32");
+      if (i == 1) assertEq(uint256(bytes32(ret)) >> 160, 0, "top 12 bytes zero");
+      if (i == 2) assertEq(ret.length, 4, "identity len 4");
+      if (i == 3) assertEq(ret.length, 0, "no-code len 0");
+    }
+    console2.log("case6 address(3).code.length", address(3).code.length);
+    assertEq(address(3).code.length, 0);
+  }
+
+  // ---- 7 ----
+  function test_case7_validateWithPastExpiration() public {
+    vm.warp(1_000_000);
+    address eoa = address(0xE0A2);
+    bytes32 pos = _ownerCreateVm(bytes32("vm-eoa"), eoa, bytes1(0x01));
+    _validateAs(eoa, pos, 1);
+    console2.log("case7 first validateVm(exp=1) succeeded");
+    bool a = mgr.isAuthorized(methods, did, bytes32("vm-eoa"), did, bytes1(0x01), eoa);
+    console2.log("case7 isAuthorized after validate(exp=1) =", a);
+    assertFalse(a, "past expiration not authorized");
+    vm.startPrank(eoa, eoa);
+    vm.expectRevert(bytes4(keccak256("VmAlreadyValidated()")));
+    mgr.validateVm(pos, 0);
+    vm.stopPrank();
+    console2.log("case7 second validateVm reverts VmAlreadyValidated");
+  }
+
+  // ---- 8 ----
+  function test_case8_truncation_exp2pow88() public {
+    address eoa = address(0xE0A3);
+    bytes32 vmId = bytes32("vm-eoa");
+    bytes32 pos = _ownerCreateVm(vmId, eoa, bytes1(0x01));
+    vm.recordLogs();
+    vm.startPrank(eoa, eoa);
+    try mgr.validateVm(pos, uint256(1) << 88) {
+      console2.log("case8 validateVm(2**88) SUCCEEDED");
+    } catch (bytes memory e) {
+      console2.log("case8 validateVm(2**88) REVERTED");
+      console2.logBytes(e);
+    }
+    vm.stopPrank();
+    Vm.Log[] memory logs = vm.getRecordedLogs();
+    bytes32 validatedTopic = keccak256("VmValidated(bytes32)");
+    bool emitted;
+    for (uint256 i = 0; i < logs.length; i++) {
+      if (logs[i].topics[0] == validatedTopic) emitted = true;
+    }
+    console2.log("case8 VmValidated emitted =", emitted);
+    assertTrue(emitted, "observed: VmValidated emitted");
+    uint256 expOut = mgr.getExpiration(methods, did, vmId);
+    bool authOut = mgr.isAuthorized(methods, did, vmId, did, bytes1(0x01), eoa);
+    console2.log("case8 getExpiration =", expOut);
+    console2.log("case8 isAuthorized =", authOut);
+    assertEq(expOut, 0, "observed: expiration truncated to 0");
+    assertFalse(authOut, "observed: not authorized");
+    bool secondOk;
+    vm.startPrank(eoa, eoa);
+    try mgr.validateVm(pos, 0) {
+      console2.log("case8 second validateVm(0) SUCCEEDED");
+      secondOk = true;
+    } catch (bytes memory e) {
+      console2.log("case8 second validateVm(0) REVERTED");
+      console2.logBytes(e);
+    }
+    vm.stopPrank();
+    assertTrue(secondOk, "observed: second validateVm succeeds");
+  }
+}
+
+contract ContractVmProbeFullTest is ContractVmProbeShared, TestBase {
+  function _deploy() internal override {
+    _deployDidManager();
+    mgr = IDidManager(address(didManager));
+  }
+
+  function _newDid() internal override returns (bytes32 m, bytes32 id) {
+    DidTestHelpers.CreateDidResult memory r = DidTestHelpers.createDefaultDid(vm, didManager);
+    return (r.didInfo.methods, r.didInfo.id);
+  }
+
+  function _cmd(bytes32 vmId, address eth, bytes1 rel) internal view returns (FullCmd memory) {
+    return FullCmd({
+      methods: methods,
+      senderId: did,
+      senderVmId: DEFAULT_VM_ID,
+      targetId: did,
+      vmId: vmId,
+      type_: Fixtures.defaultVmType(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
+      blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
+      ethereumAddress: eth,
+      relationships: rel,
+      expiration: 0
+    });
+  }
+
+  function _newVm(bytes32 vmId, address eth, bytes1 rel) internal override returns (bytes32) {
+    return DidTestHelpers.createVm(vm, didManager, _cmd(vmId, eth, rel)).vmCreatedPositionHash;
+  }
+
+  function _createVmData(bytes32 vmId, address eth, bytes1 rel) internal view override returns (bytes memory) {
+    return abi.encodeWithSelector(didManager.createVm.selector, _cmd(vmId, eth, rel));
+  }
+
+  function _ownerVmId() internal pure override returns (bytes32) {
+    return DEFAULT_VM_ID;
+  }
+}
+
+contract ContractVmProbeNativeTest is ContractVmProbeShared, TestBaseNative {
+  function _deploy() internal override {
+    _deployDidManagerNative();
+    mgr = IDidManager(address(didManagerNative));
+  }
+
+  function _newDid() internal override returns (bytes32 m, bytes32 id) {
+    DidTestHelpersNative.CreateDidResult memory r = DidTestHelpersNative.createDefaultDid(vm, didManagerNative);
+    return (r.didInfo.methods, r.didInfo.id);
+  }
+
+  function _cmd(bytes32 vmId, address eth, bytes1 rel) internal view returns (NativeCmd memory) {
+    return NativeCmd({
+      methods: methods,
+      senderId: did,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
+      targetId: did,
+      vmId: vmId,
+      ethereumAddress: eth,
+      relationships: rel,
+      publicKeyMultibase: (rel & 0x04) == 0x04 ? Fixtures.defaultVmPublicKeyMultibase() : bytes("")
+    });
+  }
+
+  function _newVm(bytes32 vmId, address eth, bytes1 rel) internal override returns (bytes32) {
+    return DidTestHelpersNative.createVm(vm, didManagerNative, _cmd(vmId, eth, rel)).vmCreatedPositionHash;
+  }
+
+  function _createVmData(bytes32 vmId, address eth, bytes1 rel) internal view override returns (bytes memory) {
+    return abi.encodeWithSelector(didManagerNative.createVm.selector, _cmd(vmId, eth, rel));
+  }
+
+  function _ownerVmId() internal pure override returns (bytes32) {
+    return DEFAULT_VM_ID_NATIVE;
+  }
+}

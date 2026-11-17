@@ -40,6 +40,7 @@ docs/
 │   ├── storage-layout-analysis.md     # Storage optimization analysis
 │   ├── deployment-guide.md            # Production deployment instructions
 │   ├── threat-model.md                # Security threat analysis
+│   ├── contract-vm-validation-design.md # v1.8.0 design: contract-held verification methods
 │   ├── research-validation.md         # Academic findings & validation
 │   └── test-catalog.md               # Exhaustive test case catalog (343 tests)
 └── assets/                             # Supporting data & evidence
@@ -109,6 +110,12 @@ Security analysis and threat assessment:
 - Controller delegation security considerations
 - Multi-method DID namespace collision prevention
 - Verification method cryptographic attack surfaces
+
+### [Contract VM Validation Design](./analysis/contract-vm-validation-design.md)
+Phase 1 design for v1.8.0, letting a smart contract hold a validated verification method:
+- Ten security questions answered with test evidence (`assets/data/contract-vm-validation/`)
+- Three alternatives compared, with measured size and gas
+- Ranked findings from an independent review, and the decisions left to the owner
 
 ### 🧪 [Test Catalog](./analysis/test-catalog.md)
 Exhaustive catalog of all 343 test cases:

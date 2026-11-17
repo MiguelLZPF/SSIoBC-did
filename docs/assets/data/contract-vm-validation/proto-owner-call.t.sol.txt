@@ -1,0 +1,468 @@
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity >=0.8.0 <0.9.0;
+
+import { Test, console2 } from "forge-std/Test.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { TestBase } from "@test/helpers/TestBase.sol";
+import { TestBaseNative } from "@test/helpers/TestBaseNative.sol";
+import { DidTestHelpers } from "@test/helpers/DidTestHelpers.sol";
+import { DidTestHelpersNative } from "@test/helpers/DidTestHelpersNative.sol";
+import { Fixtures } from "@test/helpers/Fixtures.sol";
+import { MockERC1271Wallet } from "@test/mocks/MockERC1271Wallets.sol";
+import { DEFAULT_VM_ID } from "@interfaces/IVMStorage.sol";
+import { DEFAULT_VM_ID_NATIVE } from "@interfaces/IVMStorageNative.sol";
+import { DidCreateVmCommand } from "@types/VmTypes.sol";
+import { DidCreateVmCommandNative } from "@types/VmTypesNative.sol";
+
+// ============================ mocks ============================
+contract OwnableMock is Ownable {
+  constructor(address o) Ownable(o) { }
+}
+
+/// @dev Any call returns LEN bytes of memory whose first word is WORD.
+contract RawReturner {
+  uint256 internal immutable LEN;
+  uint256 internal immutable WORD;
+
+  constructor(uint256 l, uint256 w) {
+    LEN = l;
+    WORD = w;
+  }
+
+  fallback() external {
+    uint256 l = LEN;
+    uint256 w = WORD;
+    assembly {
+      mstore(0, w)
+      return(0, l)
+    }
+  }
+}
+
+contract RevertingOwner {
+  fallback() external {
+    revert();
+  }
+}
+
+contract LoopOwner {
+  fallback() external {
+    assembly {
+      for { } 1 { } { }
+    }
+  }
+}
+
+contract SstoreOwner {
+  address internal immutable C;
+  uint256 public x;
+
+  constructor(address c) {
+    C = c;
+  }
+
+  function owner() external returns (address) {
+    x = 1;
+    return C;
+  }
+}
+
+contract OriginOwner {
+  function owner() external view returns (address) {
+    return tx.origin;
+  }
+}
+
+contract SenderOwner {
+  function owner() external view returns (address) {
+    return msg.sender;
+  }
+}
+
+contract MockMultisig {
+  function exec(address t, bytes calldata d) external {
+    (bool s, bytes memory r) = t.call(d);
+    if (!s) {
+      assembly {
+        revert(add(r, 32), mload(r))
+      }
+    }
+  }
+}
+
+contract OwnableImpl {
+  address private _o;
+
+  function initialize(address o) external {
+    _o = o;
+  }
+
+  function owner() external view returns (address) {
+    return _o;
+  }
+}
+
+// ============================ shared cases ============================
+abstract contract Cases is Test {
+  event VmValidated(bytes32 indexed id);
+
+  bytes4 internal constant INVALID_SIG = bytes4(keccak256("InvalidSignature()"));
+  bytes4 internal constant DIRECT_EOA = bytes4(keccak256("DirectEOACallRequired()"));
+  bytes4 internal constant ALREADY_VALIDATED = bytes4(keccak256("VmAlreadyValidated()"));
+  bytes1 internal constant ASSERTION = bytes1(0x02);
+
+  address internal didOwner = makeAddr("didOwner");
+  address internal ownerC = makeAddr("ownerC");
+  address internal otherEoa = makeAddr("otherEoa");
+  bytes32 internal methods;
+  bytes32 internal did;
+
+  function _newDid(address by, bytes32 random) internal virtual returns (bytes32 id);
+  function _createVm(address by, bytes32 id, bytes32 vmId, address t) internal virtual returns (bytes32 pos);
+  function _validate(bytes32 pos, uint256 exp) internal virtual;
+  function _auth(bytes32 id, bytes32 vmId, address t) internal view virtual returns (bool);
+  function _expire(address by, bytes32 id, bytes32 vmId) internal virtual;
+
+  function _initDid() internal {
+    did = _newDid(didOwner, Fixtures.DEFAULT_RANDOM_0);
+  }
+
+  function _mk(address t) internal returns (bytes32) {
+    return _createVm(didOwner, did, bytes32("vm-t"), t);
+  }
+
+  function _as(address c, bytes32 pos, uint256 exp) internal {
+    vm.startPrank(c, c);
+    _validate(pos, exp);
+    vm.stopPrank();
+  }
+
+  function _asRevert(address c, bytes32 pos, uint256 exp, bytes4 sel) internal {
+    vm.startPrank(c, c);
+    vm.expectRevert(sel);
+    _validate(pos, exp);
+    vm.stopPrank();
+  }
+
+  // 1
+  function test_c1_ownable() public {
+    OwnableMock t = new OwnableMock(ownerC);
+    bytes32 pos = _mk(address(t));
+    assertFalse(_auth(did, bytes32("vm-t"), address(t)), "inactive before validate");
+    _asRevert(otherEoa, pos, 0, INVALID_SIG);
+    vm.prank(address(t));
+    vm.expectRevert(DIRECT_EOA);
+    _validate(pos, 0);
+    vm.startPrank(ownerC, ownerC);
+    vm.expectEmit(true, false, false, false);
+    emit VmValidated(bytes32("vm-t"));
+    _validate(pos, 0);
+    vm.stopPrank();
+    assertTrue(_auth(did, bytes32("vm-t"), address(t)), "active after owner validate");
+  }
+
+  // 2
+  function test_c2_noCode_and_create2() public {
+    address nocode = makeAddr("nocode");
+    bytes32 pos = _mk(nocode);
+    _asRevert(ownerC, pos, 0, INVALID_SIG);
+
+    bytes32 salt = bytes32(uint256(77));
+    bytes32 h = keccak256(abi.encodePacked(type(OwnableMock).creationCode, abi.encode(ownerC)));
+    address predicted = vm.computeCreate2Address(salt, h, address(this));
+    assertEq(predicted.code.length, 0);
+    bytes32 pos2 = _createVm(didOwner, did, bytes32("vm-c2"), predicted);
+    _asRevert(ownerC, pos2, 0, INVALID_SIG);
+    OwnableMock d = new OwnableMock{ salt: salt }(ownerC);
+    assertEq(address(d), predicted);
+    _as(ownerC, pos2, 0);
+    assertTrue(_auth(did, bytes32("vm-c2"), predicted));
+  }
+
+  // 4
+  function test_c4_badOwnerReturns() public {
+    address[4] memory ts = [
+      address(new RevertingOwner()),
+      address(new RawReturner(0, uint256(uint160(ownerC)))),
+      address(new RawReturner(31, uint256(uint160(ownerC)))),
+      address(new RawReturner(64, uint256(uint160(ownerC))))
+    ];
+    for (uint256 i; i < ts.length; i++) {
+      bytes32 pos = _createVm(didOwner, did, bytes32(uint256(100 + i)), ts[i]);
+      _asRevert(ownerC, pos, 0, INVALID_SIG);
+    }
+    // control: exactly 32 bytes returns ownerC -> success
+    address ok = address(new RawReturner(32, uint256(uint160(ownerC))));
+    bytes32 p = _createVm(didOwner, did, bytes32(uint256(200)), ok);
+    _as(ownerC, p, 0);
+  }
+
+  // 5
+  function test_c5_highBit() public {
+    address t = address(new RawReturner(32, uint256(uint160(ownerC)) | (uint256(1) << 255)));
+    bytes32 pos = _mk(t);
+    _asRevert(ownerC, pos, 0, INVALID_SIG);
+  }
+}
+
+// ============================ Full variant ============================
+contract ContractVmOwnerProtoFull is TestBase, Cases {
+  function setUp() public {
+    _deployDidManager();
+    _initDid();
+  }
+
+  function _newDid(address by, bytes32 random) internal override returns (bytes32 id) {
+    vm.startPrank(by, by);
+    DidTestHelpers.CreateDidResult memory r =
+      DidTestHelpers.createDid(vm, didManager, Fixtures.EMPTY_DID_METHODS, random, bytes32(0));
+    vm.stopPrank();
+    methods = r.didInfo.methods;
+    id = r.didInfo.id;
+  }
+
+  function _createVm(address by, bytes32 id, bytes32 vmId, address t) internal override returns (bytes32 pos) {
+    DidCreateVmCommand memory c = DidCreateVmCommand({
+      methods: methods,
+      senderId: id,
+      senderVmId: DEFAULT_VM_ID,
+      targetId: id,
+      vmId: vmId,
+      type_: Fixtures.defaultVmType(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
+      blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
+      ethereumAddress: t,
+      relationships: ASSERTION,
+      expiration: 0
+    });
+    vm.startPrank(by, by);
+    DidTestHelpers.CreateVmResult memory r = DidTestHelpers.createVm(vm, didManager, c);
+    vm.stopPrank();
+    pos = r.vmCreatedPositionHash;
+  }
+
+  function _validate(bytes32 pos, uint256 exp) internal override {
+    didManager.validateVm(pos, exp);
+  }
+
+  function _auth(bytes32 id, bytes32 vmId, address t) internal view override returns (bool) {
+    return didManager.isAuthorized(methods, id, vmId, id, ASSERTION, t);
+  }
+
+  function _expire(address by, bytes32 id, bytes32 vmId) internal override {
+    vm.startPrank(by, by);
+    didManager.expireVm(methods, id, DEFAULT_VM_ID, id, vmId);
+    vm.stopPrank();
+  }
+
+  // 3
+  function test_c3_precompiles() public {
+    for (uint160 p = 2; p <= 4; p++) {
+      (bool s, bytes memory r) = address(p).staticcall(hex"8da5cb5b");
+      console2.log("precompile", uint256(p));
+      console2.log(" ok / code.length / retlen", s ? 1 : 0, address(p).code.length, r.length);
+      console2.logBytes(r);
+      address c;
+      if (r.length == 32) c = address(uint160(uint256(bytes32(r))));
+      else c = address(uint160(uint32(0x8da5cb5b)));
+      bytes32 pos = _createVm(didOwner, did, bytes32(uint256(300 + p)), address(p));
+      _asRevert(c, pos, 0, INVALID_SIG);
+    }
+  }
+
+  // 6
+  function test_c6_loop_gas() public {
+    address t = address(new LoopOwner());
+    bytes32 pos = _mk(t);
+    vm.startPrank(ownerC, ownerC);
+    vm.expectRevert(INVALID_SIG);
+    uint256 g = gasleft();
+    _validate(pos, 0);
+    uint256 used = g - gasleft();
+    vm.stopPrank();
+    console2.log("loop owner: gas used by whole validateVm", used);
+    assertLt(used, 80_000);
+  }
+
+  function test_c6_huge_gas() public {
+    address t = address(new RawReturner(1 << 20, uint256(uint160(ownerC))));
+    bytes32 pos = _mk(t);
+    vm.startPrank(ownerC, ownerC);
+    vm.expectRevert(INVALID_SIG);
+    uint256 g = gasleft();
+    _validate(pos, 0);
+    uint256 used = g - gasleft();
+    vm.stopPrank();
+    console2.log("1MB owner: gas used by whole validateVm", used);
+    assertLt(used, 80_000);
+  }
+
+  // 7
+  function test_c7_sstore() public {
+    address t = address(new SstoreOwner(ownerC));
+    bytes32 pos = _mk(t);
+    _asRevert(ownerC, pos, 0, INVALID_SIG);
+  }
+
+  // 8
+  function test_c8_origin_owner() public {
+    address t = address(new OriginOwner());
+    bytes32 pos = _mk(t);
+    address random1 = makeAddr("random1");
+    _as(random1, pos, 0);
+    assertTrue(_auth(did, bytes32("vm-t"), t));
+    console2.log("documented: owner()==tx.origin lets ANY EOA validate");
+  }
+
+  function test_c8_sender_owner() public {
+    address t = address(new SenderOwner());
+    bytes32 pos = _mk(t);
+    _asRevert(ownerC, pos, 0, INVALID_SIG);
+  }
+
+  // 9
+  function test_c9_contract_owner() public {
+    MockMultisig ms = new MockMultisig();
+    OwnableMock t = new OwnableMock(address(ms));
+    bytes32 pos = _mk(address(t));
+    vm.startPrank(ownerC, ownerC);
+    vm.expectRevert(DIRECT_EOA);
+    ms.exec(address(didManager), abi.encodeWithSignature("validateVm(bytes32,uint256)", pos, uint256(0)));
+    vm.stopPrank();
+    // even with the multisig as origin it is not an EOA path, plain call from ms with prank(ms, ms) is a forged origin
+    console2.log("contract owner cannot validate: DirectEOACallRequired");
+  }
+
+  // 10
+  function test_c10_proxy() public {
+    OwnableImpl impl = new OwnableImpl();
+    ERC1967Proxy px = new ERC1967Proxy(address(impl), abi.encodeCall(OwnableImpl.initialize, (ownerC)));
+    bytes32 pos = _mk(address(px));
+    _asRevert(otherEoa, pos, 0, INVALID_SIG);
+    _as(ownerC, pos, 0);
+    assertTrue(_auth(did, bytes32("vm-t"), address(px)));
+  }
+
+  // 11 (etch variant)
+  function test_c11_7702_etch() public {
+    uint256 pk = 0xA11CE;
+    address a = vm.addr(pk);
+    MockERC1271Wallet w = new MockERC1271Wallet(ownerC);
+    vm.etch(a, address(w).code);
+    assertGt(a.code.length, 0);
+    bytes32 pos = _mk(a);
+    _as(ownerC, pos, 0); // third party O validates for A
+    assertTrue(_auth(did, bytes32("vm-t"), a));
+    // A validates its own VM directly
+    bytes32 pos2 = _createVm(didOwner, did, bytes32("vm-self"), a);
+    _as(a, pos2, 0);
+    assertTrue(_auth(did, bytes32("vm-self"), a));
+  }
+
+  // 11 (real 7702 delegation cheatcode)
+  function test_c11_7702_signAndAttachDelegation() public {
+    uint256 pk = 0xB0B;
+    address a = vm.addr(pk);
+    MockERC1271Wallet w = new MockERC1271Wallet(ownerC);
+    vm.signAndAttachDelegation(address(w), pk);
+    bytes32 pos = _mk(a); // next call applies the delegation
+    console2.log("A.code.length after attach+call", a.code.length);
+    _as(ownerC, pos, 0);
+    assertTrue(_auth(did, bytes32("vm-t"), a));
+  }
+
+  // 12
+  function test_c12_after_validation() public {
+    OwnableMock t = new OwnableMock(ownerC);
+    bytes32 pos = _mk(address(t));
+    _as(ownerC, pos, 0);
+    assertTrue(_auth(did, bytes32("vm-t"), address(t)));
+    address newOwner = makeAddr("newOwner");
+    vm.prank(ownerC);
+    t.transferOwnership(newOwner);
+    assertTrue(_auth(did, bytes32("vm-t"), address(t)), "after transfer");
+    _asRevert(newOwner, pos, 0, ALREADY_VALIDATED);
+    vm.prank(newOwner);
+    t.renounceOwnership();
+    assertEq(t.owner(), address(0));
+    assertTrue(_auth(did, bytes32("vm-t"), address(t)), "after renounce");
+    _expire(didOwner, did, bytes32("vm-t"));
+    assertFalse(_auth(did, bytes32("vm-t"), address(t)), "after expireVm");
+  }
+
+  // 13
+  function test_c13_two_dids() public {
+    OwnableMock t = new OwnableMock(ownerC);
+    bytes32 pos1 = _mk(address(t));
+    address didOwner2 = makeAddr("didOwner2");
+    bytes32 did2 = _newDid(didOwner2, Fixtures.DEFAULT_RANDOM_1);
+    bytes32 pos2 = _createVm(didOwner2, did2, bytes32("vm-t"), address(t));
+    _as(ownerC, pos1, 0);
+    _as(ownerC, pos2, 0);
+    assertTrue(_auth(did, bytes32("vm-t"), address(t)));
+    assertTrue(_auth(did2, bytes32("vm-t"), address(t)));
+  }
+
+  // 14
+  function test_c14_expiration_one() public {
+    OwnableMock t = new OwnableMock(ownerC);
+    bytes32 pos = _mk(address(t));
+    _as(ownerC, pos, 1);
+    console2.log("expiration=1 accepted; block.timestamp", block.timestamp);
+    console2.log("isAuthorized at ts=1", _auth(did, bytes32("vm-t"), address(t)) ? 1 : 0);
+    _asRevert(ownerC, pos, 0, ALREADY_VALIDATED);
+    vm.warp(1000);
+    console2.log("isAuthorized at ts=1000", _auth(did, bytes32("vm-t"), address(t)) ? 1 : 0);
+    assertFalse(_auth(did, bytes32("vm-t"), address(t)));
+  }
+}
+
+// ============================ Native variant ============================
+contract ContractVmOwnerProtoNative is TestBaseNative, Cases {
+  function setUp() public {
+    _deployDidManagerNative();
+    _initDid();
+  }
+
+  function _newDid(address by, bytes32 random) internal override returns (bytes32 id) {
+    vm.startPrank(by, by);
+    DidTestHelpersNative.CreateDidResult memory r =
+      DidTestHelpersNative.createDid(vm, didManagerNative, Fixtures.EMPTY_DID_METHODS, random, bytes32(0));
+    vm.stopPrank();
+    methods = r.didInfo.methods;
+    id = r.didInfo.id;
+  }
+
+  function _createVm(address by, bytes32 id, bytes32 vmId, address t) internal override returns (bytes32 pos) {
+    DidCreateVmCommandNative memory c = DidCreateVmCommandNative({
+      methods: methods,
+      senderId: id,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
+      targetId: id,
+      vmId: vmId,
+      ethereumAddress: t,
+      relationships: ASSERTION,
+      publicKeyMultibase: ""
+    });
+    vm.startPrank(by, by);
+    DidTestHelpersNative.CreateVmResult memory r = DidTestHelpersNative.createVm(vm, didManagerNative, c);
+    vm.stopPrank();
+    pos = r.vmCreatedPositionHash;
+  }
+
+  function _validate(bytes32 pos, uint256 exp) internal override {
+    didManagerNative.validateVm(pos, exp);
+  }
+
+  function _auth(bytes32 id, bytes32 vmId, address t) internal view override returns (bool) {
+    return didManagerNative.isAuthorized(methods, id, vmId, id, ASSERTION, t);
+  }
+
+  function _expire(address by, bytes32 id, bytes32 vmId) internal override {
+    vm.startPrank(by, by);
+    didManagerNative.expireVm(methods, id, DEFAULT_VM_ID_NATIVE, id, vmId);
+    vm.stopPrank();
+  }
+}

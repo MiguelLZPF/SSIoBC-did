@@ -1,0 +1,173 @@
+Ran 13 tests for test/unit/ContractVmProbe.t.sol:ContractVmProbeNativeTest
+[PASS] test_case1_contractCallsValidateVm_revertsDirectEOA() (gas: 475841)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case1_nonVmEoaValidateVm_revertsInvalidSignature() (gas: 478313)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case2_simulatedValidation_andAllBits() (gas: 764983)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case3_contractVmAllBits_eightWrites_delegatecall() (gas: 1027619)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case3_contractVmAllBits_eightWrites_direct() (gas: 814709)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case3_contractVmAllBits_eightWrites_extraHop() (gas: 1047712)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case4_offchain_alwaysReject() (gas: 489313)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case4 AlwaysReject WithSigner(signer=contract, owner-key sig) = false
+  case4 AlwaysReject isAuthorizedOffChain(v,r,s) = false
+
+[PASS] test_case4_offchain_erc1271Wallet() (gas: 630632)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case4 MockERC1271Wallet WithSigner(signer=contract, owner-key sig) = true
+  case4 MockERC1271Wallet isAuthorizedOffChain(v,r,s) = false
+
+[PASS] test_case4_offchain_notAWallet() (gas: 468141)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case4 MockNotAWallet WithSigner(signer=contract, owner-key sig) = false
+  case4 MockNotAWallet isAuthorizedOffChain(v,r,s) = false
+
+[PASS] test_case5_ownerExpiresContractVm() (gas: 656009)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case6_rawStaticcalls() (gas: 60330)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case6 target 0x0000000000000000000000000000000000000002
+    success true
+    retlen 32
+  0x7ed62f5b4e206b03d3db898966452caa0d4530adbf4f56b37c56cfd87aff611b
+  case6 target 0x0000000000000000000000000000000000000003
+    success true
+    retlen 32
+  0x0000000000000000000000001dfbdabbeefd43362f538036d2922ec8986a5cae
+  case6 target 0x0000000000000000000000000000000000000004
+    success true
+    retlen 4
+  0x8da5cb5b
+  case6 target 0x00000000000000000000000000000000DEAD0001
+    success true
+    retlen 0
+  0x
+  case6 address(3).code.length 0
+
+[PASS] test_case7_validateWithPastExpiration() (gas: 307339)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case7 first validateVm(exp=1) succeeded
+  case7 isAuthorized after validate(exp=1) = false
+  case7 second validateVm reverts VmAlreadyValidated
+
+[PASS] test_case8_truncation_exp2pow88() (gas: 332066)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case8 validateVm(2**88) SUCCEEDED
+  case8 VmValidated emitted = true
+  case8 getExpiration = 0
+  case8 isAuthorized = false
+  case8 second validateVm(0) SUCCEEDED
+
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 15.30ms (18.94ms CPU time)
+
+Ran 13 tests for test/unit/ContractVmProbe.t.sol:ContractVmProbeFullTest
+[PASS] test_case1_contractCallsValidateVm_revertsDirectEOA() (gas: 545158)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case1_nonVmEoaValidateVm_revertsInvalidSignature() (gas: 549611)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case2_simulatedValidation_andAllBits() (gas: 768459)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case3_contractVmAllBits_eightWrites_delegatecall() (gas: 1033924)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case3_contractVmAllBits_eightWrites_direct() (gas: 821782)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case3_contractVmAllBits_eightWrites_extraHop() (gas: 1053771)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case4_offchain_alwaysReject() (gas: 492515)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case4 AlwaysReject WithSigner(signer=contract, owner-key sig) = false
+  case4 AlwaysReject isAuthorizedOffChain(v,r,s) = false
+
+[PASS] test_case4_offchain_erc1271Wallet() (gas: 633840)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case4 MockERC1271Wallet WithSigner(signer=contract, owner-key sig) = true
+  case4 MockERC1271Wallet isAuthorizedOffChain(v,r,s) = false
+
+[PASS] test_case4_offchain_notAWallet() (gas: 471343)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case4 MockNotAWallet WithSigner(signer=contract, owner-key sig) = false
+  case4 MockNotAWallet isAuthorizedOffChain(v,r,s) = false
+
+[PASS] test_case5_ownerExpiresContractVm() (gas: 659283)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_case6_rawStaticcalls() (gas: 60330)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case6 target 0x0000000000000000000000000000000000000002
+    success true
+    retlen 32
+  0x7ed62f5b4e206b03d3db898966452caa0d4530adbf4f56b37c56cfd87aff611b
+  case6 target 0x0000000000000000000000000000000000000003
+    success true
+    retlen 32
+  0x0000000000000000000000001dfbdabbeefd43362f538036d2922ec8986a5cae
+  case6 target 0x0000000000000000000000000000000000000004
+    success true
+    retlen 4
+  0x8da5cb5b
+  case6 target 0x00000000000000000000000000000000DEAD0001
+    success true
+    retlen 0
+  0x
+  case6 address(3).code.length 0
+
+[PASS] test_case7_validateWithPastExpiration() (gas: 380663)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case7 first validateVm(exp=1) succeeded
+  case7 isAuthorized after validate(exp=1) = false
+  case7 second validateVm reverts VmAlreadyValidated
+
+[PASS] test_case8_truncation_exp2pow88() (gas: 405325)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case8 validateVm(2**88) SUCCEEDED
+  case8 VmValidated emitted = true
+  case8 getExpiration = 0
+  case8 isAuthorized = false
+  case8 second validateVm(0) SUCCEEDED
+
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 15.30ms (18.55ms CPU time)
+
+Ran 2 test suites in 22.52ms (30.60ms CPU time): 26 tests passed, 0 failed, 0 skipped (26 total tests)

@@ -1,0 +1,402 @@
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity >=0.8.0 <0.9.0;
+
+// PROTOTYPE (proto-a): validateVm without onlyDirectEOA. Throwaway, never merge.
+
+import { Test } from "forge-std/Test.sol";
+import { Vm } from "forge-std/Vm.sol";
+import { TestBase } from "@test/helpers/TestBase.sol";
+import { TestBaseNative } from "@test/helpers/TestBaseNative.sol";
+import { DidTestHelpers } from "@test/helpers/DidTestHelpers.sol";
+import { DidTestHelpersNative } from "@test/helpers/DidTestHelpersNative.sol";
+import { Fixtures } from "@test/helpers/Fixtures.sol";
+import { IDidWriteOps } from "@interfaces/IDidWriteOps.sol";
+import { IDidManagerFull } from "@interfaces/IDidManagerFull.sol";
+import { IDidManagerNative } from "@interfaces/IDidManagerNative.sol";
+import { DidCreateVmCommand as CreateVmCommand } from "@types/VmTypes.sol";
+import { DidCreateVmCommandNative as NativeCreateVmCommand } from "@types/VmTypesNative.sol";
+import { DEFAULT_VM_ID } from "@interfaces/IVMStorage.sol";
+import { DEFAULT_VM_ID_NATIVE } from "@interfaces/IVMStorageNative.sol";
+import "@types/DidTypes.sol";
+
+interface IMgr {
+  function validateVm(bytes32 positionHash, uint256 expiration) external;
+  function isAuthorized(
+    bytes32 methods,
+    bytes32 senderId,
+    bytes32 senderVmId,
+    bytes32 targetId,
+    bytes1 relationship,
+    address sender
+  ) external view returns (bool);
+}
+
+// ---------------------------------------------------------------- mocks
+
+abstract contract Bubble {
+  function _call(address to, bytes memory data) internal {
+    (bool ok, bytes memory ret) = to.call(data);
+    if (!ok) {
+      assembly {
+        revert(add(ret, 32), mload(ret))
+      }
+    }
+  }
+}
+
+/// Case 1/8: contract key restricted to its admin (EOA or contract).
+contract SelfValidator is Bubble {
+  error NotAdmin();
+  address public immutable admin;
+
+  constructor(address admin_) {
+    admin = admin_;
+  }
+
+  function selfValidate(IMgr manager, bytes32 positionHash) external {
+    if (msg.sender != admin) revert NotAdmin();
+    manager.validateVm(positionHash, 0);
+  }
+
+  function exec(address to, bytes calldata data) external {
+    if (msg.sender != admin) revert NotAdmin();
+    _call(to, data);
+  }
+}
+
+/// Case 2: mock multisig, forwards a call.
+contract MockMultisig is Bubble {
+  function execute(address to, bytes calldata data) external {
+    _call(to, data);
+  }
+}
+
+/// Case 3: attacker contract the victim EOA is lured into calling.
+contract MaliciousM {
+  function trap(IMgr manager, bytes32 positionHash) external {
+    manager.validateVm(positionHash, 0);
+  }
+}
+
+/// Case 4/5: Multicall-like / flash-loan-callback-like contract, callable by anyone.
+contract ArbExec is Bubble {
+  function exec(address to, bytes calldata data) external {
+    _call(to, data);
+  }
+}
+
+/// Case 6: validates itself inside its constructor.
+contract CtorValidator {
+  uint256 public codeLenInCtor;
+
+  constructor(IMgr manager, bytes32 positionHash) {
+    codeLenInCtor = address(this).code.length;
+    manager.validateVm(positionHash, 0);
+  }
+}
+
+// ---------------------------------------------------------------- shared logic
+
+abstract contract ProtoBase is Test {
+  address internal owner = makeAddr("owner");
+  address internal admin = makeAddr("admin");
+  address internal stranger = makeAddr("stranger");
+  address internal eoaA = makeAddr("eoaA");
+  address internal eoaB = makeAddr("eoaB");
+  bytes1 internal constant R_ASSERT = 0x02;
+  bytes1 internal constant R_ALL = 0x1F;
+  bytes32 internal constant VM_T = bytes32("vm-T");
+
+  event VmValidated(bytes32 indexed id);
+
+  function _mgr() internal view virtual returns (address);
+  function _newDid(address who, bytes32 random) internal virtual returns (bytes32 methods, bytes32 id);
+  function _newVm(address who, bytes32 methods, bytes32 id, bytes32 vmId, address key, bytes1 rel)
+    internal
+    virtual
+    returns (bytes32 positionHash);
+  function _createVmCalldata(bytes32 methods, bytes32 id, bytes32 vmId, address key, bytes1 rel)
+    internal
+    view
+    virtual
+    returns (bytes memory);
+  function _defaultVmId() internal pure virtual returns (bytes32);
+
+  function _auth(bytes32 methods, bytes32 senderId, bytes32 vmId, bytes32 targetId, bytes1 rel, address key)
+    internal
+    view
+    returns (bool)
+  {
+    return IMgr(_mgr()).isAuthorized(methods, senderId, vmId, targetId, rel, key);
+  }
+
+  function _validateCd(bytes32 ph) internal pure returns (bytes memory) {
+    return abi.encodeCall(IMgr.validateVm, (ph, 0));
+  }
+
+  function _sevenGuardedCalls(bytes32 methods, bytes32 id, bytes32 vmId, address key)
+    internal
+    view
+    returns (bytes[] memory c)
+  {
+    bytes32 dv = _defaultVmId();
+    c = new bytes[](7);
+    c[0] = abi.encodeCall(IDidWriteOps.createDid, (methods, bytes32("rnd-new"), bytes32(0)));
+    c[1] = _createVmCalldata(methods, id, vmId, key, R_ASSERT);
+    c[2] = abi.encodeCall(IDidWriteOps.expireVm, (methods, id, vmId, id, dv));
+    c[3] = abi.encodeCall(IDidWriteOps.deactivateDid, (methods, id, vmId, id));
+    c[4] = abi.encodeCall(IDidWriteOps.reactivateDid, (methods, id, vmId, id));
+    c[5] = abi.encodeCall(IDidWriteOps.updateController, (methods, id, vmId, id, id, vmId, 0));
+    c[6] = abi.encodeCall(IDidWriteOps.updateService, (methods, id, vmId, id, bytes32("svc"), bytes("t"), bytes("e")));
+  }
+
+  // 1
+  function test_Case1_AdminSelfValidates_OthersRejected() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("r1"));
+    SelfValidator t = new SelfValidator(admin);
+    bytes32 ph = _newVm(owner, m, id, VM_T, address(t), R_ASSERT);
+    assertFalse(_auth(m, id, VM_T, id, R_ASSERT, address(t)), "pending VM must not authorize");
+
+    // another contract and an EOA calling validateVm for T's positionHash
+    vm.prank(address(new MaliciousM()), stranger);
+    vm.expectRevert(bytes4(keccak256("InvalidSignature()")));
+    IMgr(_mgr()).validateVm(ph, 0);
+    vm.prank(stranger, stranger);
+    vm.expectRevert(bytes4(keccak256("InvalidSignature()")));
+    IMgr(_mgr()).validateVm(ph, 0);
+    // a non-admin calling selfValidate
+    vm.prank(stranger, stranger);
+    vm.expectRevert(SelfValidator.NotAdmin.selector);
+    t.selfValidate(IMgr(_mgr()), ph);
+
+    // admin EOA
+    vm.expectEmit(true, false, false, false, _mgr());
+    emit VmValidated(VM_T);
+    vm.prank(admin, admin);
+    t.selfValidate(IMgr(_mgr()), ph);
+    assertTrue(_auth(m, id, VM_T, id, R_ASSERT, address(t)));
+  }
+
+  // 2
+  function test_Case2_ContractOwnedContract_Works() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("r2"));
+    MockMultisig ms = new MockMultisig();
+    SelfValidator t = new SelfValidator(address(ms));
+    bytes32 ph = _newVm(owner, m, id, VM_T, address(t), R_ASSERT);
+    vm.prank(admin, admin); // multisig signer, irrelevant to the manager
+    ms.execute(address(t), abi.encodeCall(SelfValidator.selfValidate, (IMgr(_mgr()), ph)));
+    assertTrue(_auth(m, id, VM_T, id, R_ASSERT, address(t)));
+  }
+
+  // 3
+  function test_Case3_ConfusedDeputy_TxOriginNotUsed() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("r3"));
+    bytes32 ph = _newVm(owner, m, id, bytes32("vm-U"), eoaA, R_ASSERT); // pending EOA VM for U = eoaA
+    MaliciousM mal = new MaliciousM();
+    vm.prank(eoaA, eoaA);
+    vm.expectRevert(bytes4(keccak256("InvalidSignature()")));
+    mal.trap(IMgr(_mgr()), ph);
+    assertFalse(_auth(m, id, bytes32("vm-U"), id, R_ASSERT, eoaA));
+  }
+
+  // 4
+  function test_Case4_ArbitraryCallContract_ValidatedByAnyone_ButGuardedWritesStillBlocked() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("r4"));
+    ArbExec t = new ArbExec();
+    bytes32 ph = _newVm(owner, m, id, VM_T, address(t), R_ALL);
+    vm.prank(stranger, stranger);
+    t.exec(_mgr(), _validateCd(ph));
+    assertTrue(_auth(m, id, VM_T, id, R_ALL, address(t)), "validated by a stranger");
+    bytes[] memory calls = _sevenGuardedCalls(m, id, VM_T, address(t));
+    for (uint256 i; i < calls.length; i++) {
+      vm.prank(stranger, stranger);
+      vm.expectRevert(DirectEOACallRequired.selector);
+      t.exec(_mgr(), calls[i]);
+    }
+  }
+
+  // 5
+  function test_Case5_CallbackForcedConsent_OnlyAttackersOwnDid() public {
+    (bytes32 m, bytes32 vId) = _newDid(owner, bytes32("victimDid"));
+    (, bytes32 aId) = _newDid(eoaB, bytes32("attackerDid"));
+    ArbExec v = new ArbExec(); // victim contract V with a user-supplied-call entry
+    bytes32 ph = _newVm(eoaB, m, aId, VM_T, address(v), R_ALL);
+    vm.prank(eoaB, eoaB);
+    v.exec(_mgr(), _validateCd(ph));
+    assertTrue(_auth(m, aId, VM_T, aId, R_ALL, address(v)), "V is a key of the attacker's DID");
+    // victim DID: V has no VM there; attacker's DID is not its controller
+    assertFalse(_auth(m, vId, VM_T, vId, R_ASSERT, address(v)), "victim DID, V as VM_T");
+    assertFalse(_auth(m, vId, _defaultVmId(), vId, R_ASSERT, address(v)), "victim DID, default vm");
+    assertFalse(_auth(m, aId, VM_T, vId, R_ASSERT, address(v)), "attacker DID acting on victim DID");
+  }
+
+  // 6
+  function test_Case6_ConstructorTimeValidation() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("r6"));
+    address predicted = vm.computeCreateAddress(address(this), vm.getNonce(address(this)));
+    bytes32 ph = _newVm(owner, m, id, VM_T, predicted, R_ASSERT);
+    CtorValidator c = new CtorValidator(IMgr(_mgr()), ph);
+    assertEq(address(c), predicted);
+    assertEq(c.codeLenInCtor(), 0, "code.length is 0 during construction");
+    assertTrue(_auth(m, id, VM_T, id, R_ASSERT, predicted));
+  }
+
+  // 7
+  function test_Case7_EoaPathUnchanged() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("r7"));
+    bytes32 ph = _newVm(owner, m, id, bytes32("vm-A"), eoaA, R_ASSERT);
+    vm.prank(eoaB, eoaB);
+    vm.expectRevert(bytes4(keccak256("InvalidSignature()")));
+    IMgr(_mgr()).validateVm(ph, 0);
+    vm.prank(eoaA, eoaA);
+    IMgr(_mgr()).validateVm(ph, 0);
+    assertTrue(_auth(m, id, bytes32("vm-A"), id, R_ASSERT, eoaA));
+    vm.prank(eoaA, eoaA);
+    vm.expectRevert(bytes4(keccak256("VmAlreadyValidated()")));
+    IMgr(_mgr()).validateVm(ph, 0);
+  }
+
+  // 8
+  function test_Case8_ValidatedContractKey_SevenGuardedWritesBlocked() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("r8"));
+    SelfValidator t = new SelfValidator(admin);
+    bytes32 ph = _newVm(owner, m, id, VM_T, address(t), R_ALL);
+    vm.prank(admin, admin);
+    t.selfValidate(IMgr(_mgr()), ph);
+    assertTrue(_auth(m, id, VM_T, id, R_ALL, address(t)));
+    bytes[] memory calls = _sevenGuardedCalls(m, id, VM_T, address(t));
+    for (uint256 i; i < calls.length; i++) {
+      vm.prank(admin, admin);
+      vm.expectRevert(DirectEOACallRequired.selector);
+      t.exec(_mgr(), calls[i]);
+    }
+  }
+}
+
+// ---------------------------------------------------------------- Full variant
+
+contract ContractVmSelfValidateProtoFullTest is ProtoBase, TestBase {
+  function setUp() public {
+    _deployDidManager();
+  }
+
+  function _mgr() internal view override returns (address) {
+    return address(didManager);
+  }
+
+  function _defaultVmId() internal pure override returns (bytes32) {
+    return DEFAULT_VM_ID;
+  }
+
+  function _newDid(address who, bytes32 random) internal override returns (bytes32, bytes32) {
+    vm.startPrank(who, who);
+    DidTestHelpers.CreateDidResult memory r =
+      DidTestHelpers.createDid(vm, didManager, Fixtures.EMPTY_DID_METHODS, random, bytes32(0));
+    vm.stopPrank();
+    return (r.didInfo.methods, r.didInfo.id);
+  }
+
+  function _cmd(bytes32 methods, bytes32 id, bytes32 vmId, address key, bytes1 rel)
+    internal
+    pure
+    returns (CreateVmCommand memory)
+  {
+    return CreateVmCommand({
+      methods: methods,
+      senderId: id,
+      senderVmId: DEFAULT_VM_ID,
+      targetId: id,
+      vmId: vmId,
+      type_: Fixtures.defaultVmType(),
+      publicKeyMultibase: rel & 0x04 != 0
+        ? bytes("z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK")
+        : Fixtures.emptyVmPublicKeyMultibase(),
+      blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
+      ethereumAddress: key,
+      relationships: rel,
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
+    });
+  }
+
+  function _newVm(address who, bytes32 methods, bytes32 id, bytes32 vmId, address key, bytes1 rel)
+    internal
+    override
+    returns (bytes32)
+  {
+    vm.startPrank(who, who);
+    DidTestHelpers.CreateVmResult memory r = DidTestHelpers.createVm(vm, didManager, _cmd(methods, id, vmId, key, rel));
+    vm.stopPrank();
+    return r.vmCreatedPositionHash;
+  }
+
+  function _createVmCalldata(bytes32 methods, bytes32 id, bytes32 vmId, address key, bytes1 rel)
+    internal
+    pure
+    override
+    returns (bytes memory)
+  {
+    return abi.encodeCall(IDidManagerFull.createVm, (_cmd(methods, id, vmId, key, rel)));
+  }
+}
+
+// ---------------------------------------------------------------- Native variant
+
+contract ContractVmSelfValidateProtoNativeTest is ProtoBase, TestBaseNative {
+  function setUp() public {
+    _deployDidManagerNative();
+  }
+
+  function _mgr() internal view override returns (address) {
+    return address(didManagerNative);
+  }
+
+  function _defaultVmId() internal pure override returns (bytes32) {
+    return DEFAULT_VM_ID_NATIVE;
+  }
+
+  function _newDid(address who, bytes32 random) internal override returns (bytes32, bytes32) {
+    vm.startPrank(who, who);
+    DidTestHelpersNative.CreateDidResult memory r =
+      DidTestHelpersNative.createDid(vm, didManagerNative, Fixtures.EMPTY_DID_METHODS, random, bytes32(0));
+    vm.stopPrank();
+    return (r.didInfo.methods, r.didInfo.id);
+  }
+
+  function _cmd(bytes32 methods, bytes32 id, bytes32 vmId, address key, bytes1 rel)
+    internal
+    pure
+    returns (NativeCreateVmCommand memory)
+  {
+    return NativeCreateVmCommand({
+      methods: methods,
+      senderId: id,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
+      targetId: id,
+      vmId: vmId,
+      ethereumAddress: key,
+      relationships: rel,
+      publicKeyMultibase: rel & 0x04 != 0 ? Fixtures.defaultVmPublicKeyMultibase() : bytes("")
+    });
+  }
+
+  function _newVm(address who, bytes32 methods, bytes32 id, bytes32 vmId, address key, bytes1 rel)
+    internal
+    override
+    returns (bytes32)
+  {
+    vm.startPrank(who, who);
+    DidTestHelpersNative.CreateVmResult memory r =
+      DidTestHelpersNative.createVm(vm, didManagerNative, _cmd(methods, id, vmId, key, rel));
+    vm.stopPrank();
+    return r.vmCreatedPositionHash;
+  }
+
+  function _createVmCalldata(bytes32 methods, bytes32 id, bytes32 vmId, address key, bytes1 rel)
+    internal
+    pure
+    override
+    returns (bytes memory)
+  {
+    return abi.encodeCall(IDidManagerNative.createVm, (_cmd(methods, id, vmId, key, rel)));
+  }
+}

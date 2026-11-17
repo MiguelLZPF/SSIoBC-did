@@ -1,0 +1,46 @@
+diff -ru base/src/storage/VMHooks.sol proto-c/src/storage/VMHooks.sol
+--- base/src/storage/VMHooks.sol	2026-11-17 12:52:28
++++ proto-c/src/storage/VMHooks.sol	2026-11-17 12:58:15
+@@ -8,6 +8,18 @@
+ /// Each VMStorage variant (full W3C / Ethereum-native) implements these hooks with its own storage layout.
+ /// DidAggregate calls hooks without knowing which variant is in use (Template Method pattern).
+ abstract contract VMHooks {
++  uint256 internal constant OWNER_CALL_GAS = 30_000;
++
++  /// true only when account has code and its owner() returns exactly claimed (full 32-byte word)
++  function _isContractOwner(address account, address claimed) internal view returns (bool ok) {
++    if (account.code.length == 0) return false;
++    assembly ("memory-safe") {
++      mstore(0x00, 0x8da5cb5b00000000000000000000000000000000000000000000000000000000)
++      let s := staticcall(OWNER_CALL_GAS, account, 0x00, 0x04, 0x00, 0x20)
++      ok := and(and(s, eq(returndatasize(), 0x20)), eq(mload(0x00), claimed))
++    }
++  }
++
+   /// @dev Checks if sender is authenticated (has authentication relationship + valid VM).
+   /// @param didHash The hash of the DID.
+   /// @param vmId The identifier of the Verification Method.
+diff -ru base/src/storage/VMStorage.sol proto-c/src/storage/VMStorage.sol
+--- base/src/storage/VMStorage.sol	2026-11-17 12:52:28
++++ proto-c/src/storage/VMStorage.sol	2026-11-17 12:58:16
+@@ -130,7 +130,7 @@
+     VerificationMethod storage vm = _vmByNsAndId[didHash][vmId];
+     if (vm.id == bytes32(0)) revert VmNotFound();
+     if (vm.expiration != 0) revert VmAlreadyValidated(); // This means that the VM is already validated
+-    if (vm.ethereumAddress != sender) revert InvalidSignature(); // This means that the Tx Signer is not the VM's
++    if (vm.ethereumAddress != sender && !_isContractOwner(vm.ethereumAddress, sender)) revert InvalidSignature(); // This means that the Tx Signer is not the VM's
+     // Ethereum Address or actual signature validation
+     vm.expiration = uint88(expiration);
+     //Event
+diff -ru base/src/storage/VMStorageNative.sol proto-c/src/storage/VMStorageNative.sol
+--- base/src/storage/VMStorageNative.sol	2026-11-17 12:52:28
++++ proto-c/src/storage/VMStorageNative.sol	2026-11-17 12:58:17
+@@ -111,7 +111,7 @@
+     VerificationMethod storage vm = _vmByNsAndId[didHash][vmId];
+     if (vm.ethereumAddress == address(0)) revert VmNotFound();
+     if (vm.expiration != 0) revert VmAlreadyValidated();
+-    if (vm.ethereumAddress != sender) revert InvalidSignature();
++    if (vm.ethereumAddress != sender && !_isContractOwner(vm.ethereumAddress, sender)) revert InvalidSignature();
+     vm.expiration = uint88(expiration);
+     emit VmValidated(vmId);
+     return vmId;
