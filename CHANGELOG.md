@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Table of Contents
 
-- [Unreleased](#unreleased)
+- [1.8.0 — 2026-11-17](#180--2026-11-17)
 - [1.7.0 — 2026-10-27](#170--2026-10-27)
 - [1.6.0 — 2026-09-07](#160--2026-09-07)
 - [1.5.0 — 2026-09-06](#150--2026-09-06)
@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [0.8.0 — 2024-07-06](#080--2024-07-06)
 - [0.6.0 — 2024-04-21](#060--2024-04-21)
 
-## [Unreleased]
+## [1.8.0] — 2026-11-17
 
 ### Added
 
@@ -606,6 +606,7 @@ why this is a minor bump and not a patch.
 - `ServiceStorage` contract for service endpoint management
 - Basic DID creation and VM creation functionality
 
+[1.8.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.3.1...v1.5.0

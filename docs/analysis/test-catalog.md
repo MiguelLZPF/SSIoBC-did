@@ -990,7 +990,7 @@ These files are not test files but support the test infrastructure:
 
 ---
 
-**Last Updated**: 2026-11-17 (v1.8.0, unreleased)
+**Last Updated**: 2026-11-17 (v1.8.0)
 **Total Test Count**: 556 test functions in 29 files (503 in the default profile; 537 as forge reports the CI profile; 486 in the CI gate scope; fuzz/invariant run under CI profiles)
 **Test Framework**: Foundry (forge test)
 **Coverage Target**: >90% (enforced in CI/CD)

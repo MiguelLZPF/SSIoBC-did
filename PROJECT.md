@@ -1690,7 +1690,7 @@ script/
 
 ---
 
-**Last Updated**: 2026-10-27
-**Version**: v1.7.0
+**Last Updated**: 2026-11-17
+**Version**: v1.8.0
 **Purpose**: Single source of truth for SSIoBC-did project knowledge
 **Referenced By**: CLAUDE.md, docs/README.md
