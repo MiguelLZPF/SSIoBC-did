@@ -266,9 +266,10 @@ def fig_react():
     for c, b, a, wrong in cases:
         lines_l = [(c, "bs2"), (b + (" (wrongly)" if wrong else ""), "bs tx-red" if wrong else "bs tx-ok")]
         lines_r = [(a, "bs tx-ok")]
-        h = max(f.box_h(cw, "", lines_l), f.box_h(cw, "", lines_r) + 18)
+        lines_rr = [(c, "bs")] + lines_r
+        h = max(f.box_h(cw, "", lines_l), f.box_h(cw, "", lines_rr) + 6)
         f.box(lx, y, cw, "", lines_l, "red" if wrong else "ok", h=h)
-        f.box(rx, y, cw, "", [(c, "bs")] + lines_r, "ok", h=h)
+        f.box(rx, y, cw, "", lines_rr, "ok", h=h)
         f.line(lx + cw + 4, y + h / 2, rx - 5, y + h / 2, "ln ok", "ok")
         y += h + 10
     f.text(16, y + 12, "The _isVmOwner hook has no caller left and is deleted: 9 hooks become 8. No ABI change.", "bs")
@@ -386,10 +387,10 @@ def build():
                        fig_cost()))
     phases = [
         ("Task 0", "Baseline", "done"), ("Task 1", "validateVm", "done"), ("Task 2", "Property tests and mutation proof", "done"),
-        ("Task 3", "Reactivation rule", "done"), ("Task 4", "Issuer integration test", "done"), ("Task 5", "Branch code review", "done"), ("Task 6", "Docs", "in progress"),
-        ("Task 7", "Metrics", "planned"), ("Task 8", "Final gate", "planned"), ("Task 9", "Release prep (stops before the tag)", "planned"),
+        ("Task 3", "Reactivation rule", "done"), ("Task 4", "Issuer integration test", "done"), ("Task 5", "Branch code review", "done"), ("Task 6", "Docs", "done"),
+        ("Task 7", "Metrics", "done"), ("Task 8", "Final gate", "in progress"), ("Task 9", "Release prep (stops before the tag)", "planned"),
     ]
-    out.append('<section><h2>6. Phases</h2><p class="cap">Ten tasks: 0 to 5 done, 6 in progress, 7 to 9 planned.</p><ol class="phases" style="list-style:none">%s</ol></section>' %
+    out.append('<section><h2>6. Phases</h2><p class="cap">Ten tasks: 0 to 7 done, 8 in progress, 9 planned.</p><ol class="phases" style="list-style:none">%s</ol></section>' %
                "".join("<li><b>%s</b>%s<i>%s</i></li>" % (esc(a), esc(b), esc(c)) for a, b, c in phases))
     stays = [
         "The address is bound, not its code. A contract that changes its behaviour later keeps the key.",

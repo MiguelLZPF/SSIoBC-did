@@ -44,14 +44,14 @@
 
 The SSIoBC framework needs an issuer contract: a contract of DID B that runs its own validation
 logic and calls `VClaimManager.issueClaim` in B's name. `issueClaim` authorizes with
-`DidManager.isAuthorized(..., 0x02, msg.sender)` (SSIoBC-vclaim `src/VClaimManager.sol:385`), so the
+`DidManager.isAuthorized(..., 0x02, msg.sender)` (SSIoBC-vclaim, file `VClaimManager.sol` line 385), so the
 contract's address has to be an active VM of B with assertionMethod.
 
 Today that cannot happen. A VM bound to an address is created inactive and becomes active only when
 that address calls `validateVm`, and `validateVm` carries `onlyDirectEOA`
-(`src/DidAggregate.sol:79`). EIP-7702 was rejected as the path, because the account's key can always
+(`src/DidAggregate.sol` line 79). EIP-7702 was rejected as the path, because the account's key can always
 bypass the delegate's logic. The roadmap already names this gap ("Second blocker",
-`docs/analysis/improvement-roadmap.md:149-170`) and sketches a signature-based fix; that sketch is
+`docs/analysis/improvement-roadmap.md` lines 149 to 170) and sketches a signature-based fix; that sketch is
 alternative (b) below.
 
 ## How Evidence Is Tagged
@@ -87,7 +87,7 @@ not touch it.
 Validation is a second step with a different job. It records that the named address accepts the
 role. It protects the address (a stranger cannot make my address an active key of their DID) and it
 protects the controller from a typo. It gives the validator no power: after validation, the only
-address that passes `_isAuthorized` is the VM's own address (`src/DidAggregate.sol:446`, read).
+address that passes `_isAuthorized` is the VM's own address (`src/DidAggregate.sol` line 446, read).
 The validator does pick the expiration, which is the one lever it has ([point 8](#8-who-may-validate)).
 
 So the question for every alternative is narrow: **who may give consent for a contract address?**
@@ -108,7 +108,7 @@ may set the VM's expiration and nothing in `_isAuthorized` (read, `proto-owner-c
 2. Once validated, `isAuthorized(..., bit, contractAddress)` returns true for each of the five
    bits and false for an unrelated address. Verified on both variants (evidence 1, case 2; the
    validation was simulated with a two-argument prank, and done for real in evidence 2 and 3).
-3. `_isAuthorized` has no EOA rule. Read, `src/DidAggregate.sol:426-450`.
+3. `_isAuthorized` has no EOA rule. Read, `src/DidAggregate.sol` lines 426 to 450.
 
 ### 2. Reach of a contract key
 
@@ -118,7 +118,7 @@ SSIoBC-vclaim 2572606 (branch `feat/trust-integration`) and SSIoBC-trust b5d6a25
 
 | # | Bit | DidManager (both variants) | VClaimManager | TrustManager |
 |---|---|---|---|---|
-| 1 | `0x01` authentication | no write (all guarded); views only | none | `setTrust`, `removeTrust` (`src/TrustManager.sol:43,81,208`) |
+| 1 | `0x01` authentication | no write (all guarded); views only | none | `setTrust`, `removeTrust` (SSIoBC-trust, file `TrustManager.sol` lines 43, 81 and 208) |
 | 2 | `0x02` assertionMethod | views only | `issueClaim`, `issueClaims`, `revokeClaim`, `revokeClaims` (`:94,108,127,136`) | none |
 | 3 | `0x04`, `0x08`, `0x10` | views only | none | none |
 
@@ -159,7 +159,7 @@ other 7 still revert (evidence 3, cases 4 and 8, verified).
 
 An EIP-7702 account is not a "contract with a validated VM" in this sense: it has a key, it can be
 `tx.origin`, and it can already perform all 8 writes today. That is the documented limit of the
-guard (`src/DidAggregate.sol:51-58`) and no option changes it for the 7 document writes.
+guard (`src/DidAggregate.sol` lines 51 to 58) and no option changes it for the 7 document writes.
 
 ### 4. Off-chain paths
 
@@ -173,7 +173,7 @@ signing EOA, which is not the contract (evidence 1, case 4b, verified).
 
 Is it wanted? The changelog does not call this closed on purpose. It calls it a "Known gap"
 (`CHANGELOG.md:334`) and the roadmap lists contract-owned VMs as the missing half of idea #1
-(`docs/analysis/improvement-roadmap.md:99`). So it is the documented goal. It opens only for
+(`docs/analysis/improvement-roadmap.md` line 99). So it is the documented goal. It opens only for
 contracts that implement ERC-1271; an issuer contract that does not implement it stays closed on
 this path. No sibling contract calls this view today (read: VClaimManager and TrustManager call
 `isAuthorized` only). The existing caveat stays: `messageHash` is opaque, so replay protection is
@@ -281,7 +281,7 @@ Verified: after `expireVm`, `isAuthorized` is false for the contract (evidence 1
    both verified on unchanged source:
    - A past timestamp (`expiration = 1`): the VM is validated and already dead, and cannot be
      validated again (evidence 1 case 7).
-   - A value of `2**88` or more: `uint88(expiration)` truncates (`src/storage/VMStorage.sol:135`,
+   - A value of `2**88` or more: `uint88(expiration)` truncates (`src/storage/VMStorage.sol` line 135,
      `VMStorageNative.sol:115`). With `2**88` the call succeeds and emits `VmValidated`, but the
      stored expiration is 0: the VM is still pending and can be validated again (evidence 1
      case 8). The event is then untrue.
@@ -293,7 +293,7 @@ Verified: after `expireVm`, `isAuthorized` is false for the contract (evidence 1
    VM id each time and gives the stranger nothing else. The remedy is on the contract side: an
    issuer contract validates behind its own access control, with the expiration fixed in its code.
 5. **Full variant only**: a VM created with `ethereumAddress = 0` and only a `blockchainAccountId`
-   or a public key is active from creation, with no consent step (`src/storage/VMStorage.sol:69-75`,
+   or a public key is active from creation, with no consent step (`src/storage/VMStorage.sol` lines 69 to 75,
    read). So validation protects `isAuthorized`, not the resolved document: a controller can already
    list any account id, including a contract's, in its document. Such a VM can never pass
    `isAuthorized`, because the compared address is zero. No option changes this.
@@ -311,7 +311,7 @@ Verified: after `expireVm`, `isAuthorized` is false for the contract (evidence 1
 All verified (`measurements.txt`; evidence 2 cases 1, 12, 14; evidence 3 case 7). Expiry of a
 contract VM by the controller behaves as for an EOA VM (evidence 1 case 5). DID deactivation and
 reactivation with a contract VM present were not probed; they do not read the VM's address type
-(read, `src/DidAggregate.sol:95-152`), and Phase 2 adds the test.
+(read, `src/DidAggregate.sol` lines 95 to 152), and Phase 2 adds the test.
 
 ### 10. Alternatives
 
@@ -336,7 +336,7 @@ See the next section.
 | 13 | Existing tests to change | 2 | 0 | 0 |
 
 **What the guard does on `validateVm` today.** `_validateVm` already requires
-`msg.sender == vm.ethereumAddress` (`src/storage/VMStorage.sol:133`, read). A plain EOA can only be
+`msg.sender == vm.ethereumAddress` (`src/storage/VMStorage.sol` line 133, read). A plain EOA can only be
 `msg.sender` of a transaction it signed, so for plain EOAs the guard adds nothing on this function.
 Its effect is to stop every address that is *not the transaction's signer* from validating itself.
 Three kinds of caller are in that set, and (a) admits all three:
@@ -347,7 +347,7 @@ Three kinds of caller are in that set, and (a) admits all three:
    key must sign the transaction that validates. Under (a) the delegate's code can validate while
    someone else signs. (assumed: reasoned from the guard, not probed; Phase 2 adds the test.) The
    key chose that delegate, and this matches the limit the guard already documents for the other
-   writes, but for `validateVm` it is a change and the NatSpec at `src/DidAggregate.sol:51-58` must
+   writes, but for `validateVm` it is a change and the NatSpec at `src/DidAggregate.sol` lines 51 to 58 must
    say so. Plain EOAs are unchanged (evidence 3 case 7, verified).
 
 The confused-deputy protection does not depend on the guard here: a contract that a user calls can
@@ -432,9 +432,9 @@ decision of 2026-11-17 ("if it is expired no reactivation possible").
 
 **Today (v1.0.2 to v1.7.0).** On the self path (`senderId == targetId`) `reactivateDid` checks only
 `_isVmOwner`: the caller's address is in a VM that has the `0x01` bit
-(`src/DidAggregate.sol:125-130`, `src/storage/VMStorage.sol:257-266`, read). It does not check that
+(`src/DidAggregate.sol` lines 125 to 130, `src/storage/VMStorage.sol` lines 257 to 266, read). It does not check that
 the VM was validated, that it is unexpired, or that the caller passes the controller rule. This was
-a documented choice (`docs/analysis/did-lifecycle-flows.md:336`: "Validates `_isVmOwner` only").
+a documented choice (`docs/analysis/did-lifecycle-flows.md` line 336: "Validates `_isVmOwner` only").
 Verified on unchanged source, both variants (`probe-reactivation.t.sol.txt`, and cases 9 and 10 of
 the first probe run):
 
@@ -494,11 +494,11 @@ approval.
    expired by the DID's EOA key.
 4. Names must match what the profiles select: `foundry.toml` default excludes `testFuzz|invariant`,
    the `ci` profile runs them. Run the final gate with `FOUNDRY_PROFILE=ci`.
-5. Source: one line in `src/DidAggregate.sol:79`, plus NatSpec at `:44-58` and on `validateVm` in
+5. Source: one line in `src/DidAggregate.sol` line 79, plus NatSpec at `:44-58` and on `validateVm` in
    `IDidWriteOps`. (D1 = B: the patch in evidence 2, plus D4.)
 6. Docs that state today's rule, found by `git grep` on 2026-11-17: `PROJECT.md:1486`, `:1512` and
-   section 6; `docs/analysis/threat-model.md:132` and `:153`; `docs/analysis/improvement-roadmap.md:130`
-   and `:149-170`; `docs/analysis/test-catalog.md:363-364`; `CLAUDE.md` (the `onlyDirectEOA` line);
+   section 6; `docs/analysis/threat-model.md` line 132 and `:153`; `docs/analysis/improvement-roadmap.md` line 130
+   and `:149-170`; `docs/analysis/test-catalog.md` lines 363 to 364; `CLAUDE.md` (the `onlyDirectEOA` line);
    `docs/README.md` index. New text: the warnings of findings 1, 2, 6 and 11 in the threat model, and the
    changed consent rule for 7702 accounts (finding 3). `CHANGELOG.md:229-235`, `:334` and `:352` are history: they get a new
    v1.8.0 entry, not an edit.
@@ -515,10 +515,10 @@ Neither needs a code change for the feature to work. Not edited from here.
 
 | # | Repository | Change |
 |---|---|---|
-| 1 | SSIoBC-vclaim | Docs that say the sender is an EOA (`docs/analysis/claim-lifecycle-flows.md:42`, `:201-229`) describe one case now. Add the issuer-contract flow and an integration test: a contract with an assertion key calls `issueClaim`. Move the DidManager dependency to v1.8.0 when it exists. |
+| 1 | SSIoBC-vclaim | Docs that say the sender is an EOA (SSIoBC-vclaim, file `claim-lifecycle-flows.md` line 42 and lines 201 to 229) describe one case now. Add the issuer-contract flow and an integration test: a contract with an assertion key calls `issueClaim`. Move the DidManager dependency to v1.8.0 when it exists. |
 | 2 | SSIoBC-trust | `setTrust` and `removeTrust` become callable by a contract that holds a `0x01` key. Decide if that is wanted and write it down; if not, the rule goes in `TrustManager`. Add a test for the chosen behaviour. |
 | 4 | both | Warn in the docs: a DID that names an open generic-call contract as a key can be used by anyone (finding 11). |
-| 3 | both | A VM in the Native variant always resolves with type `EcdsaSecp256k1VerificationKey2019` (`src/W3CResolverNative.sol:21`, read), which is not true for a contract. Presentation only; the SDK or the consumer has to know. In the Full variant the controller sets the type. |
+| 3 | both | A VM in the Native variant always resolves with type `EcdsaSecp256k1VerificationKey2019` (`src/W3CResolverNative.sol` line 21, read), which is not true for a contract. Presentation only; the SDK or the consumer has to know. In the Full variant the controller sets the type. |
 
 ## Not Covered
 

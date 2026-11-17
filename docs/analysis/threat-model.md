@@ -175,7 +175,7 @@ Since v1.8.0 a contract can hold an active verification method (VM) of a DID, fo
 
 - It cannot act on a DID it does not control. The probes found no path from a validated contract VM to power over a foreign DID.
 - It cannot perform a DID write: all 7 guarded writes revert `DirectEOACallRequired` for a contract caller. A property test and a unit test hold this for both variants.
-- Nobody else can validate it: a stranger, the DID owner and a controller all revert `InvalidSignature`. Consent is the contract's own code.
+- Nobody else can validate it. The rule is that `msg.sender` must equal the VM's `ethereumAddress` (`src/storage/VMStorage.sol` line 133, `src/storage/VMStorageNative.sol` line 114), so the DID owner or a controller, which are other addresses, cannot validate it either. Tested: a stranger, called directly or through an intermediary, and a user's own EOA going through an intermediary, all revert `InvalidSignature` (`test_RevertWhen_ValidateVm_CallerIsNotTheVmAddress`, `test_RevertWhen_ValidateVm_IntermediaryTriesUsersVm`). The owner and controller callers are not separately tested. Consent is the contract's own code.
 
 ### Warnings (design findings 1, 2, 6 and 11)
 

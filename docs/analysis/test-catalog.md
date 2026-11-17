@@ -713,18 +713,18 @@ Each test holds both of its scenarios in one function on purpose: `vm.setEnv` mu
 
 | # | Test Name | What It Does |
 |---|-----------|-------------|
-| 1 | `test_ValidateVm_Should_Activate_When_ContractValidatesItself` | A contract bound to its own VM calls `validateVm`; the VM becomes active and `isAuthorized` accepts the contract |
-| 2 | `test_RevertWhen_ValidateVm_CallerIsNotTheVmAddress` | A stranger, the DID owner and a contract admin all revert `InvalidSignature`; the issuer's own access control reverts `NotAdmin` |
-| 3 | `test_ValidateVm_Should_Activate_When_ContractAdminIsAContract` | A reference issuer whose admin is itself a contract (a multisig stand-in) validates its VM |
-| 4 | `test_RevertWhen_ValidateVm_IntermediaryTriesUsersVm` | A contract that tries to validate a VM bound to an EOA reverts `InvalidSignature` |
-| 5 | `test_ValidateVm_Should_Activate_When_OpenCallerIsDrivenByStranger` | An open generic-call contract validates its own VM when a stranger drives it (design finding 11); the same contract still reverts `DirectEOACallRequired` on every guarded write |
-| 6 | `test_ValidateVm_Should_Activate_When_CalledFromConstructor` | A contract validates its VM from inside its constructor |
-| 7 | `test_ValidateVm_Should_Activate_When_7702DelegateIsDrivenByRelayer` | An EIP-7702 account is validated through its delegate by a relayer (consent change, design finding 3) |
-| 8 | `test_ValidateVm_EoaPathUnchanged` | EOA path: wrong caller `InvalidSignature`, second validation `VmAlreadyValidated`, unknown position `VmNotFound`, bound EOA succeeds |
-| 9 | `test_RevertWhen_ContractKeyCallsAnyGuardedWrite` | A contract key calls each of the 7 guarded writes and gets `DirectEOACallRequired`; after the owner expires the owner's own EOA key nobody can write the DID (`VmAlreadyExpired`) |
+| 1 | `test_ValidateVm_Should_Activate_When_ContractValidatesItself` | The admin EOA calls `issuer.validate`; the reference issuer calls `validateVm` for its own VM. `VmValidated` is emitted, the expiration is the default 365 days, `isAuthorized` accepts the issuer (it did not while pending) and does not accept the admin address |
+| 2 | `test_RevertWhen_ValidateVm_CallerIsNotTheVmAddress` | A stranger through `OpenCaller` reverts `InvalidSignature`; a stranger calling `validateVm` directly reverts `InvalidSignature`; a stranger calling `issuer.validate` reverts the issuer's own `NotAdmin` |
+| 3 | `test_ValidateVm_Should_Activate_When_ContractAdminIsAContract` | The issuer's admin is a `MockMultisig` contract; the admin EOA drives it, the issuer validates its VM and is authorized |
+| 4 | `test_RevertWhen_ValidateVm_IntermediaryTriesUsersVm` | A user's EOA sends the validation of its own VM through an `OpenCaller`; the intermediary is `msg.sender`, so it reverts `InvalidSignature` and the VM stays pending |
+| 5 | `test_ValidateVm_Should_Activate_When_OpenCallerIsDrivenByStranger` | A stranger drives an `OpenCaller` that is the VM address; the VM is validated (design finding 11). The same `OpenCaller` then reverts `DirectEOACallRequired` on each of the 7 guarded writes |
+| 6 | `test_ValidateVm_Should_Activate_When_CalledFromConstructor` | A contract validates its VM from inside its constructor, at an address predicted before deployment |
+| 7 | `test_ValidateVm_Should_Activate_When_7702DelegateIsDrivenByRelayer` | An account with an EIP-7702 delegation: a relayer drives the delegate, which validates the account's VM (consent change, design finding 3); the account itself can also validate a second VM directly |
+| 8 | `test_ValidateVm_EoaPathUnchanged` | EOA path: a stranger reverts `InvalidSignature`; the bound EOA validates and `VmValidated` is emitted; a second validation reverts `VmAlreadyValidated`; an unknown position reverts `VmNotFound` |
+| 9 | `test_RevertWhen_ContractKeyCallsAnyGuardedWrite` | A validated contract key with all relationship bits, driven by its admin, calls each of the 7 guarded writes and gets `DirectEOACallRequired`. After the owner expires the owner's own EOA key, the contract still gets `DirectEOACallRequired` and the owner's `updateService` reverts `VmAlreadyExpired` |
 | 10 | `test_RevertWhen_ValidateVm_ContractUsesUnknownPosition` | A contract that names a missing position reverts `VmNotFound` |
-| 11 | `test_DeactivateReactivate_Should_PreserveContractVm` | Deactivating and reactivating a DID that holds a contract VM keeps the VM bound and valid |
-| 12 | `test_ValidateVm_Should_KeepAddressBinding_When_CodeChangesAfterValidation` | Metamorphic case (own `setUp`): a contract validates, self-destructs and the address is redeployed with other code; the validation holds: the VM is bound to the address, not to the code behind it (design point 6, Changing code) |
+| 11 | `test_DeactivateReactivate_Should_PreserveContractVm` | After the owner deactivates the DID the contract key is not authorized; after the owner reactivates it, the same key is authorized again |
+| 12 | `test_ValidateVm_Should_KeepAddressBinding_When_CodeChangesAfterValidation` | Metamorphic case (own `setUp`): a contract validates in its constructor and self-destructs; the address then holds no code and is still authorized; the address is redeployed with other code and the binding survives. The VM is bound to the address, not to the code behind it (design point 6, Changing code) |
 
 Rows 1 to 11 run in `ContractVmUnitTest` and `ContractVmNativeUnitTest` (22 tests); row 12 runs in the two metamorphic contracts (2 tests).
 
