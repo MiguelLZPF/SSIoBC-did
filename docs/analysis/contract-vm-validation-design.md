@@ -1,6 +1,6 @@
 # Contract Address as a Validated Verification Method (v1.8.0 design, Phase 1)
 
-**Status**: approved by the owner on 2026-11-17 (D1 = A, D2 = A, D3 = A). Phase 2 plan written; D5 and D6 open.
+**Status**: approved by the owner on 2026-11-17 (D1 = A, D2 = A, D3 = A). Phase 2 in progress. All decisions taken (D5 = B, D6 = A).
 **Visual summary**: [contract-vm-validation-map.html](./contract-vm-validation-map.html) (generator: `contract-vm-validation-map.py`).
 **Date**: 2026-11-17. **Base**: `main` 69715b6 (v1.7.0 source). **Branch**: `feat/contract-vm-validation`.
 
@@ -389,7 +389,7 @@ decides otherwise, for this one function.
 
 **Decided 2026-11-17**: D1 = A, D2 = A, D3 = A. D4 does not apply.
 
-Two more, from the [reactivation fix](#reactivation-fix); the plan is written for the recommended option of each:
+Two more, from the [reactivation fix](#reactivation-fix). **Decided 2026-11-17: D5 = B, D6 = A.** D5 went against the recommendation: the owner keeps the DID's own live key able to reactivate after a controller's deactivation.
 
 | # | Decision | Options | Recommended |
 |---|---|---|---|
@@ -450,12 +450,17 @@ In cases 1 to 3 the caller gains no authentication afterwards, but it undoes a d
 no right to undo, and the DID's other live keys work again. Case 3 is the heavier one: it bypasses
 the controller.
 
-**Fix.** One rule for both paths: `_isAuthenticated` (a validated, unexpired `0x01` key of the
-caller) and `_isControllerFor`, exactly as `_validateSenderAndTarget` does for the other writes,
-minus the "target is active" check. The `_isVmOwner` hook has no caller left and is deleted (9 hooks
-become 8). No ABI change. Revert names change on the self path: an expired, pending or missing key
-gives `VmAlreadyExpired` (it gave success or `NotAuthenticatedAsSenderId`); a non-controller gives
-`NotAControllerForTargetId`.
+**Fix (as decided, D5 = B).** Both paths require `_isAuthenticated`: a validated, unexpired `0x01`
+key of the caller. That closes cases 1, 2 and 4. The controller rule stays where it was, on the
+controller path only, so case 3 remains allowed **while the DID's own key is live**: the owner
+decided that a DID's own key can always bring it back. The `_isVmOwner` hook has no caller left and
+is deleted (9 hooks become 8). No ABI change. On the self path an expired, pending or missing key
+now gives `VmAlreadyExpired` (it gave success).
+
+**Accepted residual (D5).** A controller's deactivation is not final while the DID still has a live
+authentication key of its own. A controller who wants it final first expires those keys
+(`expireVm`), then deactivates. The first proposal (apply `_isControllerFor` on the self path too)
+was not taken.
 
 **What it costs (D6).** A DID with no controller that stays deactivated until all its
 authentication keys have expired cannot come back. That is consistent with an active DID, which is
@@ -529,3 +534,4 @@ Neither needs a code change for the feature to work. Not edited from here.
 | 2026-11-17 | Revised after the independent review: 4 major and 4 minor corrections (findings 1 to 4, 7 to 10), probe assertions added. The recommendation holds, now with two conditions. |
 | 2026-11-17 | Owner decided D1 = A, D2 = A, D3 = A, and ruled the self-reactivation behaviour unintended: fix in this branch. Reactivation Fix section and decisions D5, D6 added. |
 | 2026-11-17 | Phase 2 plan written and reviewed independently: no blocker, 7 major and 6 minor corrections applied to the plan. Visual map drawn. Task 3 waits for D5 and D6. |
+| 2026-11-17 | Owner approved the plan and decided D5 = B (self-reactivation needs a live key only; the controller rule is not added to it) and D6 = A. Plan and this section updated. |
