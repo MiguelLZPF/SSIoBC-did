@@ -196,10 +196,36 @@ contract DirectEOAGuardUnitTest is TestBase {
     attacker.attackCreateVm(command);
   }
 
-  function test_ValidateVm_Should_Revert_When_CalledThroughIntermediary() public {
+  /// @dev validateVm no longer carries onlyDirectEOA, so an intermediary reaches the lookup and fails on the unknown
+  /// position.
+  function test_ValidateVm_Should_RevertVmNotFound_When_CalledThroughIntermediary() public {
     vm.prank(victim, victim);
-    vm.expectRevert(DirectEOACallRequired.selector);
+    vm.expectRevert(IVMStorage.VmNotFound.selector);
     attacker.attackValidateVm(bytes32("any-position-hash"), 0);
+  }
+
+  /// @dev The intermediary is msg.sender, not the victim, so the victim's pending VM stays pending.
+  function test_ValidateVm_Should_RevertInvalidSignature_When_IntermediaryTargetsVictimVm() public {
+    CreateVmCommand memory command = CreateVmCommand({
+      methods: victimDid.didInfo.methods,
+      senderId: victimDid.didInfo.id,
+      senderVmId: DEFAULT_VM_ID,
+      targetId: victimDid.didInfo.id,
+      vmId: bytes32("vm-pending"),
+      type_: Fixtures.defaultVmType(),
+      publicKeyMultibase: Fixtures.emptyVmPublicKeyMultibase(),
+      blockchainAccountId: Fixtures.emptyVmBlockchainAccountId(),
+      ethereumAddress: victim,
+      relationships: bytes1(0x01),
+      expiration: uint88(Fixtures.EMPTY_VM_EXPIRATION)
+    });
+    _startPrank(victim);
+    DidTestHelpers.CreateVmResult memory vmResult = DidTestHelpers.createVm(vm, didManager, command);
+    _stopPrank();
+
+    vm.prank(victim, victim);
+    vm.expectRevert(IVMStorage.InvalidSignature.selector);
+    attacker.attackValidateVm(vmResult.vmCreatedPositionHash, 0);
   }
 
   function test_ExpireVm_Should_Revert_When_CalledThroughIntermediary() public {
@@ -366,10 +392,33 @@ contract DirectEOAGuardNativeUnitTest is TestBaseNative {
     attacker.attackCreateVm(command);
   }
 
-  function test_ValidateVm_Should_Revert_When_CalledThroughIntermediary() public {
+  /// @dev validateVm no longer carries onlyDirectEOA, so an intermediary reaches the lookup and fails on the unknown
+  /// position.
+  function test_ValidateVm_Should_RevertVmNotFound_When_CalledThroughIntermediary() public {
     vm.prank(victim, victim);
-    vm.expectRevert(DirectEOACallRequired.selector);
+    vm.expectRevert(IVMStorageNative.VmNotFound.selector);
     attacker.attackValidateVm(bytes32("any-position-hash"), 0);
+  }
+
+  /// @dev The intermediary is msg.sender, not the victim, so the victim's pending VM stays pending.
+  function test_ValidateVm_Should_RevertInvalidSignature_When_IntermediaryTargetsVictimVm() public {
+    NativeCreateVmCommand memory command = NativeCreateVmCommand({
+      methods: victimDid.didInfo.methods,
+      senderId: victimDid.didInfo.id,
+      senderVmId: DEFAULT_VM_ID_NATIVE,
+      targetId: victimDid.didInfo.id,
+      vmId: bytes32("vm-pending"),
+      ethereumAddress: victim,
+      relationships: bytes1(0x01),
+      publicKeyMultibase: ""
+    });
+    _startPrank(victim);
+    DidTestHelpersNative.CreateVmResult memory vmResult = DidTestHelpersNative.createVm(vm, didManagerNative, command);
+    _stopPrank();
+
+    vm.prank(victim, victim);
+    vm.expectRevert(IVMStorageNative.InvalidSignature.selector);
+    attacker.attackValidateVm(vmResult.vmCreatedPositionHash, 0);
   }
 
   function test_ExpireVm_Should_Revert_When_CalledThroughIntermediary() public {

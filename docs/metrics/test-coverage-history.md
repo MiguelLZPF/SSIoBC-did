@@ -25,6 +25,7 @@ The project has maintained comprehensive test coverage throughout development, w
 
 - [v1.6.0 coverage summary (`forge coverage --report summary`)](../assets/data/coverage-v1.6.0.txt)
 - [v1.7.0 coverage summary (`forge coverage --report summary`)](../assets/data/coverage-v1.7.0.txt)
+- [v1.8.0 coverage summary (`forge coverage --report summary`)](../assets/data/coverage-v1.8.0.txt)
 
 **From v1.6.0 the evidence is text, not an image.** A screenshot of a terminal cannot be grepped,
 diffed, or checked by a linter, so nobody notices when it stops matching the tables above it, and a
@@ -68,6 +69,7 @@ v1.5.0.
 | **v1.5.0** | **98.83%** | **673/681** | **98.86% (87/88)** | **94.96% (132/139)** | **See "v1.5.0 Coverage Snapshot" below** |
 | v1.6.0 | 98.83% | 673/681 | 98.86% (87/88) | 94.96% (132/139) | Toolchain only (Foundry 1.8.1, solc 0.8.36); identical to v1.5.0, see snapshot below |
 | **v1.7.0** | **99.39%** | **654/658** | **98.89% (89/90)** | **96.40% (134/139)** | **Gas pass + list-limit fixes + behaviour-lock and ERC-1056 tests; see snapshot below** |
+| **v1.8.0** | **99.53%** | **642/645** | **98.86% (87/88)** | **96.99% (129/133)** | **Contract-held verification methods + reactivation rule tests (ContractVm, Reactivation, fuzz, integration, invariant); see snapshot below** |
 
 **Versions not measured in this pass:** v1.2.2 through v1.3.1 (git tags exist for all of them) and v1.4.0 (never tagged; see `contract-size-history.md`) are not filled in above. Recovering their coverage would require checking out each old tag and re-running `forge coverage` at that commit, which this update deliberately does not do (no branches created, no tags checked out; only the current working tree at v1.5.0 was measured).
 
@@ -130,6 +132,27 @@ The measured line count fell by 23 after the gas pass restructured code in `src/
 | `FOUNDRY_PROFILE=ci`, no path exclusion | 397 | 479 |
 
 The growth is the behaviour-lock tests from the gas pass, the list-limit tests and the ERC-1056 comparison under `test/performance/`.
+
+### v1.8.0 Coverage Snapshot
+
+Measured on 2026-11-17 at commit `1b910d8` (`src/` and `test/` identical to `c4cdccb`) with `FOUNDRY_PROFILE=ci forge coverage --report lcov --no-match-path "test/{stress,performance}/*"` (Foundry 1.8.1, solc 0.8.36), reading the `src/*` records of the LCOV file, the filter the CI `coverage` job applies before its 90% gate. The `--report summary` output is committed as [coverage-v1.8.0.txt](../assets/data/coverage-v1.8.0.txt).
+
+- **Lines**: 99.53% (642/645), up from 99.39% (654/658)
+- **Statements**: 99.28% (831/837, the sum of the eleven `src/` rows of the summary)
+- **Branches**: 96.99% (129/133), up from 96.40% (134/139)
+- **Functions**: 98.86% (87/88)
+
+The measured line count fell by 13 because the `_isVmOwner` hook and its two implementations were deleted. Two `src/` files remain below 100%: `src/W3CResolverBase.sol` (89.47% lines, 17/19; 75.00% functions, 3/4) and `src/storage/VMStorage.sol` (98.85% lines, 86/87; 86.36% branches, 19/22). Both are unchanged in the lines they leave uncovered since v1.7.0. The `--report summary` Total row (91.00% lines) spans `src/`, `test/` and `script/`, and is not the gate.
+
+**Test counts** (forge 1.8.1, which counts an invariant suite as one test):
+
+| Scope | v1.7.0 | v1.8.0 |
+|---|---|---|
+| default local profile (fuzz/invariant excluded, no path exclusion) | 453 | 503 |
+| `FOUNDRY_PROFILE=ci`, stress/performance excluded (the CI gate) | 428 | 486 |
+| `FOUNDRY_PROFILE=ci`, no path exclusion | 479 | 537 |
+
+The growth is the contract-key unit, fuzz, integration and invariant tests and the reactivation tests added for this release. The three totals and their commands are committed in [`test-totals-v1.8.0.txt`](../assets/data/test-totals-v1.8.0.txt).
 
 ## Quality Metrics
 
@@ -317,4 +340,4 @@ Coverage data supports PhD thesis claims about:
 
 ---
 
-*Last Updated: v1.7.0 (2026-10-27) - 479 tests under the CI profile (428 with stress/performance excluded, the CI coverage scope; 453 under the default profile). Coverage on `src/*` only: 99.39% lines, 99.17% statements, 96.40% branches, 98.89% functions. v1.2.2 through v1.3.1, and v1.4.0 (never tagged), are not measured.*
+*Last Updated: v1.8.0 (2026-11-17) - 537 tests under the CI profile (486 with stress/performance excluded, the CI coverage scope; 503 under the default profile). Coverage on `src/*` only: 99.53% lines, 99.28% statements, 96.99% branches, 98.86% functions. v1.2.2 through v1.3.1, and v1.4.0 (never tagged), are not measured.*

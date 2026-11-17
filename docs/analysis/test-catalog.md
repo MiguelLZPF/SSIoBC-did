@@ -13,7 +13,7 @@
   - [DidManager.unit.t.sol](#4-didmanagerunittsol--60-tests)
   - [DidManagerNative.unit.t.sol](#5-didmanagernativeunittsol--72-tests)
   - [DidStringConformance.unit.t.sol](#6-didstringconformanceunittsol--23-tests)
-  - [DirectEOAGuard.unit.t.sol](#7-directeoaguardunittsol--20-tests)
+  - [DirectEOAGuard.unit.t.sol](#7-directeoaguardunittsol--22-tests)
   - [ServiceStorage.unit.t.sol](#8-servicestorageunittsol--19-tests)
   - [VMStorage.unit.t.sol](#9-vmstorageunittsol--30-tests)
   - [W3CResolver.unit.t.sol](#10-w3cresolverunittsol--22-tests)
@@ -22,15 +22,20 @@
   - [ResolverGoldenOutput.unit.t.sol](#13-resolvergoldenoutputunittsol--24-tests)
   - [SparseControllers.unit.t.sol](#14-sparsecontrollersunittsol--10-tests)
   - [Configuration.unit.t.sol](#15-configurationunittsol--2-tests)
+  - [ContractVm.unit.t.sol](#25-contractvmunittsol--24-tests)
+  - [Reactivation.unit.t.sol](#26-reactivationunittsol--16-tests)
 - [Fuzz Tests](#fuzz-tests)
   - [DidManager.fuzz.t.sol](#16-didmanagerfuzztsol--10-tests)
   - [DidManagerNative.fuzz.t.sol](#17-didmanagernativefuzztsol--11-tests)
+  - [ContractVm.fuzz.t.sol](#27-contractvmfuzztsol--6-tests)
 - [Integration Tests](#integration-tests)
   - [DidLifecycle.integration.t.sol](#18-didlifecycleintegrationtsol--6-tests)
   - [KeyAgreementE2E.t.sol](#19-keyagreemente2etsol--3-tests)
+  - [ContractIssuer.integration.t.sol](#28-contractissuerintegrationtsol--8-tests)
 - [Invariant Tests](#invariant-tests)
   - [SystemInvariants.t.sol](#20-systeminvariantstsol--7-invariants)
   - [NativeSystemInvariants.t.sol](#21-nativesysteminvariantstsol--8-invariants)
+  - [ContractKeyInvariants.t.sol](#29-contractkeyinvariantstsol--8-invariants)
 - [Performance Tests](#performance-tests)
   - [GasOptimization.performance.t.sol](#22-gasoptimizationperformancetsol--8-tests)
   - [EthrDidComparison.performance.t.sol](#23-ethrdidcomparisonperformancetsol--37-tests)
@@ -45,15 +50,15 @@
 
 | Category | Count | Files |
 |----------|------:|------:|
-| Unit Tests | 396 | 15 |
-| Fuzz Tests | 21 | 2 |
-| Integration Tests | 9 | 2 |
-| Invariant Tests | 15 | 2 |
+| Unit Tests | 438 | 17 |
+| Fuzz Tests | 27 | 3 |
+| Integration Tests | 17 | 3 |
+| Invariant Tests | 23 | 3 |
 | Performance Tests | 45 | 2 |
 | Stress Tests | 6 | 1 |
-| **TOTAL** | **492** | **24** |
+| **TOTAL** | **556** | **29** |
 
-> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 453 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 492 test functions run under the CI profiles, which forge 1.8.1 reports as 479 because it counts each invariant suite as one test.
+> **Note**: Unit test count includes both Full W3C and Ethereum-Native variant tests. Many native tests mirror the full variant with additional native-specific cases. The default profile runs 503 tests (fuzz/invariant excluded via `no_match_test` in `foundry.toml`); all 556 test functions run under the CI profiles, which forge 1.8.1 reports as 537 because it counts each invariant suite as one test. The CI gate scope (CI profile without `test/stress` and `test/performance`) runs 486.
 
 ---
 
@@ -187,14 +192,14 @@ Mirrors tests 1, 5, 7, 9, 4, 11 and 13 above against `DidManagerNative`.
 | 6 | `test_RevertWhen_CreateVm_WithEmptyMethods` | Empty methods reverts `MissingRequiredParameter` | `createVm()` → validation | methods=bytes32(0) |
 | 7 | `test_RevertWhen_CreateVm_WithEmptyRelationships` | Empty relationships reverts `MissingRequiredParameter` | `createVm()` → validation | relationships=0 |
 | 8 | `test_CreateVm_Should_RevertWithDidExpired_When_SenderDidIsExpired` | Expired sender DID prevents VM creation | `createVm()` → `_isExpired()` on sender | `vm.warp()` past sender expiration |
-| 9 | `test_CreateVm_Should_RevertWithNotAuthenticated_When_SenderNotAuthenticated` | Unauthenticated sender (wrong address) reverts `NotAuthenticated` | `createVm()` → `_isAuthenticated()` → `_isVmOwner()` fails | `vm.prank(wrongAddress)` |
+| 9 | `test_CreateVm_Should_RevertWithNotAuthenticated_When_SenderNotAuthenticated` | Unauthenticated sender (wrong address) reverts `NotAuthenticated` | `createVm()` → `_isAuthenticated()` fails | `vm.prank(wrongAddress)` |
 | 10 | `test_CreateVm_Should_RevertWithDidExpired_When_TargetDidIsExpired` | Expired target DID prevents VM creation | `createVm()` → `_isExpired()` on target | `vm.warp()` past target expiration |
 
 #### Authentication (2 tests)
 
 | # | Test Name | What It Does | Production Functions & Contracts Touched | Notable Setup |
 |---|-----------|-------------|------------------------------------------|---------------|
-| 11 | `test_Authenticate_Should_ReturnTrue_When_ValidVmProvided` | Valid VM with correct sender authenticates successfully | `DidAggregate._isAuthenticated()` → `_isVmOwner()` (checks VM ethereumAddress == msg.sender) → `_isVmRelationship()` with auth(0x01) | `vm.prank(vmOwner)` |
+| 11 | `test_Authenticate_Should_ReturnTrue_When_ValidVmProvided` | Valid VM with correct sender authenticates successfully | `DidAggregate._isAuthenticated()` (checks VM ethereumAddress == msg.sender, validated, unexpired) → `_isVmRelationship()` with auth(0x01) | `vm.prank(vmOwner)` |
 | 12 | `test_Authenticate_Should_RevertWithVmAlreadyExpired_When_NonExistentVmProvided` | Non-existent VM reverts `VmAlreadyExpired` (expiration=0 treated as expired) | `_isAuthenticated()` → `_isVmRelationship()` → `_vmExpiration[posHash]` == 0 → revert | Random non-existent vmId |
 
 #### Relationship (2 tests)
@@ -241,14 +246,14 @@ Mirrors tests 1, 5, 7, 9, 4, 11 and 13 above against `DidManagerNative`.
 
 | # | Test Name | What It Does | Production Functions & Contracts Touched | Notable Setup |
 |---|-----------|-------------|------------------------------------------|---------------|
-| 33 | `test_ReactivateDid_Should_ReactivateOwnDid_When_OwnerSelfReactivates` | Owner self-reactivates (sender==target path uses `_isVmOwner`, skips DID expiration check) | `DidAggregate.reactivateDid()` → self-reactivation path → `_isVmOwner()` | `deactivateDid()` first, then `reactivateDid()` with sender==target |
+| 33 | `test_ReactivateDid_Should_ReactivateOwnDid_When_OwnerSelfReactivates` | Owner self-reactivates (sender==target path skips the DID expiration check and needs a live `0x01` key via `_isAuthenticated`) | `DidAggregate.reactivateDid()` → self-reactivation path → `_isAuthenticated()` | `deactivateDid()` first, then `reactivateDid()` with sender==target |
 | 34 | `test_ReactivateDid_Should_AllowControllerToReactivate_When_ControllerIsActive` | Controller reactivates target (requires active sender DID) | `reactivateDid()` → `_isExpired()` on sender + `_isAuthenticated()` + `_isControllerFor()` | Controller with active DID |
 | 35 | `test_ReactivateDid_Should_AllowOperations_When_Reactivated` | Operations (createVm, etc.) work after reactivation | `reactivateDid()` then `createVm()` succeeds | Full deactivate→reactivate cycle |
 | 36 | `test_ReactivateDid_Should_PreserveVmsAndServices_When_Reactivated` | VMs and services preserved through deactivation/reactivation | `reactivateDid()` → `getVm()`, `getService()` return same data | Create VMs+services, deactivate, reactivate, verify |
 | 37 | `test_ReactivateDid_Should_PreserveControllers_When_Reactivated` | Controllers preserved through cycle | `reactivateDid()` → `_isControllerFor()` still returns true | Set controllers, deactivate, reactivate, verify |
 | 38 | `test_RevertWhen_ReactivateDid_WithActiveDid` | Already active DID reverts (can't reactivate non-deactivated) | `reactivateDid()` → checks exp==0 | Active DID (never deactivated) |
 | 39 | `test_RevertWhen_ReactivateDid_WithExpiredSenderDid` | Expired sender DID reverts (controller path requires active sender) | `reactivateDid()` → `_isExpired()` on sender | `vm.warp()` past sender expiration |
-| 40 | `test_RevertWhen_ReactivateDid_WithInvalidVm` | Invalid VM reverts (self-reactivation requires valid VM) | `reactivateDid()` → `_isVmOwner()` fails | Non-existent vmId |
+| 40 | `test_RevertWhen_ReactivateDid_WithInvalidVm` | Invalid VM reverts (a missing VM is not a live authentication key; self-reactivation reverts `VmAlreadyExpired`) | `reactivateDid()` → `_isAuthenticated()` reverts `VmAlreadyExpired` | Non-existent vmId |
 | 41 | `test_RevertWhen_ReactivateDid_WithNonController` | Non-controller reverts | `reactivateDid()` → `_isControllerFor()` returns false | Controllers set, sender is not one |
 | 42 | `test_RevertWhen_ReactivateDid_WithEmptyMethods` | Empty methods reverts `MissingRequiredParameter` | `reactivateDid()` → validation | methods=bytes32(0) |
 | 43 | `test_RevertWhen_ReactivateDid_WithEmptySenderId` | Empty sender ID reverts | validation | senderId=bytes32(0) |
@@ -356,35 +361,37 @@ Mirrors tests 1, 6 and 4 above against `W3CResolverNative`.
 
 ---
 
-### 7. `DirectEOAGuard.unit.t.sol` — 20 tests
+### 7. `DirectEOAGuard.unit.t.sol` — 22 tests
 
 **File**: `test/unit/DirectEOAGuard.unit.t.sol`
-**Contracts**: `DirectEOAGuardUnitTest is TestBase` (10), `DirectEOAGuardNativeUnitTest is TestBaseNative` (10)
-**Primary target**: `DidAggregate.onlyDirectEOA` modifier (v1.4.0) — `msg.sender == tx.origin` equality guard on all 8 authenticated write entry points, reverting `DirectEOACallRequired()` for calls routed through intermediary contracts
-**Attack mocks**: `MaliciousIntermediary` / `MaliciousIntermediaryNative` — confused-deputy contracts forwarding calls to all 8 guarded functions
+**Contracts**: `DirectEOAGuardUnitTest is TestBase` (11), `DirectEOAGuardNativeUnitTest is TestBaseNative` (11)
+**Primary target**: `DidAggregate.onlyDirectEOA` modifier (v1.4.0) — `msg.sender == tx.origin` equality guard on 7 of the 8 authenticated write entry points (`validateVm` lost the guard in v1.8.0 and authenticates the VM's own address instead), reverting `DirectEOACallRequired()` for calls routed through intermediary contracts
+**Attack mocks**: `MaliciousIntermediary` / `MaliciousIntermediaryNative` — confused-deputy contracts forwarding calls to all 8 write functions (7 guarded, plus `validateVm`)
 
-#### DirectEOAGuardUnitTest (Full W3C variant, 10 tests)
+#### DirectEOAGuardUnitTest (Full W3C variant, 11 tests)
 
 | # | Test Name | What It Does | Production Functions & Contracts Touched | Notable Setup |
 |---|-----------|-------------|------------------------------------------|---------------|
 | 1 | `test_CreateDid_Should_Revert_When_CalledThroughIntermediary` | `createDid` via intermediary contract reverts | `DidManager.createDid()` → `onlyDirectEOA` → `DirectEOACallRequired` | `vm.prank(victim, victim)` then attacker call via `MaliciousIntermediary`, `vm.expectRevert(DirectEOACallRequired)` |
 | 2 | `test_CreateVm_Should_Revert_When_CalledThroughIntermediary` | `createVm` via intermediary contract reverts | `DidManager.createVm()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
-| 3 | `test_ValidateVm_Should_Revert_When_CalledThroughIntermediary` | `validateVm` via intermediary contract reverts | `validateVm()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
+| 3 | `test_ValidateVm_Should_RevertVmNotFound_When_CalledThroughIntermediary` | `validateVm` via intermediary no longer reverts `DirectEOACallRequired`; it reaches the lookup and reverts `VmNotFound` for an unknown position (v1.8.0) | `validateVm()` → VM lookup → `VmNotFound` | Same prank + intermediary pattern |
+| 3b | `test_ValidateVm_Should_RevertInvalidSignature_When_IntermediaryTargetsVictimVm` | The intermediary is `msg.sender`, not the victim, so the victim's pending VM stays pending and the call reverts `InvalidSignature` (v1.8.0) | `validateVm()` → address binding check → `InvalidSignature` | Victim's VM created, intermediary targets it |
 | 4 | `test_ExpireVm_Should_Revert_When_CalledThroughIntermediary` | `expireVm` via intermediary contract reverts | `DidAggregate.expireVm()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
 | 5 | `test_DeactivateDid_Should_Revert_When_CalledThroughIntermediary` | `deactivateDid` via intermediary contract reverts | `DidAggregate.deactivateDid()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
 | 6 | `test_ReactivateDid_Should_Revert_When_CalledThroughIntermediary` | `reactivateDid` via intermediary contract reverts | `DidAggregate.reactivateDid()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
 | 7 | `test_UpdateController_Should_Revert_When_CalledThroughIntermediary` | `updateController` via intermediary contract reverts | `DidAggregate.updateController()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
 | 8 | `test_UpdateService_Should_Revert_When_CalledThroughIntermediary` | `updateService` via intermediary contract reverts | `DidAggregate.updateService()` → `onlyDirectEOA` → `DirectEOACallRequired` | Same prank + intermediary pattern |
-| 9 | `test_OnlyDirectEOA_Should_AllowFullLifecycle_When_CalledDirectly` | Direct EOA calls pass the guard across the full lifecycle: createVm → validateVm → updateService → updateController → expireVm → deactivateDid → reactivateDid | All 8 guarded entry points, `onlyDirectEOA` passes (`msg.sender == tx.origin`) | Direct EOA calls, no intermediary |
+| 9 | `test_OnlyDirectEOA_Should_AllowFullLifecycle_When_CalledDirectly` | Direct EOA calls pass the guard across the full lifecycle: createVm → validateVm → updateService → updateController → expireVm → deactivateDid → reactivateDid | All 8 write entry points; the 7 guarded ones pass `onlyDirectEOA` (`msg.sender == tx.origin`) | Direct EOA calls, no intermediary |
 | 10 | `test_CreateDid_Should_BindInitialVmToMsgSender_When_CalledDirectly` | Initial VM is bound to `msg.sender`: `isAuthorized` returns true for the creator, false for a non-creator | `createDid()` → initial VM `ethereumAddress = msg.sender` → `isAuthorized()` | Two EOAs compared (creator vs non-creator) |
 
-#### DirectEOAGuardNativeUnitTest (Ethereum-Native variant, 10 tests)
+#### DirectEOAGuardNativeUnitTest (Ethereum-Native variant, 11 tests)
 
 | # | Test Name | What It Does |
 |---|-----------|-------------|
 | 1 | `test_CreateDid_Should_Revert_When_CalledThroughIntermediary` | `DidManagerNative.createDid` via `MaliciousIntermediaryNative` reverts `DirectEOACallRequired` |
 | 2 | `test_CreateVm_Should_Revert_When_CalledThroughIntermediary` | `createVm` via intermediary reverts `DirectEOACallRequired` |
-| 3 | `test_ValidateVm_Should_Revert_When_CalledThroughIntermediary` | `validateVm` via intermediary reverts `DirectEOACallRequired` |
+| 3 | `test_ValidateVm_Should_RevertVmNotFound_When_CalledThroughIntermediary` | `validateVm` via intermediary reaches the lookup and reverts `VmNotFound` (v1.8.0) |
+| 3b | `test_ValidateVm_Should_RevertInvalidSignature_When_IntermediaryTargetsVictimVm` | Intermediary is `msg.sender`; the victim's pending VM stays pending, `InvalidSignature` (v1.8.0) |
 | 4 | `test_ExpireVm_Should_Revert_When_CalledThroughIntermediary` | `expireVm` via intermediary reverts `DirectEOACallRequired` |
 | 5 | `test_DeactivateDid_Should_Revert_When_CalledThroughIntermediary` | `deactivateDid` via intermediary reverts `DirectEOACallRequired` |
 | 6 | `test_ReactivateDid_Should_Revert_When_CalledThroughIntermediary` | `reactivateDid` via intermediary reverts `DirectEOACallRequired` |
@@ -393,7 +400,7 @@ Mirrors tests 1, 6 and 4 above against `W3CResolverNative`.
 | 9 | `test_OnlyDirectEOA_Should_AllowFullLifecycle_When_CalledDirectly` | Direct EOA full lifecycle (createVm → validateVm → updateService → updateController → expireVm → deactivateDid → reactivateDid) passes the guard |
 | 10 | `test_CreateDid_Should_BindInitialVmToMsgSender_When_CalledDirectly` | Initial native VM bound to `msg.sender`; `isAuthorized` true for creator, false for non-creator |
 
-Same 10 scenarios as the full variant, targeting `DidManagerNative` with 1-slot VM storage via `MaliciousIntermediaryNative`.
+Same 11 scenarios as the full variant (rows 3 and 3b replaced the old `validateVm` intermediary test in v1.8.0), targeting `DidManagerNative` with 1-slot VM storage via `MaliciousIntermediaryNative`.
 
 ---
 
@@ -697,6 +704,49 @@ Each test holds both of its scenarios in one function on purpose: `vm.setEnv` mu
 | 1 | `test_getNetwork_readsNetworkNameWithChainIdFallback` | `getNetwork()` returns the chain id and the `NETWORK_NAME` value, and falls back to `chain-<id>` when the variable is empty | `Configuration.getNetwork()` | `vm.setEnv("NETWORK_NAME", ...)`, `vm.chainId(6660)` and `vm.chainId(424242)` |
 | 2 | `test_storeAndRetrieveDeployment_roundTripsAndReplaces` | A stored deployment is read back field for field, and storing the same chain id and name again replaces the entry instead of appending | `Configuration.storeDeployment()`, `Configuration.retrieveDeployment(chainId, name)` | temp ledger file under `.temp/`, `DEPLOYMENTS_PATH` set per scenario |
 
+### 25. `ContractVm.unit.t.sol` — 24 tests
+
+**File**: `test/unit/ContractVm.unit.t.sol`
+**Contracts**: `ContractVmUnitTest` (11), `ContractVmNativeUnitTest` (11), `ContractVmMetamorphicTest` (1), `ContractVmNativeMetamorphicTest` (1); the cases live in the abstract `Cases` and `MetamorphicCases`, so both variants run the same assertions
+**Primary target**: `DidAggregate.validateVm()` after v1.8.0: no `onlyDirectEOA`, the caller must be the VM's own address, so a contract can validate a VM bound to itself
+**Mocks**: `test/mocks/MockContractKeys.sol` (`ReferenceIssuer`, `OpenCaller`, `MockMultisig`, `ConstructorValidator`, `RelayedDelegate`, `MetamorphicInit`, `MetamorphicFactory`)
+
+| # | Test Name | What It Does |
+|---|-----------|-------------|
+| 1 | `test_ValidateVm_Should_Activate_When_ContractValidatesItself` | The admin EOA calls `issuer.validate`; the reference issuer calls `validateVm` for its own VM. `VmValidated` is emitted, the expiration is the default 365 days, `isAuthorized` accepts the issuer (it did not while pending) and does not accept the admin address |
+| 2 | `test_RevertWhen_ValidateVm_CallerIsNotTheVmAddress` | A stranger through `OpenCaller` reverts `InvalidSignature`; a stranger calling `validateVm` directly reverts `InvalidSignature`; a stranger calling `issuer.validate` reverts the issuer's own `NotAdmin` |
+| 3 | `test_ValidateVm_Should_Activate_When_ContractAdminIsAContract` | The issuer's admin is a `MockMultisig` contract; the admin EOA drives it, the issuer validates its VM and is authorized |
+| 4 | `test_RevertWhen_ValidateVm_IntermediaryTriesUsersVm` | A user's EOA sends the validation of its own VM through an `OpenCaller`; the intermediary is `msg.sender`, so it reverts `InvalidSignature` and the VM stays pending |
+| 5 | `test_ValidateVm_Should_Activate_When_OpenCallerIsDrivenByStranger` | A stranger drives an `OpenCaller` that is the VM address; the VM is validated (design finding 11). The same `OpenCaller` then reverts `DirectEOACallRequired` on each of the 7 guarded writes |
+| 6 | `test_ValidateVm_Should_Activate_When_CalledFromConstructor` | A contract validates its VM from inside its constructor, at an address predicted before deployment |
+| 7 | `test_ValidateVm_Should_Activate_When_7702DelegateIsDrivenByRelayer` | An account with an EIP-7702 delegation: a relayer drives the delegate, which validates the account's VM (consent change, design finding 3); the account itself can also validate a second VM directly |
+| 8 | `test_ValidateVm_EoaPathUnchanged` | EOA path: a stranger reverts `InvalidSignature`; the bound EOA validates and `VmValidated` is emitted; a second validation reverts `VmAlreadyValidated`; an unknown position reverts `VmNotFound` |
+| 9 | `test_RevertWhen_ContractKeyCallsAnyGuardedWrite` | A validated contract key with all relationship bits, driven by its admin, calls each of the 7 guarded writes and gets `DirectEOACallRequired`. After the owner expires the owner's own EOA key, the contract still gets `DirectEOACallRequired` and the owner's `updateService` reverts `VmAlreadyExpired` |
+| 10 | `test_RevertWhen_ValidateVm_ContractUsesUnknownPosition` | A contract that names a missing position reverts `VmNotFound` |
+| 11 | `test_DeactivateReactivate_Should_PreserveContractVm` | After the owner deactivates the DID the contract key is not authorized; after the owner reactivates it, the same key is authorized again |
+| 12 | `test_ValidateVm_Should_KeepAddressBinding_When_CodeChangesAfterValidation` | Metamorphic case (own `setUp`): a contract validates in its constructor and self-destructs; the address then holds no code and is still authorized; the address is redeployed with other code and the binding survives. The VM is bound to the address, not to the code behind it (design point 6, Changing code) |
+
+Rows 1 to 11 run in `ContractVmUnitTest` and `ContractVmNativeUnitTest` (22 tests); row 12 runs in the two metamorphic contracts (2 tests).
+
+---
+
+### 26. `Reactivation.unit.t.sol` — 16 tests
+
+**File**: `test/unit/Reactivation.unit.t.sol`
+**Contracts**: `ReactivationUnitTest` (8), `ReactivationNativeUnitTest` (8), both inheriting the shared `ReactivationCases`
+**Primary target**: `DidAggregate.reactivateDid()` after v1.8.0: both paths need a live (validated, unexpired) `0x01` key through `_isAuthenticated`; the controller rule applies on the controller path only (owner decisions D5 = B, D6 = A)
+
+| # | Test Name | What It Does |
+|---|-----------|-------------|
+| 1 | `test_RevertWhen_ReactivateDid_SelfWithExpiredKey` | A key that was validated and then expired cannot reactivate: `VmAlreadyExpired` |
+| 2 | `test_RevertWhen_ReactivateDid_SelfWithNeverValidatedKey` | A key that was named but never validated cannot reactivate: `VmAlreadyExpired` |
+| 3 | `test_ReactivateDid_Should_Succeed_When_OwnLiveKeyReactivatesAfterControllerDeactivation` | D5: a controller deactivated the DID; the DID's own live key reactivates it |
+| 4 | `test_RevertWhen_ReactivateDid_SelfAfterKeyLifetime` | D6: no controller, DID deactivated, key lifetime passed; the owner reverts `VmAlreadyExpired` |
+| 5 | `test_ReactivateDid_Should_Succeed_When_OwnerKeyIsLive` | Owner deactivates and reactivates at once; the owner is authorized again |
+| 6 | `test_ReactivateDid_Should_Succeed_When_ControllerReactivatesControlledDid` | Controller path: a stranger reverts `NotAControllerForTargetId`; the controller, with a live key, reactivates for the full period |
+| 7 | `test_RevertWhen_ReactivateDid_SelfAfterControllerDeactivation_WithExpiredKey` | D5 and D6 together: after a controller's deactivation the DID's own key has expired (366 days); the self path reverts `VmAlreadyExpired` |
+| 8 | `test_RevertWhen_ReactivateDid_SelfWithNonAuthenticationKey` | A live, validated key without the `0x01` bit (assertion only) cannot reactivate: `NotAuthenticatedAsSenderId` |
+
 ---
 
 ## Fuzz Tests
@@ -714,7 +764,7 @@ Each test holds both of its scenarios in one function on purpose: `vm.setEnv` mu
 | 3 | `testFuzz_CreateDid_Should_FailOnDuplicate_When_SameInputsUsed` | Same inputs always revert on 2nd call | `createDid()` x2 → `DidAlreadyExists` | `random: bytes32` |
 | 4 | `testFuzz_CreateVm_Should_Succeed_When_ValidRelationshipsProvided` | Any valid relationship bitmask (1-31) succeeds | `createVm()` → `_createVmInternal()` | `relationships: uint8` (bounded 1-31) |
 | 5 | `testFuzz_CreateVm_Should_HandleDifferentAddresses_When_ValidAddressProvided` | Any non-zero address works as VM Ethereum address | `createVm()` with fuzzed address | `addr: address` (bounded ≠ 0) |
-| 6 | `testFuzz_Authenticate_Should_BeConsistent_When_ValidVmUsed` | Authentication always consistent for valid VM owner | `_isAuthenticated()` → `_isVmOwner()` | `random: bytes32` (setup variation) |
+| 6 | `testFuzz_Authenticate_Should_BeConsistent_When_ValidVmUsed` | Authentication always consistent for valid VM owner | `_isAuthenticated()` | `random: bytes32` (setup variation) |
 | 7 | `testFuzz_VmRelationships_Should_MatchCreated_When_ValidRelationshipsBitmask` | All 5 relationship flags individually verified after creation | `_isVmRelationship()` with each of 0x01-0x10 | `relationships: uint8` (bounded 1-31) |
 | 8 | `testFuzz_Expiration_Should_BehaveProperly_When_TimeAdvances` | Time-based expiration correct across fuzzed timestamps | `_isExpired()` via `vm.warp(fuzzedTime)` | `warpTime: uint256` |
 | 9 | `testFuzz_CreateVm_Should_RejectInvalidRelationships_When_OutOfRange` | Any value > 0x1F always reverts `VmRelationshipOutOfRange` | `createVm()` → validation | `relationships: uint8` (bounded 32-255) |
@@ -733,6 +783,19 @@ Same 10 tests as above adapted for native **plus**:
 |---|-----------|-------------|------------------------------|----------------|
 | 1-10 | *(Same as DidManager.fuzz.t.sol)* | Native variants of all 10 fuzz tests | `DidManagerNative.*`, `VMStorageNative.*` | Same as above |
 | 11 | `testFuzz_IsAuthorized_Should_CheckRelationshipsMask_When_VaryingRelationships` | Authorization respects fuzzed relationship mask combinations | `isAuthorized()` with fuzzed relationships | `relationships: uint8`, `queryRelationship: uint8` |
+
+### 27. `ContractVm.fuzz.t.sol` — 6 tests
+
+**File**: `test/fuzz/ContractVm.fuzz.t.sol`
+**Contracts**: `ContractVmFuzzTest`, `ContractVmNativeFuzzTest`, `ReactivationFuzzTest`, `ReactivationNativeFuzzTest` (one test function each in the abstract cases, run on both variants)
+
+| # | Test Name | What It Does |
+|---|-----------|-------------|
+| 1 | `testFuzz_ValidateVm_Should_OnlySucceed_When_CallerIsVmAddress` | Any caller other than the bound address reverts `InvalidSignature`; the bound address succeeds |
+| 2 | `testFuzz_ValidateVm_Should_BindToContractCaller_When_DrivenThroughOpenCaller` | A contract caller is judged by its own address, not by the EOA behind it |
+| 3 | `testFuzz_ReactivateDid_Should_Revert_When_CallerHasNoLiveAuthenticationKey` | No other caller, and no owner past the key lifetime, can reactivate |
+
+Rows 1 and 2 run in the two `ContractVm*FuzzTest` contracts (4 tests); row 3 runs in the two `Reactivation*FuzzTest` contracts (2 tests).
 
 ---
 
@@ -766,6 +829,19 @@ Same 10 tests as above adapted for native **plus**:
 | 1 | `test_KeyAgreement_ECDH_E2E_Should_EncryptAndDecrypt_When_SharedSecretDerived` | Full ECDH flow: create DIDs with keyAgreement VMs → derive shared secret → encrypt → decrypt | `createDid()`, `createVm()` with keyAgreement(0x04), secp256k1 EC multiply, XOR encrypt/decrypt | Two parties with private keys, `vm.addr()` for public keys |
 | 2 | `test_Secp256k1_ECMul_Should_MatchFoundryWallet_When_MultiplyingGenerator` | secp256k1 scalar multiplication matches Foundry's `vm.addr()` | EVM precompile ecMul (address 0x07), `vm.addr(privateKey)` | Generator point G, known private key |
 | 3 | `test_Secp256k1_CompressDecompress_Should_RoundTrip_When_ValidPublicKey` | Public key compression/decompression roundtrip (33 bytes ↔ 64 bytes) | Modular arithmetic, point compression prefix (0x02/0x03) | Known secp256k1 point |
+
+### 28. `ContractIssuer.integration.t.sol` — 8 tests
+
+**File**: `test/integration/ContractIssuer.integration.t.sol`
+**Contracts**: `ContractIssuerIntegrationTest`, `ContractIssuerNativeIntegrationTest` (4 each)
+**Helpers**: `ClaimSink` (mirrors `VClaimManager._authorize`: only a sender holding an assertion key of the issuer DID may issue), `SelfValidatingWallet` (ERC-1271 wallet that validates its own VM)
+
+| # | Test Name | What It Does |
+|---|-----------|-------------|
+| 1 | `test_Integration_IssuerContract_IssuesInNameOfItsDid` | A contract with an assertion key passes `isAuthorized(..., 0x02, contract)` and issues in the name of its DID |
+| 2 | `test_Integration_IssuerContract_ActsForControlledDid` | The same contract acts for a DID its own DID controls |
+| 3 | `test_Integration_IssuerContract_StopsWhenKeyIsExpired` | The DID's EOA key expires the contract's key; issuing stops for its own DID and for the DID it controls |
+| 4 | `test_Integration_ContractKey_OffChainPath` | A wallet contract validates its VM; `isAuthorizedOffChainWithSigner` accepts its owner's signature through ERC-1271, `isAuthorizedOffChain` (ecrecover) does not see it, and a contract without `isValidSignature` cannot sign |
 
 ---
 
@@ -801,6 +877,20 @@ Same 7 invariants as above for native variant **plus**:
 | # | Invariant Name | Property Verified | Contracts Checked |
 |---|---------------|-------------------|-------------------|
 | 8 | `invariant_PublicKeyMultibaseShouldOnlyExistForKeyAgreement` | `publicKeyMultibase` is non-empty ONLY when VM has keyAgreement (0x04) relationship | `getVmPublicKeyMultibase()` cross-referenced with `_isVmRelationship(0x04)` |
+
+### 29. `ContractKeyInvariants.t.sol` — 8 invariants
+
+**File**: `test/invariant/ContractKeyInvariants.t.sol`
+**Contracts**: `ContractKeyInvariantsTest`, `ContractKeyInvariantsNativeTest` (4 each), driven by `ContractKeyHandler` and `ContractKeyHandlerNative`; CI depth 128
+
+| # | Invariant | What It Asserts |
+|---|-----------|----------------|
+| 1 | `invariant_ValidatedVmWasValidatedByItsOwnAddress` | A VM that was validated, was validated by the address it is bound to |
+| 2 | `invariant_EoaValidationFollowsTheRule` | The EOA path succeeds exactly when the caller is the bound address and the VM is pending |
+| 3 | `invariant_NoGuardedWriteSucceedsFromAContract` | No guarded write ever succeeds when its `msg.sender` is a contract |
+| 4 | `invariant_HandlerReachedContractPaths` | The handler's reach counters are all above zero, so the other invariants do not pass vacuously |
+
+**Limit**: the handler never deactivates a DID, so invariant 3 covers 6 of the 7 guarded writes. `reactivateDid` from a contract is covered by the unit test `test_RevertWhen_ContractKeyCallsAnyGuardedWrite`, which exercises all 7 with the exact revert. The mutation evidence is `docs/assets/data/contract-vm-validation/mutation-proof.txt`.
 
 ---
 
@@ -877,6 +967,7 @@ These files are not test files but support the test infrastructure:
 | `test/helpers/Fixtures.sol` | Test fixture data | `emptyVmPublicKeyMultibase()`, default constants (`DEFAULT_RANDOM_*`, `DEFAULT_VM_*`), fixture structs |
 | `test/helpers/DidManagerHandler.sol` | Invariant test handler (Full W3C) | Random DID/VM creation, ghost variables for invariant tracking, `vm.prank()` management |
 | `test/helpers/DidManagerNativeHandler.sol` | Invariant test handler (Native) | Native variant handler with keyAgreement enforcement tracking |
+| `test/mocks/MockContractKeys.sol` | Contract-key mocks (v1.8.0) | `ReferenceIssuer`, `OpenCaller`, `MockMultisig`, `ConstructorValidator`, `RelayedDelegate`, `MetamorphicInit`, `MetamorphicFactory` |
 
 ---
 
@@ -884,7 +975,7 @@ These files are not test files but support the test infrastructure:
 
 | Production Contract | Test Files Covering It | Approximate Test Count |
 |---------------------|----------------------|----------------------:|
-| **DidAggregate** (shared lifecycle) | Authorize, AuthorizeOffChain, AuthorizeOffChainErc1271, DidManager, DidManagerNative, DirectEOAGuard, DidLifecycle | ~224 |
+| **DidAggregate** (shared lifecycle) | Authorize, AuthorizeOffChain, AuthorizeOffChainErc1271, DidManager, DidManagerNative, DirectEOAGuard, ContractVm, Reactivation, ContractIssuer, ContractKeyInvariants, DidLifecycle | ~290 |
 | **VMStorage** (Full W3C VMs) | VMStorage.unit, DidManager.unit, W3CResolver.unit, fuzz, invariant | ~90 |
 | **VMStorageNative** (Native VMs) | DidManagerNative.unit, W3CResolverNative.unit, native fuzz/invariant | ~83 |
 | **ServiceStorage** (services) | ServiceStorage.unit, DidManager.unit, DidLifecycle | ~25 |
@@ -899,7 +990,7 @@ These files are not test files but support the test infrastructure:
 
 ---
 
-**Last Updated**: 2026-10-27 (v1.7.0)
-**Total Test Count**: 492 test functions in 24 files (453 in the default profile; fuzz/invariant run under CI profiles)
+**Last Updated**: 2026-11-17 (v1.8.0)
+**Total Test Count**: 556 test functions in 29 files (503 in the default profile; 537 as forge reports the CI profile; 486 in the CI gate scope; fuzz/invariant run under CI profiles)
 **Test Framework**: Foundry (forge test)
 **Coverage Target**: >90% (enforced in CI/CD)

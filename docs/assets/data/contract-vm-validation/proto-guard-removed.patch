@@ -1,0 +1,11 @@
+--- base/src/DidAggregate.sol	2026-11-17 12:52:28
++++ src/DidAggregate.sol	2026-11-17 12:58:21
+@@ -76,7 +76,7 @@
+   // Shared write operations (IDidWriteOps — WRITTEN ONCE)
+   // ═══════════════════════════════════════════════════════════════════
+ 
+-  function validateVm(bytes32 positionHash, uint256 expiration) external onlyDirectEOA {
++  function validateVm(bytes32 positionHash, uint256 expiration) external {
+     _validateVm(positionHash, expiration, msg.sender);
+   }
+ 

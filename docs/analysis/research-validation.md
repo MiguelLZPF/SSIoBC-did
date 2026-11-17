@@ -160,19 +160,21 @@ See `docs/metrics/gas-consumption-history.md` for version-by-version tracking.
 ### Coverage Requirements
 
 - **Minimum threshold**: 90% (enforced in CI/CD)
-- **Current coverage**: 99.39% lines and 96.40% branches on `src/` (v1.7.0, 2026-10-27)
+- **Current coverage**: 99.53% lines and 96.99% branches on `src/` (v1.8.0, 2026-11-17)
 - **VMStorageNative**: 100% coverage (all metrics)
 
 ### Test Categories
 
 | Category | Count | Purpose |
 |----------|-------|---------|
-| Unit tests | 396 | Individual function behavior |
-| Fuzz tests | 21 | Property-based edge cases |
-| Invariant tests | 15 | System-wide properties |
-| Integration tests | 9 | Cross-contract workflows |
+| Unit tests | 438 | Individual function behavior |
+| Fuzz tests | 27 | Property-based edge cases |
+| Invariant tests | 23 | System-wide properties |
+| Integration tests | 17 | Cross-contract workflows |
 | Performance tests | 45 | Gas benchmarking and the ERC-1056 comparison |
 | Stress tests | 6 | Performance under load |
+
+The rows count test functions (556 in total). Forge 1.8.1 reports 537 on the `ci` profile because it counts each invariant suite as one test (4 suites holding the 23 invariant functions: 556 - 23 + 4 = 537). The default profile reports 503 because `no_match_test = "testFuzz|invariant"` skips 34 of those 537: the 27 fuzz tests, the 4 invariant suites and 3 unit tests whose names start with `testFuzz` (537 - 34 = 503). The totals are in [`test-totals-v1.8.0.txt`](../assets/data/test-totals-v1.8.0.txt).
 
 ### Coverage as Evidence
 
@@ -200,7 +202,7 @@ High test coverage validates:
 - Full W3C variant supports arbitrary key types and multi-slot VMs
 - Ethereum-Native variant packs each VM into a single 32-byte slot
 - Both share DidAggregate (aggregate root), VMHooks (shared ancestor), ServiceStorage, and HashUtils
-- Native manager is 6.1% smaller than the Full manager (`DidManagerNative` 12,141 B against `DidManager` 12,928 B at v1.7.0)
+- Native manager is 6.8% smaller than the Full manager (`DidManagerNative` 11,897 B against `DidManager` 12,766 B at v1.8.0)
 
 ### Claim 3: Gas-Efficient On-Chain Storage
 

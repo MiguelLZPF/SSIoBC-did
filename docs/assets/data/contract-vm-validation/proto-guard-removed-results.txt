@@ -1,0 +1,111 @@
+Compiling 1 files with Solc 0.8.36
+Solc 0.8.36 finished in 3.10s
+Compiler run successful with warnings:
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:267:5:
+    |
+267 |     function at(Bytes32Set storage set, uint256 index) internal view returns (bytes32) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:388:5:
+    |
+388 |     function at(Bytes4Set storage set, uint256 index) internal view returns (bytes4) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:509:5:
+    |
+509 |     function at(AddressSet storage set, uint256 index) internal view returns (address) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:630:5:
+    |
+630 |     function at(UintSet storage set, uint256 index) internal view returns (uint256) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:795:5:
+    |
+795 |     function at(StringSet storage set, uint256 index) internal view returns (string memory) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:956:5:
+    |
+956 |     function at(BytesSet storage set, uint256 index) internal view returns (bytes memory) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Ran 8 tests for test/unit/ContractVmSelfValidateProto.t.sol:ContractVmSelfValidateProtoFullTest
+[PASS] test_Case1_AdminSelfValidates_OthersRejected() (gas: 1144006)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case2_ContractOwnedContract_Works() (gas: 1080076)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case3_ConfusedDeputy_TxOriginNotUsed() (gas: 742646)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case4_ArbitraryCallContract_ValidatedByAnyone_ButGuardedWritesStillBlocked() (gas: 1099961)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case5_CallbackForcedConsent_OnlyAttackersOwnDid() (gas: 1205127)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case6_ConstructorTimeValidation() (gas: 717716)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case7_EoaPathUnchanged() (gas: 689422)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case8_ValidatedContractKey_SevenGuardedWritesBlocked() (gas: 1187215)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 2.29ms (3.38ms CPU time)
+
+Ran 8 tests for test/unit/ContractVmSelfValidateProto.t.sol:ContractVmSelfValidateProtoNativeTest
+[PASS] test_Case1_AdminSelfValidates_OthersRejected() (gas: 1002225)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case2_ContractOwnedContract_Works() (gas: 942311)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case3_ConfusedDeputy_TxOriginNotUsed() (gas: 604891)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case4_ArbitraryCallContract_ValidatedByAnyone_ButGuardedWritesStillBlocked() (gas: 958797)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case5_CallbackForcedConsent_OnlyAttackersOwnDid() (gas: 1001193)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case6_ConstructorTimeValidation() (gas: 579951)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case7_EoaPathUnchanged() (gas: 547676)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_Case8_ValidatedContractKey_SevenGuardedWritesBlocked() (gas: 1046070)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+Suite result: ok. 8 passed; 0 failed; 0 skipped; finished in 2.36ms (3.51ms CPU time)
+
+Ran 2 test suites in 5.47ms (4.65ms CPU time): 16 tests passed, 0 failed, 0 skipped (16 total tests)

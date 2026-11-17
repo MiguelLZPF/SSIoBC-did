@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Table of Contents
 
-- [Unreleased](#unreleased)
+- [1.8.0 — 2026-11-17](#180--2026-11-17)
 - [1.7.0 — 2026-10-27](#170--2026-10-27)
 - [1.6.0 — 2026-09-07](#160--2026-09-07)
 - [1.5.0 — 2026-09-06](#150--2026-09-06)
@@ -25,7 +25,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [0.8.0 — 2024-07-06](#080--2024-07-06)
 - [0.6.0 — 2024-04-21](#060--2024-04-21)
 
-## [Unreleased]
+## [1.8.0] — 2026-11-17
+
+### Added
+
+- **A contract can hold a validated verification method.** `validateVm` accepts a call from the VM's own address, contract or EOA, so an issuer contract can be a key of its DID and authorize through `isAuthorized`. Design, probes and findings: [contract-vm-validation-design.md](docs/analysis/contract-vm-validation-design.md).
+- **v1.8.0 metrics** (forge 1.8.1, solc 0.8.36, `optimizer_runs = 200`, one measurement at `src/` and `test/` of `c4cdccb`): DidManager 12,766 B (-162 against v1.7.0), DidManagerNative 11,897 B (-244), both resolvers unchanged at 9,595 B and 10,116 B; coverage of `src/` 99.53% lines (642/645) and 96.99% branches. `validateVm` Max gas is unchanged (35,365 and 33,362); its Median fell about 12% on both variants because the tests now call it far more often, so that figure is not a code effect. Evidence: `docs/assets/data/sizes-v1.8.0.txt`, `gasreport-v1.8.0.txt`, `coverage-v1.8.0.txt`, with a v1.8.0 block in each file of `docs/metrics/`.
+- Tests: `test/unit/ContractVm.unit.t.sol`, `test/unit/Reactivation.unit.t.sol`, `test/fuzz/ContractVm.fuzz.t.sol`, `test/integration/ContractIssuer.integration.t.sol`, `test/invariant/ContractKeyInvariants.t.sol`, the mocks in `test/mocks/MockContractKeys.sol`, and a mutation proof in `docs/assets/data/contract-vm-validation/mutation-proof.txt`. Counts: 503 tests on the default profile, 537 as forge reports the CI profile, 486 in the CI gate scope.
+- Threat model sections "Contract-Held Verification Methods" and "Reactivation Rule", a deployment guide section for contracts that hold a key, and a visual map of the design.
+
+### Changed
+
+- **`validateVm` no longer carries `onlyDirectEOA`.** The caller must be the VM's own `ethereumAddress`. A contract validating its own VM, also from its constructor, now succeeds where it reverted `DirectEOACallRequired`. A caller that is not the bound address reverts `InvalidSignature`, an unknown position `VmNotFound`. The other 7 authenticated writes stay direct-EOA. No ABI change: no function, event or error was added, removed or re-typed.
+- **`reactivateDid` needs a live authentication key on both paths.** Self-reactivation used to check only that the caller's address was in a VM with the `0x01` bit. Now the key must be validated, unexpired and carry `0x01` (`_isAuthenticated`): an expired, never-validated or missing key reverts `VmAlreadyExpired` (it succeeded before), and a live key without `0x01` reverts `NotAuthenticatedAsSenderId`. The controller rule applies on the controller path only.
+- The internal `_isVmOwner` hook is deleted; `VMHooks` declares 8 hooks (was 9).
+
+### Fixed
+
+- Reactivation by an expired or never-validated key (`probe-reactivation`, both variants). The deployed v1.7.0 contracts keep the old behaviour.
+
+### Security
+
+- **Breaking behaviour, cost 1 (owner decision D6).** A DID with no controller that stays deactivated until all its authentication keys have expired cannot be reactivated. Keep a controller on a DID that is parked.
+- **Accepted residual (owner decision D5).** A controller's deactivation is not final while the DID has a live authentication key of its own, because that key can reactivate it. A controller who wants it final expires those keys first.
+- A contract key binds an address, not code, and a contract that executes arbitrary calls for arbitrary callers can be validated by anyone. See the threat model section "Contract-Held Verification Methods".
 
 ### Deployments
 
@@ -583,6 +606,7 @@ why this is a minor bump and not a patch.
 - `ServiceStorage` contract for service endpoint management
 - Basic DID creation and VM creation functionality
 
+[1.8.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/MiguelLZPF/SSIoBC-did/compare/v1.3.1...v1.5.0

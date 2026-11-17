@@ -1,0 +1,29 @@
+Contract VM validation, Phase 1 prototype measurements
+Date: 2026-11-17. Base: main 69715b6 (v1.7.0 source). forge 1.8.1, default profile, optimizer_runs = 200.
+Taken in throwaway copies of the tree; src/ in the repository is unchanged.
+
+Runtime size (forge build --sizes), bytes
+contract            base     owner-call (c)   guard-removed (a)
+DidManager          12,928   13,029 (+101)    12,920 (-8)
+DidManagerNative    12,141   12,239 (+98)     12,133 (-8)
+
+Median gas (forge test --match-path test/unit/DidManager.unit.t.sol --gas-report)
+function     base      owner-call (c)    guard-removed (a)
+validateVm   35,357    35,383 (+26)      35,312 (-45)
+createDid    278,089   278,115 (+26)     278,089 (0)
+
+Existing suite (plain forge test, 453 tests)
+owner-call (c):     453 passed, 0 failed
+guard-removed (a):  451 passed, 2 failed, both test_ValidateVm_Should_Revert_When_CalledThroughIntermediary
+                    (DirectEOAGuardUnitTest and DirectEOAGuardNativeUnitTest), the two tests that assert today's rule
+
+owner() staticcall under a hostile target (owner-call prototype, case 6)
+infinite loop in owner():   whole validateVm call used 64,683 gas, reverts InvalidSignature
+1 MB return from owner():   whole validateVm call used 64,683 gas, reverts InvalidSignature
+
+Raw staticcall with calldata 0x8da5cb5b (selector of owner())
+0x02 (sha256)     success, 32 bytes, 0x7ed62f5b...611b (not address shaped)
+0x03 (ripemd160)  success, 32 bytes, 0x000000000000000000000000 1dfbdabbeefd43362f538036d2922ec8986a5cae (address shaped)
+0x04 (identity)   success, 4 bytes, 0x8da5cb5b
+no code           success, 0 bytes
+address(0x03).code.length = 0

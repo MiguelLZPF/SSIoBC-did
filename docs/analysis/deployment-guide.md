@@ -5,6 +5,7 @@
 - [Pre-Deployment Checklist](#pre-deployment-checklist)
 - [Deployment Steps](#deployment-steps)
 - [Post-Deployment Verification](#post-deployment-verification)
+- [Deploying a Contract That Holds a Key](#deploying-a-contract-that-holds-a-key)
 - [Network Considerations](#network-considerations)
 - [Rollback Strategy](#rollback-strategy)
 
@@ -126,6 +127,17 @@ cast code <CONTRACT_ADDRESS> --rpc-url $RPC_URL | keccak256
 ```
 
 Compare with the hash stored in `.deployments.json`.
+
+---
+
+## Deploying a Contract That Holds a Key
+
+Since v1.8.0 a contract can be the `ethereumAddress` of a verification method and validate it by calling `validateVm` itself (design: [contract-vm-validation-design.md](contract-vm-validation-design.md)). When you deploy such a contract:
+
+- Put access control in front of the `validateVm` call and fix the expiration in code. A contract that makes arbitrary calls for arbitrary callers can be validated, with an expiration of the caller's choosing, by anyone.
+- A VM binds an address, not code. A constructor can validate and self-destruct in one transaction, and a later CREATE2 with the same salt can put other code at that address. Do not accept an address you have not seen deployed and verified.
+- Keep at least one live EOA authentication key on the DID. Contract keys cannot perform document writes.
+- The contract's own call to `validateVm` is one transaction from the contract; the DID owner creates the pending VM first with `createVm`.
 
 ---
 

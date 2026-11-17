@@ -19,9 +19,9 @@ The documentation transforms raw performance data collected through screenshots 
 
 ### Key Performance Highlights
 
-- **Contract Size**: DidManager ~12.5kB / DidManagerNative ~10.9kB (v1.3.0, DidAggregate + VMHooks architecture)
+- **Contract Size**: DidManager ~12.8kB / DidManagerNative ~11.9kB (v1.8.0, DidAggregate + VMHooks architecture)
 - **Dual-Variant Architecture**: Full W3C compliance (multi-key, multi-type) + Ethereum-Native efficiency (single-key)
-- **Test Coverage**: >90% across 281 tests (unit, fuzz, invariant, integration) - v1.2.4
+- **Test Coverage**: >90% across 537 tests (unit, fuzz, invariant, integration, stress, performance) - v1.8.0
 - **Gas Efficiency**: Optimized through hash-based storage, EnumerableSet, and storage caching
 - **Bytecode Optimization**: 20.2% size reduction in v1.1.0; optimizer_runs tuned to 200 (v1.2.0)
 
@@ -40,8 +40,9 @@ docs/
 │   ├── storage-layout-analysis.md     # Storage optimization analysis
 │   ├── deployment-guide.md            # Production deployment instructions
 │   ├── threat-model.md                # Security threat analysis
+│   ├── contract-vm-validation-design.md # v1.8.0 design: contract-held verification methods
 │   ├── research-validation.md         # Academic findings & validation
-│   └── test-catalog.md               # Exhaustive test case catalog (343 tests)
+│   └── test-catalog.md               # Exhaustive test case catalog (556 tests)
 └── assets/                             # Supporting data & evidence
     ├── screenshots/                    # Organized visual documentation
     │   ├── contract-size/              # Size reports by version
@@ -109,11 +110,18 @@ Security analysis and threat assessment:
 - Controller delegation security considerations
 - Multi-method DID namespace collision prevention
 - Verification method cryptographic attack surfaces
+- Contract-held verification methods and the reactivation rule (v1.8.0)
+
+### [Contract VM Validation Design](./analysis/contract-vm-validation-design.md)
+Design for v1.8.0 (implemented on the branch, not released): a smart contract holds a validated verification method, and `reactivateDid` needs a live key:
+- Ten security questions answered with test evidence (`assets/data/contract-vm-validation/`)
+- Three alternatives compared, with measured size and gas
+- Ranked findings from an independent review, and the decisions left to the owner
 
 ### 🧪 [Test Catalog](./analysis/test-catalog.md)
-Exhaustive catalog of all 343 test cases:
+Exhaustive catalog of all 556 test cases:
 - Every test function with exact name, one-liner description, and detailed function/contract mapping
-- Organized by category: unit (284), fuzz (21), integration (9), invariant (15), performance (8), stress (6)
+- Organized by category: unit (438), fuzz (27), integration (17), invariant (23), performance (45), stress (6)
 - Coverage mapping per production contract
 - Helper and fixture file documentation
 

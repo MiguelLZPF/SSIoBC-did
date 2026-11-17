@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.36-363636.svg)](https://soliditylang.org/)
-[![Tests](https://img.shields.io/badge/Tests-479_passing-brightgreen.svg)](#quick-start)
+[![Tests](https://img.shields.io/badge/Tests-537_passing-brightgreen.svg)](#quick-start)
 [![Coverage](https://img.shields.io/badge/Coverage->90%25-brightgreen.svg)](#quick-start)
 [![W3C DID Core](https://img.shields.io/badge/W3C-DID_Core_v1.0-005A9C.svg)](https://www.w3.org/TR/did-core/)
 
@@ -81,7 +81,7 @@ DidManagerNative = VMStorageNative + DidAggregate (VMHooks + ServiceStorage)
 # Build contracts
 forge build
 
-# Run the default-profile tests (453 tests; 479 with FOUNDRY_PROFILE=ci, the badge count; >90% coverage)
+# Run the default-profile tests (503 tests; 537 with FOUNDRY_PROFILE=ci, the badge count; >90% coverage)
 forge test
 
 # Run tests with coverage report

@@ -1,0 +1,148 @@
+Compiling 11 files with Solc 0.8.36
+Solc 0.8.36 finished in 3.23s
+Compiler run successful with warnings:
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:267:5:
+    |
+267 |     function at(Bytes32Set storage set, uint256 index) internal view returns (bytes32) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:388:5:
+    |
+388 |     function at(Bytes4Set storage set, uint256 index) internal view returns (bytes4) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:509:5:
+    |
+509 |     function at(AddressSet storage set, uint256 index) internal view returns (address) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:630:5:
+    |
+630 |     function at(UintSet storage set, uint256 index) internal view returns (uint256) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:795:5:
+    |
+795 |     function at(StringSet storage set, uint256 index) internal view returns (string memory) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+Warning (6335): "at" will be promoted to keyword in the future and will not be allowed as an identifier anymore.
+   --> lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol:956:5:
+    |
+956 |     function at(BytesSet storage set, uint256 index) internal view returns (bytes memory) {
+    |     ^ (Relevant source part starts here and spans across multiple lines).
+
+
+Ran 4 tests for test/unit/ContractVmOwnerProto.t.sol:ContractVmOwnerProtoNative
+[PASS] test_c1_ownable() (gas: 556052)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c2_noCode_and_create2() (gas: 673355)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c4_badOwnerReturns() (gas: 1720101)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c5_highBit() (gas: 359271)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+Suite result: ok. 4 passed; 0 failed; 0 skipped; finished in 2.56ms (1.60ms CPU time)
+
+Ran 17 tests for test/unit/ContractVmOwnerProto.t.sol:ContractVmOwnerProtoFull
+[PASS] test_c10_proxy() (gas: 705231)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c11_7702_etch() (gas: 932250)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c11_7702_signAndAttachDelegation() (gas: 621625)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  A.code.length after attach+call 23
+
+[PASS] test_c12_after_validation() (gas: 770056)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c13_two_dids() (gas: 1158659)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c14_expiration_one() (gas: 618593)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  expiration=1 accepted; block.timestamp 1
+  isAuthorized at ts=1 0
+  isAuthorized at ts=1000 0
+
+[PASS] test_c1_ownable() (gas: 629620)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c2_noCode_and_create2() (gas: 818199)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c3_precompiles() (gas: 952073)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  precompile 2
+   ok / code.length / retlen 1 0 32
+  0x7ed62f5b4e206b03d3db898966452caa0d4530adbf4f56b37c56cfd87aff611b
+  precompile 3
+   ok / code.length / retlen 1 0 32
+  0x0000000000000000000000001dfbdabbeefd43362f538036d2922ec8986a5cae
+  precompile 4
+   ok / code.length / retlen 1 0 4
+  0x8da5cb5b
+
+[PASS] test_c4_badOwnerReturns() (gas: 2076902)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c5_highBit() (gas: 430661)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c6_huge_gas() (gas: 463817)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  1MB owner: gas used by whole validateVm 64683
+
+[PASS] test_c6_loop_gas() (gas: 446864)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  loop owner: gas used by whole validateVm 64683
+
+[PASS] test_c7_sstore() (gas: 470663)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c8_origin_owner() (gas: 447357)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  documented: owner()==tx.origin lets ANY EOA validate
+
+[PASS] test_c8_sender_owner() (gas: 422660)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+
+[PASS] test_c9_contract_owner() (gas: 683860)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  contract owner cannot validate: DirectEOACallRequired
+
+Suite result: ok. 17 passed; 0 failed; 0 skipped; finished in 3.31ms (8.45ms CPU time)
+
+Ran 2 test suites in 5.13ms (5.87ms CPU time): 21 tests passed, 0 failed, 0 skipped (21 total tests)

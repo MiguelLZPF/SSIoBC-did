@@ -1,0 +1,63 @@
+Ran 3 tests for test/unit/ReactivationProbe.t.sol:ReactivationProbeFullTest
+[PASS] test_case1to3_controllersSet() (gas: 362052)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case1 O deactivate T (controllers set): REVERT
+  0x2e0e9c8a
+  case1 expected NotAControllerForTargetId selector:
+  0x2e0e9c8a
+  case2 P deactivate T via C: SUCCESS
+  case2 getExpiration(T,0): 0
+  case3 O reactivate T (self path): SUCCESS
+  case3 getExpiration(T,0): 126144001
+  case3 isAuthorized(O): false
+  case3 getExpiration(T,OVM): 31536001
+
+[PASS] test_case4_noControllers_expiredVm() (gas: 164486)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case4 O deactivate: SUCCESS
+  case4 O reactivate after 366d: SUCCESS
+  case4 getExpiration(T,0): 157766401
+  case4 isAuthorized(O): false
+
+[PASS] test_case5_noControllers_normal() (gas: 173238)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case5 O reactivate immediately: SUCCESS
+  case5 isAuthorized(O): true
+
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 1.48ms (455.50µs CPU time)
+
+Ran 3 tests for test/unit/ReactivationProbe.t.sol:ReactivationProbeNativeTest
+[PASS] test_case1to3_controllersSet() (gas: 362353)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case1 O deactivate T (controllers set): REVERT
+  0x2e0e9c8a
+  case1 expected NotAControllerForTargetId selector:
+  0x2e0e9c8a
+  case2 P deactivate T via C: SUCCESS
+  case2 getExpiration(T,0): 0
+  case3 O reactivate T (self path): SUCCESS
+  case3 getExpiration(T,0): 126144001
+  case3 isAuthorized(O): false
+  case3 getExpiration(T,OVM): 31536001
+
+[PASS] test_case4_noControllers_expiredVm() (gas: 164572)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case4 O deactivate: SUCCESS
+  case4 O reactivate after 366d: SUCCESS
+  case4 getExpiration(T,0): 157766401
+  case4 isAuthorized(O): false
+
+[PASS] test_case5_noControllers_normal() (gas: 173208)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  case5 O reactivate immediately: SUCCESS
+  case5 isAuthorized(O): true
+
+Suite result: ok. 3 passed; 0 failed; 0 skipped; finished in 1.48ms (504.92µs CPU time)
+
+Ran 2 test suites in 4.81ms (2.96ms CPU time): 6 tests passed, 0 failed, 0 skipped (6 total tests)

@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Innovation**: First complete on-chain DID document storage (vs event-based)
 - **Language**: Solidity 0.8.36 (Foundry framework)
 - **Coverage**: >90% required (enforced in CI/CD)
-- **Architecture**: Dual-variant (Full W3C + Ethereum-Native) with shared DidAggregate (incl. isAuthorized) + VMHooks (9 hooks) + ServiceStorage + HashUtils (Template Method pattern)
+- **Architecture**: Dual-variant (Full W3C + Ethereum-Native) with shared DidAggregate (incl. isAuthorized) + VMHooks (8 hooks) + ServiceStorage + HashUtils (Template Method pattern)
 - **Storage**: Hash-based lists with EnumerableSet (gas-optimized)
 - **Standards**: W3C DID Core v1.0 compliant
 
@@ -85,7 +85,7 @@ tracked, because this repository is public and a profile may name an internal ho
 
 **Shared:**
 7. **DidAggregate.sol** - All shared DID lifecycle logic (expiration, controllers, auth, isAuthorized, services, validation)
-8. **storage/VMHooks.sol** - 9 abstract VM storage hook declarations (shared ancestor, avoids diamond)
+8. **storage/VMHooks.sol** - 8 abstract VM storage hook declarations (shared ancestor, avoids diamond)
 9. **W3CResolverBase.sol** - Shared resolver logic (resolve, resolveService)
 10. **storage/ServiceStorage.sol** - Service endpoints storage (abstract contract)
 11. **HashUtils.sol** - Shared hash helper library (calculateIdHash, calculatePositionHash)
@@ -113,7 +113,8 @@ did:method0:method1:method2:id
 - **Abstract Storage**: Modular VMStorage/VMStorageNative and ServiceStorage (in src/storage/)
 - **Storage Caching**: Direct storage reads with early exit (e.g., _isControllerFor, _isExpired)
 - **Resolution-time Derivation**: W3CResolverNative derives VM fields at query time (zero extra storage)
-- **onlyDirectEOA Guard**: all authenticated writes require msg.sender == tx.origin (direct EOA calls; tx.origin never used as identity)
+- **onlyDirectEOA Guard**: 7 of the 8 authenticated writes require msg.sender == tx.origin (direct EOA calls; tx.origin never used as identity). `validateVm` is the exception: its caller must be the VM's own address, so a contract can validate a VM bound to itself
+- **Reactivation**: `reactivateDid` needs a live (validated, unexpired) `0x01` key on both paths; the controller rule applies on the controller path only
 - **ERC-1271 signers**: `isAuthorizedOffChainWithSigner` verifies EOA *and* contract signatures via OZ `SignatureChecker` (read path only; ERC-6492 unsupported)
 
 **See PROJECT.md for complete details**

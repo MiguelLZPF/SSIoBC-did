@@ -152,7 +152,6 @@ classDiagram
     class VMHooks {
         <<abstract>>
         #_isAuthenticated()*
-        #_isVmOwner()*
         #_isVmRelationship()*
         #_removeAllVms()*
         #_validateVm()*
@@ -326,7 +325,7 @@ flowchart TB
 
         VMH["VMHooks
         ━━━━━━━━
-        • 9 Abstract Hooks
+        • 8 Abstract Hooks
         • Shared Ancestor"]
 
         SS["ServiceStorage
@@ -655,7 +654,7 @@ sequenceDiagram
     end
 ```
 
-> **Note (v1.4.0)**: All authenticated write entry points additionally enforce the `onlyDirectEOA` guard (`msg.sender == tx.origin`), so the authenticated `msg.sender` is always the transaction's signing EOA. See [Key Design Patterns](#key-design-patterns) → Direct-EOA Authentication Guard.
+> **Note (v1.4.0, changed in v1.8.0)**: 7 of the 8 authenticated write entry points additionally enforce the `onlyDirectEOA` guard (`msg.sender == tx.origin`), so the authenticated `msg.sender` is always the transaction's signing EOA. `validateVm` carries no guard since v1.8.0: its caller must be the VM's own address. See [Key Design Patterns](#key-design-patterns) → Direct-EOA Authentication Guard.
 
 ### Controller Delegation Model
 
@@ -808,12 +807,12 @@ The system provides two variants sharing a common base, each optimized for diffe
 
 | Variant | VM Storage | Contract Size | Use Case |
 |---------|-----------|--------------|----------|
-| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,928 B | General-purpose DID with any key type |
-| **Ethereum-Native** (DidManagerNative) | 1-slot per VM + overflow publicKeyMultibase for keyAgreement (ethereumAddress + relationships + expiration = 32 bytes) | 12,141 B | Ethereum-only DIDs, ~6% smaller bytecode |
+| **Full W3C** (DidManager) | Multi-slot per VM (id, type_, publicKeyMultibase, blockchainAccountId, ethereumAddress, relationships, expiration) | 12,766 B | General-purpose DID with any key type |
+| **Ethereum-Native** (DidManagerNative) | 1-slot per VM + overflow publicKeyMultibase for keyAgreement (ethereumAddress + relationships + expiration = 32 bytes) | 11,897 B | Ethereum-only DIDs, ~7% smaller bytecode |
 
 Both variants share (via Template Method pattern):
 - **DidAggregate**: All shared DID lifecycle logic — expiration, controllers, auth (incl. `isAuthorized`), services, parameter validation (`_validateTripleParams`, `_validateAuthorizedParams`, `_validateViewParams`). Calls abstract VM hooks.
-- **VMHooks**: 9 abstract hook declarations (shared ancestor for VMStorage variants and DidAggregate — avoids diamond inheritance; includes `_getVmForAuth` for non-reverting authorization checks)
+- **VMHooks**: 8 abstract hook declarations (shared ancestor for VMStorage variants and DidAggregate — avoids diamond inheritance; includes `_getVmForAuth` for non-reverting authorization checks)
 - **ServiceStorage**: Service endpoint storage (dynamic bytes with `\x00` delimiter)
 - **HashUtils**: Shared hash helper library (`calculateIdHash`, `calculatePositionHash`)
 - **W3CResolverBase**: Shared resolver logic (resolve, resolveService)
@@ -983,7 +982,7 @@ struct Service {
 
 **Does NOT provide**: `createDid`, `createVm`, `isAuthorized`, `getVm` (variant-specific due to different VM types)
 
-**VMHooks pattern**: Calls 9 abstract hooks declared in `VMHooks.sol` (shared ancestor). VMStorage/VMStorageNative provide concrete implementations via `override`. No diamond inheritance.
+**VMHooks pattern**: Calls 8 abstract hooks declared in `VMHooks.sol` (shared ancestor). VMStorage/VMStorageNative provide concrete implementations via `override`. No diamond inheritance.
 
 #### 6. DidManagerNative.sol (Ethereum-Native Variant)
 
@@ -1028,10 +1027,10 @@ struct VerificationMethod {
 
 #### Template Method + VMHooks Ancestor Pattern
 
-DidAggregate contains all shared DID lifecycle logic (incl. isAuthorized) and calls 9 abstract VM hooks. VMStorage variants provide concrete implementations. Both DidAggregate and VMStorage inherit from VMHooks (shared ancestor), avoiding Solidity's diamond inheritance problem:
+DidAggregate contains all shared DID lifecycle logic (incl. isAuthorized) and calls 8 abstract VM hooks. VMStorage variants provide concrete implementations. Both DidAggregate and VMStorage inherit from VMHooks (shared ancestor), avoiding Solidity's diamond inheritance problem:
 
 ```
-        VMHooks  (9 abstract hook declarations — SINGLE source)
+        VMHooks  (8 abstract hook declarations — SINGLE source)
         /     \
   VMStorage    DidAggregate  (calls hooks, has shared logic + isAuthorized)
   (concrete)    \     |
@@ -1483,7 +1482,7 @@ require(condition, "Invalid DID");  // String storage expensive (~96+ bytes each
 
 ### 5. Direct-EOA Authentication Guard (v1.4.0)
 
-All 8 authenticated write entry points per variant (`createDid`, `createVm`, `validateVm`, `expireVm`, `deactivateDid`, `reactivateDid`, `updateController`, `updateService`) are protected by the `onlyDirectEOA` modifier in `DidAggregate`:
+7 of the 8 authenticated write entry points per variant (`createDid`, `createVm`, `expireVm`, `deactivateDid`, `reactivateDid`, `updateController`, `updateService`) are protected by the `onlyDirectEOA` modifier in `DidAggregate`. The eighth, `validateVm`, has its own rule (see below):
 
 ```solidity
 function _requireDirectEOA() internal view {
@@ -1497,19 +1496,23 @@ modifier onlyDirectEOA() {
 ```
 
 The check lives in the internal function, not the modifier body, because a modifier body is
-inlined at every use site. With 10 use sites, writing the logic inline cost **+158 bytes per
+inlined at every use site. With 10 use sites (the count when v1.4.0 added the modifier; 7 per variant since v1.8.0), writing the logic inline cost **+158 bytes per
 manager** for ~22 gas saved per call, the wrong trade under `optimizer_runs = 200`. The thin
 modifier is byte-identical to having no modifier and keeps the precondition in the signature.
 Same shape as OpenZeppelin `Ownable._checkOwner`.
 
-**What it does**: The call passes only when `msg.sender` IS the transaction's signing EOA — i.e., no intermediary contract sits anywhere in the call chain.
+**What it does**: On the 7 guarded writes the call passes only when `msg.sender` IS the transaction's signing EOA, so no ordinary intermediary contract sits in the call chain (an EIP-7702 delegate still can; see the [Threat Model](docs/analysis/threat-model.md#limit-of-the-guard-under-eip-7702)).
 
 **Why**:
 - **Closes the confused-deputy hole**: Pre-v1.4.0 authentication compared `tx.origin`, so any contract a user called could act on that user's DID mid-transaction. All identity checks now use `msg.sender`, and intermediary contracts revert with `DirectEOACallRequired()`.
 - **Preserves the signature-derived identity guarantee**: The equality check ensures the authenticated address is exactly the account that signed the transaction.
-- **`tx.origin` is never used as identity**: It survives only inside this equality guard; every identity comparison (ID entropy, VM binding, `_isAuthenticated`, `_isVmOwner`) uses `msg.sender`.
+- **`tx.origin` is never used as identity**: It survives only inside this equality guard; every identity comparison (ID entropy, VM binding, `_isAuthenticated`) uses `msg.sender`.
 
-**Compatibility**: EIP-7702-delegated EOAs keep working (top-level calls still satisfy `msg.sender == tx.origin`). Calls routed through multisigs, smart accounts, meta-tx forwarders, or ERC-4337 bundlers revert on write paths; signature-based flows use `isAuthorizedOffChain` (EOA, `ecrecover`) or `isAuthorizedOffChainWithSigner` (EOA **and** ERC-1271 contract signers, via OpenZeppelin `SignatureChecker`). A contract cannot yet own a verification method, because `validateVm` requires `msg.sender == vm.ethereumAddress` under `onlyDirectEOA`; the ERC-1271 path therefore covers addresses validated as EOAs that later gained code, which is the EIP-7702 case.
+**Compatibility**: EIP-7702-delegated EOAs keep working (top-level calls still satisfy `msg.sender == tx.origin`). Calls routed through multisigs, smart accounts, meta-tx forwarders, or ERC-4337 bundlers revert on write paths; signature-based flows use `isAuthorizedOffChain` (EOA, `ecrecover`) or `isAuthorizedOffChainWithSigner` (EOA **and** ERC-1271 contract signers, via OpenZeppelin `SignatureChecker`).
+
+**`validateVm` and contract-held keys (v1.8.0)**: `validateVm` does not carry `onlyDirectEOA`. It requires `msg.sender == vm.ethereumAddress`, so a contract can validate a VM bound to itself (also from its constructor), and nobody can validate a VM bound to another address. A contract key can authorize through `isAuthorized` but can never perform a DID write, because the other 7 writes stay direct-EOA. The VM binds an address, not code; see [Threat Model](docs/analysis/threat-model.md#contract-held-verification-methods) and [the design](docs/analysis/contract-vm-validation-design.md).
+
+**`reactivateDid` (v1.8.0)**: both paths need a live authentication key (`_isAuthenticated`: validated, unexpired, `0x01`); the controller rule applies on the controller path only. A DID with no controller whose keys all expired while it was deactivated cannot come back.
 
 ### 6. Native Transaction Signature as the Authorization Primitive
 
@@ -1549,7 +1552,7 @@ native-signature model: it adds a second read path for verifiers whose signer is
 `DidManager` and `DidManagerNative` yields **10 write definitions** and **14 views**. The 10 are
 6 shared ones in `DidAggregate` (`validateVm`, `expireVm`, `deactivateDid`, `reactivateDid`,
 `updateController`, `updateService`) plus `createDid` and `createVm` in each manager, which is
-**8 per deployed variant**. Every one carries `onlyDirectEOA` and none takes signature material.
+**8 per deployed variant**. Seven carry `onlyDirectEOA` (`validateVm` authenticates the VM's own address instead) and none takes signature material.
 `ecrecover`, `ECDSA` and `SignatureChecker` appear only inside the two off-chain `view` functions
 in `DidAggregate`. The resolvers contain none of them.
 
@@ -1593,7 +1596,7 @@ src/
 ├── W3CResolverUtils.sol      # Shared resolver utility library
 ├── HashUtils.sol             # Shared hash helper library
 ├── storage/
-│   ├── VMHooks.sol           # 9 abstract VM hook declarations (shared ancestor)
+│   ├── VMHooks.sol           # 8 abstract VM hook declarations (shared ancestor)
 │   ├── VMStorage.sol         # Full W3C verification methods storage (abstract)
 │   ├── VMStorageNative.sol   # 1-slot native verification methods storage (abstract)
 │   └── ServiceStorage.sol    # Service endpoints storage (abstract, shared)
@@ -1687,7 +1690,7 @@ script/
 
 ---
 
-**Last Updated**: 2026-10-27
-**Version**: v1.7.0
+**Last Updated**: 2026-11-17
+**Version**: v1.8.0
 **Purpose**: Single source of truth for SSIoBC-did project knowledge
 **Referenced By**: CLAUDE.md, docs/README.md

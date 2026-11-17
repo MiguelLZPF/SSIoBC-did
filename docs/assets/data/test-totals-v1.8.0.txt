@@ -1,0 +1,16 @@
+# SSIoBC-did v1.8.0 test totals evidence
+# commit:  1b910d87c59c9f821d7e3b8cf709b31c04745915  (src/ and test/ identical to c4cdccb; HEAD adds docs only)
+# toolchain: forge 1.8.1 (982849d3), solc 0.8.36, evm osaka, optimizer_runs 200
+# deps:    forge-std v1.16.2, openzeppelin-contracts v5.7.0, ethr-did-registry 1.3.0 (test-only)
+# command: three forge test runs, each reduced to its final "Ran N test suites" line
+# captured: 2026-11-17
+# note:    forge 1.8.1 counts an invariant suite as one test; totals are not comparable with the 1.5.1 line
+
+$ forge test
+Ran 36 test suites in 88.19ms (890.78ms CPU time): 503 tests passed, 0 failed, 0 skipped (503 total tests)
+
+$ FOUNDRY_PROFILE=ci forge test
+Ran 46 test suites in 1.94s (11.06s CPU time): 537 tests passed, 0 failed, 0 skipped (537 total tests)
+
+$ FOUNDRY_PROFILE=ci forge test --no-match-path "test/{stress,performance}/*"
+Ran 43 test suites in 1.91s (8.86s CPU time): 486 tests passed, 0 failed, 0 skipped (486 total tests)
