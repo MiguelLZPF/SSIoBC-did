@@ -212,7 +212,7 @@ def fig_reach():
     cols = [(16, 170, "relationship bit"), (186, 120, "DidManager"), (306, 200, "VClaimManager"), (506, 198, "TrustManager")]
     rows = [
         ("0x01", "authentication", ["views only"], ["none"], ["setTrust", "removeTrust"], "nyx"),
-        ("0x02", "assertionMethod", ["views only"], ["issueClaim", "issueClaims", "revokeClaim", "revokeClaims"], ["none"], "grid"),
+        ("0x02", "assertionMethod", ["views only"], ["issueClaim", "revokeClaim", "revokeClaims"], ["none"], "grid"),
         ("0x04, 0x08, 0x10", "keyAgreement, capabilityInvocation, capabilityDelegation", ["views only"], ["none"], ["none"], "pv"),
     ]
     y = 14
@@ -398,6 +398,8 @@ def build():
         "A DID must keep one EOA authentication key; the seven writes need one.",
         "A deactivated DID with no controller and no live key cannot come back.",
         "A controller's deactivation is not final while the DID has a live key of its own.",
+        "The validator picks the key lifetime, up to the largest value; an open-call contract lets a stranger pick it.",
+        "A pending key cannot be withdrawn and can be validated later, even on a deactivated DID.",
     ]
     out.append('<section><h2>7. What stays true, what to watch</h2><p class="cap">Limits that remain after v1.8.0.</p><div class="panel"><ul class="plain">%s</ul></div></section>' %
                "".join("<li>%s</li>" % esc(s) for s in stays))

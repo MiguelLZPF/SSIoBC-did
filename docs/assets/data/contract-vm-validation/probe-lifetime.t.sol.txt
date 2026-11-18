@@ -1,0 +1,212 @@
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity >=0.8.0 <0.9.0;
+
+import { console2 } from "forge-std/console2.sol";
+import { CasesBase, ContractVmFullBase, ContractVmNativeBase, IManager } from "@test/unit/ContractVm.unit.t.sol";
+import { OpenCaller } from "@test/mocks/MockContractKeys.sol";
+import { IDidWriteOps } from "@interfaces/IDidWriteOps.sol";
+
+/// @dev Observations of v1.8.0 lifetime behaviour. Values are what the code did when first run.
+abstract contract LifetimeCases is CasesBase {
+  bytes1 internal constant R_AUTH = 0x01;
+  uint256 internal constant DID_PERIOD = 126144000;
+  bytes32 internal constant K_VM = bytes32("vm-k");
+  bytes32 internal constant OC_VM = bytes32("vm-oc");
+  bytes32 internal constant O2_VM = bytes32("vm-o2");
+
+  address internal k = makeAddr("k");
+  address internal o2 = makeAddr("o2");
+
+  /// @dev Observed values, identical on both variants. Empty means unrecorded.
+  function _expected(string memory label) internal pure returns (string memory) {
+    bytes32 h = keccak256(bytes(label));
+    if (h == keccak256("1 validate(uint88.max)")) return "success";
+    if (h == keccak256("1 expiration")) return "309485009821345068724781055";
+    if (h == keccak256("1 isAuthorized after +3y")) return "true";
+    if (h == keccak256("setup stranger validates OC")) return "success";
+    if (h == keccak256("2 oc vm expiration")) return "309485009821345068724781055";
+    if (h == keccak256("2 did expiration")) return "126144001";
+    if (h == keccak256("2 owner expireVm(oc)")) return "revert VmAlreadyExpired";
+    if (h == keccak256("2 isAuthorized oc after +366d")) return "true";
+    if (h == keccak256("2 owner createVm")) return "revert VmAlreadyExpired";
+    if (h == keccak256("2 isAuthorized oc at DID expiry+1d")) return "false";
+    if (h == keccak256("3 O2 validate(default)")) return "success";
+    if (h == keccak256("3 o2 vm expiration")) return "57456002";
+    if (h == keccak256("3 O2 expireVm(oc)")) return "success";
+    if (h == keccak256("3 isAuthorized oc after")) return "false";
+    if (h == keccak256("4 deactivateDid")) return "success";
+    if (h == keccak256("4 K validateVm(pos,0)")) return "success";
+    if (h == keccak256("4 K reactivateDid")) return "success";
+    if (h == keccak256("4 did expiration")) return "157766401";
+    if (h == keccak256("4 isAuthorized K")) return "true";
+    if (h == keccak256("5 owner expireVm(pending K)")) return "revert VmAlreadyExpired";
+    if (h == keccak256("5 K validateVm(pos,0) after")) return "success";
+    if (h == keccak256("5 isAuthorized K")) return "true";
+    if (h == keccak256("6 K validateVm(pos,0)")) return "success";
+    if (h == keccak256("6 isAuthorized K")) return "false";
+    if (h == keccak256("6 K reactivateDid")) return "revert DidNotDeactivated";
+    return "";
+  }
+
+  function _name(bytes4 s) internal pure returns (string memory) {
+    if (s == bytes4(keccak256("BlockchainAccountIdTooLarge()"))) return "BlockchainAccountIdTooLarge";
+    if (s == bytes4(keccak256("DidAlreadyExists()"))) return "DidAlreadyExists";
+    if (s == bytes4(keccak256("DidExpired()"))) return "DidExpired";
+    if (s == bytes4(keccak256("DidNotDeactivated()"))) return "DidNotDeactivated";
+    if (s == bytes4(keccak256("DirectEOACallRequired()"))) return "DirectEOACallRequired";
+    if (s == bytes4(keccak256("InvalidSignature()"))) return "InvalidSignature";
+    if (s == bytes4(keccak256("NotAControllerForTargetId()"))) return "NotAControllerForTargetId";
+    if (s == bytes4(keccak256("NotAuthenticatedAsSenderId()"))) return "NotAuthenticatedAsSenderId";
+    if (s == bytes4(keccak256("TooManyVerificationMethods()"))) return "TooManyVerificationMethods";
+    if (s == bytes4(keccak256("VmAlreadyExists()"))) return "VmAlreadyExists";
+    if (s == bytes4(keccak256("VmAlreadyExpired()"))) return "VmAlreadyExpired";
+    if (s == bytes4(keccak256("VmAlreadyValidated()"))) return "VmAlreadyValidated";
+    if (s == bytes4(keccak256("VmNotFound()"))) return "VmNotFound";
+    return vm.toString(s);
+  }
+
+  function _obs(string memory label, string memory observed) internal view {
+    console2.log(string.concat(label, " => ", observed));
+    assertEq(observed, _expected(label), label);
+  }
+
+  function _res(bool ok, bytes memory ret) internal pure returns (string memory) {
+    if (ok) return "success";
+    bytes4 s;
+    if (ret.length >= 4) {
+      assembly {
+        s := mload(add(ret, 32))
+      }
+    }
+    return string.concat("revert ", _name(s));
+  }
+
+  function _call(address who, bytes memory data) internal returns (string memory) {
+    vm.prank(who, who);
+    (bool ok, bytes memory ret) = _mgr().call(data);
+    return _res(ok, ret);
+  }
+
+  function _callVia(OpenCaller oc, address who, bytes memory data) internal returns (string memory) {
+    vm.prank(who, who);
+    (bool ok, bytes memory ret) = address(oc).call(abi.encodeCall(OpenCaller.exec, (_mgr(), data)));
+    return _res(ok, ret);
+  }
+
+  function _validate(bytes32 pos, uint88 exp) internal pure returns (bytes memory) {
+    return abi.encodeCall(IDidWriteOps.validateVm, (pos, exp));
+  }
+
+  function _expire(bytes32 m, bytes32 id, bytes32 senderVm, bytes32 vmId) internal pure returns (bytes memory) {
+    return abi.encodeCall(IDidWriteOps.expireVm, (m, id, senderVm, id, vmId));
+  }
+
+  function _exp(bytes32 m, bytes32 id, bytes32 vmId) internal view returns (uint256) {
+    return IManager(_mgr()).getExpiration(m, id, vmId);
+  }
+
+  function _b(bool b) internal pure returns (string memory) {
+    return b ? "true" : "false";
+  }
+
+  // 1
+  function test_Probe1_EoaLifetime() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("p1"));
+    uint256 t0 = block.timestamp;
+    bytes32 pos = _newVm(owner, m, id, K_VM, k, R_AUTH);
+    _obs("1 validate(uint88.max)", _call(k, _validate(pos, type(uint88).max)));
+    uint256 e = _exp(m, id, K_VM);
+    console2.log("1 t0", t0);
+    console2.log("1 getExpiration", e);
+    _obs("1 expiration", vm.toString(e));
+    vm.warp(block.timestamp + 3 * 365 days);
+    _obs("1 isAuthorized after +3y", _b(_auth(m, id, K_VM, R_AUTH, k)));
+  }
+
+  function _openCallerSetup(bytes32 label) internal returns (bytes32 m, bytes32 id, OpenCaller oc, uint256 lastWrite) {
+    (m, id) = _newDid(owner, label);
+    oc = new OpenCaller();
+    bytes32 pos = _newVm(owner, m, id, OC_VM, address(oc), R_AUTH);
+    lastWrite = block.timestamp;
+    vm.warp(block.timestamp + 1);
+    _obs("setup stranger validates OC", _callVia(oc, stranger, _validate(pos, type(uint88).max)));
+    // validateVm is a write only if it touches the DID expiration; read it back
+  }
+
+  // 2
+  function test_Probe2_OpenCallerOutlivesNamingKey() public {
+    (bytes32 m, bytes32 id, OpenCaller oc,) = _openCallerSetup(bytes32("p2"));
+    uint256 ocExp = _exp(m, id, OC_VM);
+    uint256 didExp = _exp(m, id, 0);
+    console2.log("2 oc vm expiration", ocExp);
+    console2.log("2 did expiration", didExp);
+    console2.log("2 owner vm expiration", _exp(m, id, _defaultVmId()));
+    _obs("2 oc vm expiration", vm.toString(ocExp));
+    _obs("2 did expiration", vm.toString(didExp));
+    vm.warp(block.timestamp + 366 days);
+    _obs("2 owner expireVm(oc)", _call(owner, _expire(m, id, _defaultVmId(), OC_VM)));
+    _obs("2 isAuthorized oc after +366d", _b(_auth(m, id, OC_VM, R_AUTH, address(oc))));
+    _obs("2 owner createVm", _call(owner, _createVmCalldata(m, id, bytes32("vm-x"), makeAddr("x"), R_AUTH)));
+    vm.warp(didExp + 1 days);
+    _obs("2 isAuthorized oc at DID expiry+1d", _b(_auth(m, id, OC_VM, R_AUTH, address(oc))));
+    console2.log("2 did expiration at end", _exp(m, id, 0));
+  }
+
+  // 3
+  function test_Probe3_OwnerRenewsInTime() public {
+    (bytes32 m, bytes32 id, OpenCaller oc,) = _openCallerSetup(bytes32("p3"));
+    uint256 start = block.timestamp;
+    bytes32 pos2 = _newVm(owner, m, id, O2_VM, o2, R_AUTH);
+    vm.warp(start + 300 days);
+    _obs("3 O2 validate(default)", _call(o2, _validate(pos2, 0)));
+    console2.log("3 o2 vm expiration", _exp(m, id, O2_VM));
+    _obs("3 o2 vm expiration", vm.toString(_exp(m, id, O2_VM)));
+    vm.warp(start + 366 days);
+    _obs("3 O2 expireVm(oc)", _call(o2, _expire(m, id, O2_VM, OC_VM)));
+    _obs("3 isAuthorized oc after", _b(_auth(m, id, OC_VM, R_AUTH, address(oc))));
+  }
+
+  // 4
+  function test_Probe4_PendingValidatedAfterDeactivation() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("p4"));
+    bytes32 pos = _newVm(owner, m, id, K_VM, k, R_AUTH);
+    _obs("4 deactivateDid", _call(owner, abi.encodeCall(IDidWriteOps.deactivateDid, (m, id, _defaultVmId(), id))));
+    vm.warp(block.timestamp + 366 days);
+    _obs("4 K validateVm(pos,0)", _call(k, _validate(pos, 0)));
+    _obs("4 K reactivateDid", _call(k, abi.encodeCall(IDidWriteOps.reactivateDid, (m, id, K_VM, id))));
+    console2.log("4 did expiration", _exp(m, id, 0));
+    _obs("4 did expiration", vm.toString(_exp(m, id, 0)));
+    _obs("4 isAuthorized K", _b(_auth(m, id, K_VM, R_AUTH, k)));
+  }
+
+  // 5
+  function test_Probe5_WithdrawPendingVm() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("p5"));
+    bytes32 pos = _newVm(owner, m, id, K_VM, k, R_AUTH);
+    _obs("5 owner expireVm(pending K)", _call(owner, _expire(m, id, _defaultVmId(), K_VM)));
+    _obs("5 K validateVm(pos,0) after", _call(k, _validate(pos, 0)));
+    _obs("5 isAuthorized K", _b(_auth(m, id, K_VM, R_AUTH, k)));
+  }
+
+  // 6
+  function test_Probe6_PendingOnLapsedDid() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("p6"));
+    bytes32 pos = _newVm(owner, m, id, K_VM, k, R_AUTH);
+    vm.warp(block.timestamp + DID_PERIOD + 1 days);
+    _obs("6 K validateVm(pos,0)", _call(k, _validate(pos, 0)));
+    _obs("6 isAuthorized K", _b(_auth(m, id, K_VM, R_AUTH, k)));
+    _obs("6 K reactivateDid", _call(k, abi.encodeCall(IDidWriteOps.reactivateDid, (m, id, K_VM, id))));
+  }
+}
+
+contract LifetimeProbeTest is LifetimeCases, ContractVmFullBase {
+  function setUp() public {
+    _deployDidManager();
+  }
+}
+
+contract LifetimeProbeNativeTest is LifetimeCases, ContractVmNativeBase {
+  function setUp() public {
+    _deployDidManagerNative();
+  }
+}

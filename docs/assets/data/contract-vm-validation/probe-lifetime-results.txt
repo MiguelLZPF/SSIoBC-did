@@ -1,0 +1,125 @@
+No files changed, compilation skipped
+
+Ran 6 tests for test/unit/LifetimeProbe.t.sol:LifetimeProbeNativeTest
+[PASS] test_Probe1_EoaLifetime() (gas: 521964)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  1 validate(uint88.max) => success
+  1 t0 1
+  1 getExpiration 309485009821345068724781055
+  1 expiration => 309485009821345068724781055
+  1 isAuthorized after +3y => true
+
+[PASS] test_Probe2_OpenCallerOutlivesNamingKey() (gas: 877579)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  setup stranger validates OC => success
+  2 oc vm expiration 309485009821345068724781055
+  2 did expiration 126144001
+  2 owner vm expiration 31536001
+  2 oc vm expiration => 309485009821345068724781055
+  2 did expiration => 126144001
+  2 owner expireVm(oc) => revert VmAlreadyExpired
+  2 isAuthorized oc after +366d => true
+  2 owner createVm => revert VmAlreadyExpired
+  2 isAuthorized oc at DID expiry+1d => false
+  2 did expiration at end 126144001
+
+[PASS] test_Probe3_OwnerRenewsInTime() (gas: 1033886)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  setup stranger validates OC => success
+  3 O2 validate(default) => success
+  3 o2 vm expiration 57456002
+  3 o2 vm expiration => 57456002
+  3 O2 expireVm(oc) => success
+  3 isAuthorized oc after => false
+
+[PASS] test_Probe4_PendingValidatedAfterDeactivation() (gas: 643380)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  4 deactivateDid => success
+  4 K validateVm(pos,0) => success
+  4 K reactivateDid => success
+  4 did expiration 157766401
+  4 did expiration => 157766401
+  4 isAuthorized K => true
+
+[PASS] test_Probe5_WithdrawPendingVm() (gas: 556948)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  5 owner expireVm(pending K) => revert VmAlreadyExpired
+  5 K validateVm(pos,0) after => success
+  5 isAuthorized K => true
+
+[PASS] test_Probe6_PendingOnLapsedDid() (gas: 525895)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  6 K validateVm(pos,0) => success
+  6 isAuthorized K => false
+  6 K reactivateDid => revert DidNotDeactivated
+
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 2.11ms (2.78ms CPU time)
+
+Ran 6 tests for test/unit/LifetimeProbe.t.sol:LifetimeProbeTest
+[PASS] test_Probe1_EoaLifetime() (gas: 659686)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  1 validate(uint88.max) => success
+  1 t0 1
+  1 getExpiration 309485009821345068724781055
+  1 expiration => 309485009821345068724781055
+  1 isAuthorized after +3y => true
+
+[PASS] test_Probe2_OpenCallerOutlivesNamingKey() (gas: 1017664)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  setup stranger validates OC => success
+  2 oc vm expiration 309485009821345068724781055
+  2 did expiration 126144001
+  2 owner vm expiration 31536001
+  2 oc vm expiration => 309485009821345068724781055
+  2 did expiration => 126144001
+  2 owner expireVm(oc) => revert VmAlreadyExpired
+  2 isAuthorized oc after +366d => true
+  2 owner createVm => revert VmAlreadyExpired
+  2 isAuthorized oc at DID expiry+1d => false
+  2 did expiration at end 126144001
+
+[PASS] test_Probe3_OwnerRenewsInTime() (gas: 1242906)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  setup stranger validates OC => success
+  3 O2 validate(default) => success
+  3 o2 vm expiration 57456002
+  3 o2 vm expiration => 57456002
+  3 O2 expireVm(oc) => success
+  3 isAuthorized oc after => false
+
+[PASS] test_Probe4_PendingValidatedAfterDeactivation() (gas: 781130)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  4 deactivateDid => success
+  4 K validateVm(pos,0) => success
+  4 K reactivateDid => success
+  4 did expiration 157766401
+  4 did expiration => 157766401
+  4 isAuthorized K => true
+
+[PASS] test_Probe5_WithdrawPendingVm() (gas: 694722)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  5 owner expireVm(pending K) => revert VmAlreadyExpired
+  5 K validateVm(pos,0) after => success
+  5 isAuthorized K => true
+
+[PASS] test_Probe6_PendingOnLapsedDid() (gas: 663681)
+Logs:
+  WARN: Dry-run deployment. The transaction will NOT be executed.
+  6 K validateVm(pos,0) => success
+  6 isAuthorized K => false
+  6 K reactivateDid => revert DidNotDeactivated
+
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 2.15ms (2.63ms CPU time)
+
+Ran 2 test suites in 5.28ms (4.25ms CPU time): 12 tests passed, 0 failed, 0 skipped (12 total tests)
