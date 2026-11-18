@@ -1,0 +1,268 @@
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity >=0.8.0 <0.9.0;
+
+import { Vm } from "forge-std/Vm.sol";
+import { CasesBase, ContractVmFullBase, ContractVmNativeBase, IManager } from "@test/unit/ContractVm.unit.t.sol";
+import { OpenCaller, ReferenceIssuer, ConstructorValidator } from "@test/mocks/MockContractKeys.sol";
+import { IDidWriteOps } from "@interfaces/IDidWriteOps.sol";
+import { HashUtils } from "@src/HashUtils.sol";
+
+/// @dev Prototype v1.9 hardening cases (C1 withdraw pending VM, C2 validateVm needs an active DID, C3 lifetime clamp).
+/// Every observation is an assertion. Shared by the Full and the Native variant.
+abstract contract HardeningCases is CasesBase {
+  bytes1 internal constant R_AUTH = 0x01;
+  uint256 internal constant DID_PERIOD = 126144000;
+  bytes32 internal constant K_VM = bytes32("vm-k");
+  bytes32 internal constant L_VM = bytes32("vm-live");
+  bytes32 internal constant OC_VM = bytes32("vm-oc");
+  bytes32 internal constant EVT = keccak256("VmExpirationUpdated(bytes32,bytes32,bool,uint256)");
+
+  address internal k = makeAddr("k");
+  address internal k2 = makeAddr("k2");
+
+  function _name(bytes4 s) internal pure returns (string memory) {
+    if (s == bytes4(keccak256("DidExpired()"))) return "DidExpired";
+    if (s == bytes4(keccak256("InvalidSignature()"))) return "InvalidSignature";
+    if (s == bytes4(keccak256("NotAuthenticatedAsSenderId()"))) return "NotAuthenticatedAsSenderId";
+    if (s == bytes4(keccak256("VmAlreadyExpired()"))) return "VmAlreadyExpired";
+    if (s == bytes4(keccak256("VmAlreadyValidated()"))) return "VmAlreadyValidated";
+    if (s == bytes4(keccak256("VmNotFound()"))) return "VmNotFound";
+    return vm.toString(s);
+  }
+
+  function _res(bool ok, bytes memory ret) internal pure returns (string memory) {
+    if (ok) return "success";
+    bytes4 s;
+    if (ret.length >= 4) {
+      assembly {
+        s := mload(add(ret, 32))
+      }
+    }
+    return string.concat("revert ", _name(s));
+  }
+
+  function _call(address who, bytes memory data) internal returns (string memory) {
+    vm.prank(who, who);
+    (bool ok, bytes memory ret) = _mgr().call(data);
+    return _res(ok, ret);
+  }
+
+  function _callVia(OpenCaller oc, address who, bytes memory data) internal returns (string memory) {
+    vm.prank(who, who);
+    (bool ok, bytes memory ret) = address(oc).call(abi.encodeCall(OpenCaller.exec, (_mgr(), data)));
+    return _res(ok, ret);
+  }
+
+  function _validate(bytes32 pos, uint256 exp) internal pure returns (bytes memory) {
+    return abi.encodeCall(IDidWriteOps.validateVm, (pos, exp));
+  }
+
+  function _expire(bytes32 m, bytes32 id, bytes32 senderVm, bytes32 vmId) internal pure returns (bytes memory) {
+    return abi.encodeCall(IDidWriteOps.expireVm, (m, id, senderVm, id, vmId));
+  }
+
+  function _exp(bytes32 m, bytes32 id, bytes32 vmId) internal view returns (uint256) {
+    return IManager(_mgr()).getExpiration(m, id, vmId);
+  }
+
+  function _deactivate(bytes32 m, bytes32 id) internal returns (string memory) {
+    return _call(owner, abi.encodeCall(IDidWriteOps.deactivateDid, (m, id, _defaultVmId(), id)));
+  }
+
+  // ---------------------------------------------------------------- C1
+  function test_C1_OwnerWithdrawsPendingVm() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c1"));
+    bytes32 pos = _newVm(owner, m, id, K_VM, k, R_AUTH);
+    assertEq(_exp(m, id, K_VM), 0, "pending stored expiration is 0");
+
+    vm.recordLogs();
+    assertEq(_call(owner, _expire(m, id, _defaultVmId(), K_VM)), "success", "withdraw pending");
+    Vm.Log[] memory logs = vm.getRecordedLogs();
+    bool seen;
+    for (uint256 i; i < logs.length; i++) {
+      if (logs[i].topics[0] == EVT) {
+        seen = true;
+        assertEq(logs[i].emitter, _mgr(), "event emitter");
+        assertEq(logs[i].topics[1], HashUtils.calculateIdHash(m, id), "event didIdHash");
+        assertEq(logs[i].topics[2], K_VM, "event vm id");
+        assertEq(uint256(logs[i].topics[3]), 1, "event expired flag true");
+        assertEq(abi.decode(logs[i].data, (uint256)), block.timestamp, "event expiration");
+      }
+    }
+    assertTrue(seen, "VmExpirationUpdated emitted");
+    assertEq(_exp(m, id, K_VM), block.timestamp, "getExpiration == now");
+
+    assertEq(_call(k, _validate(pos, 0)), "revert VmAlreadyValidated", "named address cannot validate");
+    assertFalse(_auth(m, id, K_VM, R_AUTH, k), "isAuthorized false");
+    vm.warp(block.timestamp + 1);
+    assertFalse(_auth(m, id, K_VM, R_AUTH, k), "isAuthorized false later");
+  }
+
+  function test_C1_UnknownVmStillReverts() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c1u"));
+    assertEq(
+      _call(owner, _expire(m, id, _defaultVmId(), bytes32("vm-none"))), "revert VmAlreadyExpired", "unknown id"
+    );
+  }
+
+  function test_C1_LiveKeyAndExpiredKeyAsBefore() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c1l"));
+    bytes32 pos = _newVm(owner, m, id, L_VM, k, R_AUTH);
+    assertEq(_call(k, _validate(pos, 0)), "success", "validate");
+    assertTrue(_auth(m, id, L_VM, R_AUTH, k), "live key authorizes");
+    assertEq(_call(owner, _expire(m, id, _defaultVmId(), L_VM)), "success", "expire live");
+    assertEq(_exp(m, id, L_VM), block.timestamp, "live key expired now");
+    vm.warp(block.timestamp + 1);
+    assertEq(_call(owner, _expire(m, id, _defaultVmId(), L_VM)), "revert VmAlreadyExpired", "expire again");
+    // a withdrawn pending key also cannot be withdrawn twice
+    bytes32 pos2 = _newVm(owner, m, id, K_VM, k2, R_AUTH);
+    pos2;
+    assertEq(_call(owner, _expire(m, id, _defaultVmId(), K_VM)), "success", "withdraw pending");
+    vm.warp(block.timestamp + 1);
+    assertEq(_call(owner, _expire(m, id, _defaultVmId(), K_VM)), "revert VmAlreadyExpired", "withdraw twice");
+  }
+
+  function test_C1_StrangerCannotWithdraw() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c1s"));
+    _newVm(owner, m, id, K_VM, k, R_AUTH);
+    assertEq(
+      _call(stranger, _expire(m, id, _defaultVmId(), K_VM)), "revert NotAuthenticatedAsSenderId", "stranger"
+    );
+    assertEq(_exp(m, id, K_VM), 0, "still pending");
+  }
+
+  // ---------------------------------------------------------------- C2
+  function test_C2_DeactivatedDidBlocksValidate() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c2a"));
+    bytes32 pos = _newVm(owner, m, id, K_VM, k, R_AUTH);
+    assertEq(_deactivate(m, id), "success", "deactivate");
+    assertEq(_call(k, _validate(pos, 0)), "revert DidExpired", "validate on deactivated");
+    vm.warp(block.timestamp + 366 days);
+    assertEq(_call(k, _validate(pos, 0)), "revert DidExpired", "validate after 366 days");
+    assertEq(_exp(m, id, 0), 0, "DID stays deactivated");
+    assertEq(_exp(m, id, K_VM), 0, "VM stays pending");
+  }
+
+  function test_C2_LapsedDidBlocksValidate() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c2b"));
+    bytes32 pos = _newVm(owner, m, id, K_VM, k, R_AUTH);
+    vm.warp(block.timestamp + DID_PERIOD + 1 days);
+    assertEq(_call(k, _validate(pos, 0)), "revert DidExpired", "validate on lapsed DID");
+  }
+
+  function test_C2_ActiveDidValidatesAsBefore() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c2c"));
+    bytes32 pos = _newVm(owner, m, id, K_VM, k, R_AUTH);
+    assertEq(_call(k, _validate(pos, 0)), "success", "validate on active DID");
+    assertEq(_exp(m, id, K_VM), block.timestamp + 365 days, "default lifetime");
+    assertTrue(_auth(m, id, K_VM, R_AUTH, k), "authorizes");
+  }
+
+  function test_C2_CreateDidStillWorks() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c2d"));
+    assertEq(_exp(m, id, _defaultVmId()), block.timestamp + 365 days, "createDid validated the owner VM");
+    assertTrue(_auth(m, id, _defaultVmId(), R_AUTH, owner), "owner authorized");
+    assertEq(_exp(m, id, 0), block.timestamp + DID_PERIOD, "DID active");
+  }
+
+  function test_C2_ReactivateThenPendingKeyValidates() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c2e"));
+    bytes32 pos = _newVm(owner, m, id, K_VM, k, R_AUTH);
+    assertEq(_deactivate(m, id), "success", "deactivate");
+    assertEq(_call(k, _validate(pos, 0)), "revert DidExpired", "blocked while deactivated");
+    assertEq(
+      _call(owner, abi.encodeCall(IDidWriteOps.reactivateDid, (m, id, _defaultVmId(), id))),
+      "success",
+      "owner reactivates with its live key"
+    );
+    assertEq(_call(k, _validate(pos, 0)), "success", "pending key validates after reactivation");
+    assertTrue(_auth(m, id, K_VM, R_AUTH, k), "authorizes");
+  }
+
+  // ---------------------------------------------------------------- C3
+  function _clampCase(bytes32 label, uint256 requested, uint256 stored) internal {
+    (bytes32 m, bytes32 id) = _newDid(owner, label);
+    bytes32 pos = _newVm(owner, m, id, K_VM, k, R_AUTH);
+    assertEq(_call(k, _validate(pos, requested)), "success", "validate");
+    assertEq(_exp(m, id, K_VM), stored, "stored expiration");
+  }
+
+  function test_C3_Uint88MaxClamped() public {
+    _clampCase(bytes32("c3a"), type(uint88).max, block.timestamp + 365 days);
+  }
+
+  function test_C3_TwoPow88Clamped() public {
+    _clampCase(bytes32("c3b"), 2 ** 88, block.timestamp + 365 days);
+  }
+
+  function test_C3_Uint256MaxClamped() public {
+    _clampCase(bytes32("c3b2"), type(uint256).max, block.timestamp + 365 days);
+  }
+
+  function test_C3_366DaysClamped() public {
+    _clampCase(bytes32("c3c"), block.timestamp + 366 days, block.timestamp + 365 days);
+  }
+
+  function test_C3_ExactMaxUnchanged() public {
+    _clampCase(bytes32("c3c2"), block.timestamp + 365 days, block.timestamp + 365 days);
+  }
+
+  function test_C3_30DaysUnchanged() public {
+    _clampCase(bytes32("c3d"), block.timestamp + 30 days, block.timestamp + 30 days);
+  }
+
+  /// @dev Recorded: a past value is still stored as given (1), which leaves the VM validated but already expired.
+  function test_C3_PastValueStoredAsGiven() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c3e"));
+    bytes32 pos = _newVm(owner, m, id, K_VM, k, R_AUTH);
+    assertEq(_call(k, _validate(pos, 1)), "success", "validate(1)");
+    assertEq(_exp(m, id, K_VM), 1, "stored 1");
+    assertFalse(_auth(m, id, K_VM, R_AUTH, k), "not authorized");
+    assertEq(_call(k, _validate(pos, 0)), "revert VmAlreadyValidated", "cannot validate again");
+  }
+
+  function test_C3_OpenCallerStrangerGetsAtMostOneYear() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c3f"));
+    OpenCaller oc = new OpenCaller();
+    bytes32 pos = _newVm(owner, m, id, OC_VM, address(oc), R_AUTH);
+    vm.warp(block.timestamp + 1);
+    assertEq(_callVia(oc, stranger, _validate(pos, type(uint88).max)), "success", "stranger drives OC");
+    assertEq(_exp(m, id, OC_VM), block.timestamp + 365 days, "365 days from validation");
+    vm.warp(block.timestamp + 366 days);
+    assertFalse(_auth(m, id, OC_VM, R_AUTH, address(oc)), "OC key lapsed after 366 days");
+    assertEq(_call(owner, _expire(m, id, _defaultVmId(), OC_VM)), "revert VmAlreadyExpired", "owner VM lapsed too");
+  }
+
+  // ---------------------------------------------------------------- 4
+  function test_Contract_ReferenceIssuerValidatesItself() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c4a"));
+    ReferenceIssuer issuer = new ReferenceIssuer(_mgr(), admin);
+    bytes32 pos = _newVm(owner, m, id, VM_T, address(issuer), R_ASSERTION);
+    vm.prank(admin, admin);
+    issuer.validate(pos);
+    assertEq(_exp(m, id, VM_T), block.timestamp + 365 days, "default lifetime");
+    assertTrue(_auth(m, id, VM_T, R_ASSERTION, address(issuer)), "issuer authorized");
+  }
+
+  function test_Contract_ConstructorTimeValidationWorks() public {
+    (bytes32 m, bytes32 id) = _newDid(owner, bytes32("c4b"));
+    address future = vm.computeCreateAddress(address(this), vm.getNonce(address(this)));
+    bytes32 pos = _newVm(owner, m, id, VM_T, future, R_ASSERTION);
+    ConstructorValidator cv = new ConstructorValidator(_mgr(), pos, false);
+    assertEq(address(cv), future, "address as predicted");
+    assertEq(_exp(m, id, VM_T), block.timestamp + 365 days, "validated in constructor");
+    assertTrue(_auth(m, id, VM_T, R_ASSERTION, future), "authorized");
+  }
+}
+
+contract HardeningProtoTest is HardeningCases, ContractVmFullBase {
+  function setUp() public {
+    _deployDidManager();
+  }
+}
+
+contract HardeningProtoNativeTest is HardeningCases, ContractVmNativeBase {
+  function setUp() public {
+    _deployDidManagerNative();
+  }
+}
