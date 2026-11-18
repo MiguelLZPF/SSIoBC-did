@@ -1,6 +1,6 @@
 # Key Lifecycle Hardening (v1.9.0 design)
 
-**Status**: proposal, waiting for the owner's decisions D1 to D3. No change in `src/`.
+**Status**: decided by the owner on 2026-11-18: D1 = A, D2 = A, D3 = A. All three changes ship in v1.9.0. Not implemented yet; no change in `src/`.
 **Date**: 2026-11-18. **Base**: v1.8.0 (tag `v1.8.0`, commit 73240bc).
 **Follows**: [contract-vm-validation-design.md](./contract-vm-validation-design.md), section "Limits Found After Release".
 
@@ -23,11 +23,12 @@
 
 Three small changes were prototyped against the three limits found after v1.8.0. All three pass
 their 38 tests on both variants with an ABI identical to v1.8.0 (functions, errors, events), at
-+80 B and +89 B per manager together. **Recommended: ship two of them.** C1 (withdraw a pending
-key) and C3 (cap the lifetime) add no revert and almost no gas. C2 (validate only on an active DID)
-is not recommended: it adds a revert that fails the repository's own rule for new reverts, costs
-2,300 gas on every validation for ever, and removes a recovery route that is documented today. The
-independent review moved the recommendation on C2; the first draft proposed all three.
++80 B and +89 B per manager together. **Decided: ship all three** (owner, 2026-11-18). The
+recommendation was to ship C1 (withdraw a pending key) and C3 (cap the lifetime) and to leave C2
+out, because C2 (validate only on an active DID) adds a revert that fails the repository's own rule
+for new reverts, costs 2,300 gas on every validation, and removes a recovery route that is
+documented today. The owner chose C2 as well: a deactivation must not be undone by a key that was
+still pending. C2 is therefore a recorded exception to the rule for new reverts.
 
 ## Context
 
@@ -51,9 +52,9 @@ Proposed, one change per limit:
 
 | # | Change | Closes | Status |
 |---|---|---|---|
-| C1 | `expireVm` also works on a VM that exists but was never validated. It marks it withdrawn, so it can never be validated | L3, and gives the owner the tool against L2 | recommended |
-| C2 | `validateVm` reverts `DidExpired` when the DID that owns the VM is deactivated or lapsed | L2 | prototyped, not recommended |
-| C3 | `validateVm` stores at most `block.timestamp + 365 days` for a key bound to an address; a larger request, or 0, is stored as that value | L1 (narrows it) | recommended |
+| C1 | `expireVm` also works on a VM that exists but was never validated. It marks it withdrawn, so it can never be validated | L3 | decided |
+| C2 | `validateVm` reverts `DidExpired` when the DID that owns the VM is deactivated or lapsed | L2 | decided (against the recommendation) |
+| C3 | `validateVm` stores at most `block.timestamp + 365 days` for a key bound to an address; a larger request, or 0, is stored as that value | L1 (narrows it) | decided |
 
 No function, event or error is added, removed or re-typed.
 
@@ -158,14 +159,15 @@ validation.
    day 300 still lives until day 665, while the owner's first key ends at day 365. The owner's
    remedy is unchanged: renew your own key before it expires, and with C1 withdraw a pending key
    you no longer want.
-3. **Without C2, L2 stays, by decision.** A pending authentication key can still be validated on a
-   deactivated DID and then reactivate it. With C1 this becomes the owner's choice: withdraw the
-   pending keys before deactivating for good, or leave one as a way back. The `reactivateDid`
-   NatSpec gains "and none is pending". If the owner takes C2 instead, that recovery route is
-   removed. It is documented today (SSIoBC-trust threat model T5: a DID "comes back only through an
-   authentication key that is still live or still pending"; the v1.8.0 warnings here say the same),
-   and decision D6 of v1.8.0 covered expired keys only, so removing it is a new decision, not a
-   consequence of D6.
+3. **With C2, a pending key can no longer revive a DID (decided, D2 = A).** A deactivated DID comes
+   back only through a key that is live at that moment, or through a controller. A DID with no
+   controller whose authentication keys have all expired cannot come back, pending keys or not,
+   which makes the existing `reactivateDid` NatSpec sentence true as written. This removes a
+   recovery route that is documented today (SSIoBC-trust threat model T5: a DID "comes back only
+   through an authentication key that is still live or still pending"; the v1.8.0 warnings here say
+   the same). Decision D6 of v1.8.0 covered expired keys only; D2 = A extends it to pending keys.
+   A key named on a DID that is then deactivated can be validated again after the DID is
+   reactivated by a live key (prototype case 5).
 4. **Docs to update with the code**: NatSpec of `validateVm`, `expireVm` and `reactivateDid`; the
    threat model's "Limits Found After Release" (resolved in v1.9.0, with what remains); the
    lifecycle flows; the test catalog; `CHANGELOG.md`; metrics.
@@ -187,9 +189,9 @@ validation.
 
 | # | Decision | Options | Recommended |
 |---|---|---|---|
-| D1 | C1, withdraw a pending key (stored as 1, "never active") | A: include. B: leave out | A: no new revert, +39 gas on the success path, and it is the only remedy for L3 |
-| D2 | C2, `validateVm` needs an active DID | A: include, +2,300 gas per validation, a new revert that fails the repository's rule, and the pending-key recovery route is removed. B: leave out; with C1 the owner withdraws pending keys before deactivating | B. Strongest argument for A: an owner who forgets one pending key cannot make a deactivation final |
-| D3 | C3, lifetime cap for address-bound keys | A: silent clamp to 365 days, no ABI change. B: revert above 365 days with a new error (an ABI addition; integrators get a signal). C: no cap, clamp only values that do not fit in 88 bits | A. Strongest argument against: the clamp is silent, and it ends multi-year keys, which SSIoBC-trust documents and tests today |
+| D1 (decided: A) | C1, withdraw a pending key (stored as 1, "never active") | A: include. B: leave out | A: no new revert, +39 gas on the success path, and it is the only remedy for L3 |
+| D2 (decided: A, against the recommendation) | C2, `validateVm` needs an active DID | A: include, +2,300 gas per validation, a new revert that fails the repository's rule, and the pending-key recovery route is removed. B: leave out; with C1 the owner withdraws pending keys before deactivating | B. Strongest argument for A: an owner who forgets one pending key cannot make a deactivation final |
+| D3 (decided: A) | C3, lifetime cap for address-bound keys | A: silent clamp to 365 days, no ABI change. B: revert above 365 days with a new error (an ABI addition; integrators get a signal). C: no cap, clamp only values that do not fit in 88 bits | A. Strongest argument against: the clamp is silent, and it ends multi-year keys, which SSIoBC-trust documents and tests today |
 
 ## Ranked Findings
 
@@ -202,7 +204,7 @@ boundary arithmetic; and every number in `measurements.txt`, including the ident
 
 | # | Severity | Finding | Source | Evidence | Status |
 |---|---|---|---|---|---|
-| 1 | major | C2 fails the repository's rule for a new revert and costs 2,300 gas per validation; with C1 the owner has a source-side remedy | reviewer | verified (gas re-run; `reactivateDid` is guarded, so an open-call key cannot reactivate) | Recommendation changed to D2 = B |
+| 1 | major | C2 fails the repository's rule for a new revert and costs 2,300 gas per validation; with C1 the owner has a source-side remedy | reviewer | verified (gas re-run; `reactivateDid` is guarded, so an open-call key cannot reactivate) | Recommendation changed to D2 = B; the owner then decided D2 = A, so C2 ships as a recorded exception to the rule |
 | 2 | major | C2 removes a recovery route that is documented today; the draft presented it as covered by D6, which ruled on expired keys only | reviewer | verified (SSIoBC-trust threat model T5; D6 text) | Consequence 3 rewritten; D2 states it |
 | 3 | major | The list of sibling tests that change was incomplete, and "both siblings assume yearly renewal" was wrong for SSIoBC-trust | reviewer | verified (trust integration tests and T6) | Consequence 6 and D3 rewritten |
 | 4 | minor | A withdrawal that stores `block.timestamp` makes a never-active key look like an expired one | reviewer | read (`W3CResolver.sol`, `W3CResolverNative.sol`) | Store 1; to prototype first in the plan |
@@ -229,3 +231,4 @@ boundary arithmetic; and every number in `measurements.txt`, including the ident
 |---|---|
 | 2026-11-18 | Proposal written from the three limits found after v1.8.0 and a prototype (38 tests, both variants). Waiting for D1 to D3. |
 | 2026-11-18 | Revised after the independent review: no blocker, 3 major and 7 minor findings applied. Recommendation on C2 reversed (leave out). Waiting for D1 to D3. |
+| 2026-11-18 | Owner decided D1 = A, D2 = A, D3 = A: all three changes ship. D2 went against the recommendation; C2 is a recorded exception to the rule for new reverts, and the pending-key recovery route is removed. Implementation plan follows. |
