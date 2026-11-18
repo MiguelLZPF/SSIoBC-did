@@ -292,9 +292,9 @@ def build():
     out.append(
         '<section><h2>6. Who is affected</h2><p class="cap">Read from the sibling repositories on 2026-11-18; none is edited from here.</p><div class="cards">'
         '<div class="card"><h3>SSIoBC-vclaim</h3><p><b>Nothing changes.</b> It validates with 0, on an active DID.</p></div>'
-        '<div class="card"><h3>SSIoBC-trust</h3><p><b>Three integration tests change</b> when it moves its pin: '
+        '<div class="card"><h3>SSIoBC-trust</h3><p><b>Four integration tests change</b> when it moves its pin: '
         '<code>test_openCallerKey_outlivesTheKeyThatNamedIt</code>, <code>test_reactivateDid_longLivedKeyReactivates</code>, and '
-        '<code>test_openCallerKey_stopsWhenTheDidLapses</code> (it keeps passing but tests nothing). Threat model rows T5 and T6 are rewritten.</p></div>'
+        '<code>test_openCallerKey_stopsWhenTheDidLapses</code> (it keeps passing but tests nothing). The fourth is its test of reactivation by a key validated after the lapse (C2). Threat model rows T5 and T6 are rewritten.</p></div>'
         '<div class="card"><h3>Integrators of keys longer than a year</h3><p><b>Keys validated for more than a year</b> are now stored as 365 days. '
         'The clamp is silent: read the stored value with <code>getExpiration</code>.</p></div>'
         '</div></section>'
