@@ -338,7 +338,7 @@ Requires sender authentication + controller authorization. Services store `type_
 - **Self-reactivation** (`senderId == targetId`): Skips DID expiration check (it's deactivated). Needs the live key only; the controller rule does not apply (owner decision D5). A controller's deactivation is therefore not final while the DID still has a live key of its own: a controller who wants it final first expires those keys with `expireVm`, then deactivates.
 - **Controller-reactivation** (`senderId != targetId`): Requires controller's DID to be active, a live key of the controller's DID, and the controller rule (`NotAControllerForTargetId` otherwise).
 
-**Cost of the rule (owner decision D6)**: a DID with no controller that stays deactivated until all its authentication keys have expired cannot come back. An owner who parks a DID by deactivating it should keep a controller, which can reactivate it. Contracts deployed at v1.7.0 and earlier accept an expired or never-validated key on the self path.
+**Cost of the rule (owner decision D6)**: a DID with no controller that stays deactivated until all its authentication keys have expired, and none is pending, cannot come back. A pending key (named, never validated) can still validate itself on a deactivated DID and then reactivate it, because `validateVm` does not read the state of the DID (limit L2, design document section Limits Found After Release). An owner who parks a DID by deactivating it should keep a controller, which can reactivate it. Contracts deployed at v1.7.0 and earlier accept an expired or never-validated key on the self path.
 
 Only works if `expiration == 0` (deactivated). Naturally expired DIDs (expiration < now) cannot be reactivated.
 

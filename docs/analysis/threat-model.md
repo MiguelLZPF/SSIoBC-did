@@ -187,6 +187,21 @@ Since v1.8.0 a contract can hold an active verification method (VM) of a DID, fo
 
 For a 7702 account the consent to validate moves from "the key signed a transaction" to "the delegate's code made the call". If the delegate executes calls for any caller, a relayer can validate the account's VM without the key's transaction. This was already the guard's limit for the 7 guarded writes (see [Limit of the Guard Under EIP-7702](#limit-of-the-guard-under-eip-7702)); `validateVm` now joins them. Do not delegate to a permissive delegate.
 
+### Limits Found After Release (2026-11-18)
+
+Three limits were found after v1.8.0 and verified on unchanged v1.8.0 source on both variants (evidence: `docs/assets/data/contract-vm-validation/probe-lifetime.t.sol.txt` and `probe-lifetime-results.txt`). None lets anyone act on a DID whose controller never named them. They limit how well a controller can take a naming back. The analysis is in `docs/analysis/contract-vm-validation-design.md`, section Limits Found After Release; a code change is proposed for v1.9.0.
+
+- **L1, the validator picks the lifetime without an upper bound.** `validateVm` stores any value up to the largest 88-bit number. For a contract that makes arbitrary calls, a stranger chooses it. After the owner's own key has passed its 365 days, the owner can no longer expire that contract key or create a key, and the contract key stays authorized until the DID lapses. Another live key of the DID, or a live key of a controller DID, can still expire it.
+- **L2, a pending key can be validated on a deactivated DID.** `validateVm` does not read the state of the DID. A key that was named but never validated can validate itself after the DID was deactivated and after every other key expired, and then reactivate the DID. The sentence "a DID with no controller whose authentication keys have all expired while it was deactivated cannot be reactivated" holds only when no key is still pending. On a DID that lapsed by time, a pending key can validate but is not authorized and cannot reactivate it.
+- **L3, a pending key cannot be withdrawn.** `expireVm` on a key that was never validated reverts `VmAlreadyExpired`, even while the owner's key is live, and the named address can still validate later. A naming is a standing offer with no cancel.
+
+Plain warnings for DID owners:
+
+1. Renew your own authentication key before it expires. An expired key cannot revoke anything.
+2. Do not leave a pending key behind. It cannot be withdrawn, and the named address can validate it at any time.
+3. Before you deactivate a DID for good, know that a pending authentication key can bring it back. Expire the other keys and make sure no key is pending, or keep a controller.
+4. Never name a contract that forwards arbitrary calls. A stranger can validate it and choose how long its key lives.
+
 ### Test-Net Limit
 
 The invariant `invariant_NoGuardedWriteSucceedsFromAContract` covers 6 of the 7 guarded writes: the handler never deactivates a DID, so `reactivateDid` is not reached from a contract. The unit test `test_RevertWhen_ContractKeyCallsAnyGuardedWrite` covers all 7 with the exact revert, on both variants. Mutation evidence: `docs/assets/data/contract-vm-validation/mutation-proof.txt`.

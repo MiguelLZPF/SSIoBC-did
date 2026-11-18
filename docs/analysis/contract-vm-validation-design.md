@@ -15,6 +15,7 @@
 - [Decisions for the Owner](#decisions-for-the-owner)
 - [Ranked Findings](#ranked-findings)
 - [Reactivation Fix](#reactivation-fix)
+- [Limits Found After Release](#limits-found-after-release)
 - [Phase 2 Outline](#phase-2-outline)
 - [What the Other Repositories Must Change](#what-the-other-repositories-must-change)
 - [Not Covered](#not-covered)
@@ -44,7 +45,7 @@
 
 The SSIoBC framework needs an issuer contract: a contract of DID B that runs its own validation
 logic and calls `VClaimManager.issueClaim` in B's name. `issueClaim` authorizes with
-`DidManager.isAuthorized(..., 0x02, msg.sender)` (SSIoBC-vclaim, file `VClaimManager.sol` line 385), so the
+`DidManager.isAuthorized(..., 0x02, msg.sender)` (SSIoBC-vclaim tag v0.10.0, file `VClaimManager.sol` line 276), so the
 contract's address has to be an active VM of B with assertionMethod.
 
 Today that cannot happen. A VM bound to an address is created inactive and becomes active only when
@@ -70,6 +71,7 @@ Committed evidence, all in `docs/assets/data/contract-vm-validation/`:
 | 2 | `proto-owner-call.patch`, `.t.sol.txt`, `-results.txt` | prototype of the proposal (c), 21 tests: 17 Full, 4 Native (`c1`, `c2`, `c4`, `c5`) |
 | 3 | `proto-guard-removed.patch`, `.t.sol.txt`, `-results.txt` | prototype of alternative (a), 16 tests (8 per variant) |
 | 4 | `measurements.txt` | sizes, gas, suite results, raw precompile returns |
+| 5 | `probe-lifetime.t.sol.txt`, `probe-lifetime-results.txt` | 12 tests (6 per variant) on unchanged v1.8.0 source, run on 2026-11-18, for [Limits Found After Release](#limits-found-after-release) |
 
 Cases are cited by the number in the test name: "evidence 1 case 3" is `test_case3_*` in file 1,
 "evidence 2 c8" is `test_c8_*` in file 2, "evidence 3 case 5" is `test_Case5_*` in file 3.
@@ -114,13 +116,15 @@ may set the VM's expiration and nothing in `_isAuthorized` (read, `proto-owner-c
 
 Every function in the three contracts that a contract holding a validated VM could call with
 success, by bit. DID rows are verified (evidence 1, case 3); VClaim and Trust rows are read at
-SSIoBC-vclaim 2572606 (branch `feat/trust-integration`) and SSIoBC-trust b5d6a25.
+SSIoBC-vclaim v0.10.0 and SSIoBC-trust v0.1.1 (re-stated on 2026-11-18; the first version of this table was read on an unmerged vclaim branch).
 
 | # | Bit | DidManager (both variants) | VClaimManager | TrustManager |
 |---|---|---|---|---|
-| 1 | `0x01` authentication | no write (all guarded); views only | none | `setTrust`, `removeTrust` (SSIoBC-trust, file `TrustManager.sol` lines 43, 81 and 208) |
-| 2 | `0x02` assertionMethod | views only | `issueClaim`, `issueClaims`, `revokeClaim`, `revokeClaims` (`:94,108,127,136`) | none |
+| 1 | `0x01` authentication | no write (all guarded); views only | none | `setTrust`, `removeTrust` (SSIoBC-trust v0.1.1, file `TrustManager.sol`; unchanged since the first reading) |
+| 2 | `0x02` assertionMethod | views only | `issueClaim`, `revokeClaim`, `revokeClaims` | none |
 | 3 | `0x04`, `0x08`, `0x10` | views only | none | none |
+
+In vclaim v0.10.0 the read entry point is `checkClaim`; `issueClaims`, `verifyClaim`, `verifyPolicy` and `verifyClaimByHash` no longer exist.
 
 "Views only" means `isAuthorized`, `isVmRelationship` and `isAuthorizedOffChainWithSigner` (point 4).
 The reach extends to every DID that B controls, because `_isAuthorized` ends with
@@ -292,6 +296,9 @@ Verified: after `expireVm`, `isAuthorized` is false for the contract (evidence 1
    case 4). They can repeat it on every new VM bound to that contract. It costs the controller a
    VM id each time and gives the stranger nothing else. The remedy is on the contract side: an
    issuer contract validates behind its own access control, with the expiration fixed in its code.
+   The same lever also works upward: a value up to `type(uint88).max` is stored as given, so the
+   validator can make a key long-lived, and for an open-call contract a stranger chooses it. That
+   was found after the release; see [Limits Found After Release](#limits-found-after-release).
 5. **Full variant only**: a VM created with `ethereumAddress = 0` and only a `blockchainAccountId`
    or a public key is active from creation, with no consent step (`src/storage/VMStorage.sol` lines 69 to 75,
    read). So validation protects `isAuthorized`, not the resolved document: a controller can already
@@ -328,7 +335,7 @@ See the next section.
 | 5 | Size per manager | -8 B (verified) | larger than (c) (assumed, not built) | +101 B / +98 B (verified) |
 | 6 | EOA path gas | -45 (verified) | 0 expected (assumed) | +26 (verified) |
 | 7 | Contract owned by a multisig or DAO | works (verified, evidence 3 case 2) | works if the contract implements ERC-1271 | **does not work** (verified) |
-| 8 | Needs from the issuer contract | one function that calls `validateVm` | ERC-1271, which also opens the off-chain path for it | ERC-173 `owner()` held by an EOA |
+| 8 | Needs from the issuer contract | one function that calls `validateVm` (it now exists as the abstract base `VClaimIssuer` in SSIoBC-vclaim v0.10.0, see the recommendation) | ERC-1271, which also opens the off-chain path for it | ERC-173 `owner()` held by an EOA |
 | 9 | Guard count | 7 of 8 | 8 of 8, plus a ninth unguarded write | 8 of 8 |
 | 10 | "No write accepts a signature" (`PROJECT.md` section 6) | holds | **broken** | holds |
 | 11 | Consent can be given by someone else when | the contract makes arbitrary calls for anyone; a 7702 account's delegate executes calls for a relayer | its `isValidSignature` accepts anything | its `owner()` returns the caller's choice; shared 7702 delegates |
@@ -364,7 +371,7 @@ code, and fails for multisig owners; and no probe or review step found a way to 
 into power over a DID the caller does not control.
 
 **Recommendation: (a), with two conditions.** Phase 2 ships a reference issuer contract (validation
-behind access control, expiration fixed in code) with its tests, and the docs carry the warnings in
+behind access control, expiration fixed in code) with its tests (this repository keeps its test mock `ReferenceIssuer` in `test/mocks/MockContractKeys.sol`; the reusable contract is the abstract base `VClaimIssuer` in SSIoBC-vclaim v0.10.0, whose admin-only `validateKey(positionHash, vmId)` calls `validateVm(positionHash, 0)` from the contract, so the lifetime is the default and not a parameter, then requires the key to be bound to the contract for assertionMethod or reverts `KeyNotBound`), and the docs carry the warnings in
 [Ranked Findings](#ranked-findings) rows 1 to 3. It removes the one rule that forbids the goal and
 adds nothing. (c) keeps
 the rule and opens a side door through code we do not control, costs more, and fails for the
@@ -417,10 +424,13 @@ cited lines. "Status" says what this revision did.
 | 8 | minor | Probe cases 4, 6 and 7 logged values without asserting them | reviewer | verified | Assertions added, suite rerun: 26 of 26 pass |
 | 9 | minor | Full variant: a VM without an address is active at creation with no consent, so validation protects `isAuthorized`, not the resolved document | reviewer | read (`VMStorage.sol:69-75`) | Point 8, item 5 |
 | 10 | minor | Three wrong line citations | reviewer | verified | Fixed |
-| 11 | note | A controller talked into naming an open generic-call contract (a multicall, a router) makes its DID, and every DID it controls, usable by anyone in VClaim and Trust | reviewer | assumed | Phase 2: warning in the threat model here; reported for vclaim and trust |
+| 11 | note | A controller talked into naming an open generic-call contract (a multicall, a router) makes its DID, and every DID it controls, usable by anyone in VClaim and Trust | reviewer | assumed | Phase 2: warning in the threat model here; reported for vclaim and trust. Closed in vclaim v0.10.0 (open-call warning) and trust v0.1.1 (threat model), 2026-11-18 |
 | 12 | major | Existing behaviour, not caused by this design: self-reactivation accepts an expired or never-validated key and skips the controller rule | reviewer, then self | verified (`probe-reactivation`) | Owner ruled it unintended; fixed in this branch, see [Reactivation Fix](#reactivation-fix) |
 | 13 | note | Native variant always resolves a VM as an ECDSA key type, which is not true for a contract | self | read (`W3CResolverNative.sol:21`) | Reported under other repositories; presentation only |
 | 14 | note | Nothing found: memory safety and gas handling of the (c) helper; reentrancy, front-running and EOA phishing on `validateVm` under (a) | reviewer | read | none needed |
+| 15 | major | L1: `validateVm` has no upper bound on the expiration. A validator can make a key long-lived (up to `type(uint88).max`); for an open-call contract a stranger chooses it, and once the owner's own key has passed its 365 days the owner can no longer expire it. See [Limits Found After Release](#limits-found-after-release) | SSIoBC-trust session | verified (evidence 5 probes 1 to 3) | documented 2026-11-18; code change proposed for v1.9.0, design to follow |
+| 16 | major | L2: `validateVm` does not look at the state of the DID. A pending authentication key can be validated on a deactivated DID after every other key expired, and then reactivates it | SSIoBC-trust session | verified (evidence 5 probes 4 and 6) | documented 2026-11-18; code change proposed for v1.9.0, design to follow |
+| 17 | major | L3: a pending key cannot be withdrawn. `expireVm` on a never-validated VM reverts `VmAlreadyExpired`, and the named address can still validate later | self | verified (evidence 5 probe 5) | documented 2026-11-18; code change proposed for v1.9.0, design to follow |
 
 Kept as is on the reviewer's advice: the structure of the core argument, the alternatives table,
 the reasoning for D2 and D3, the five rules for (c), the other-repositories table.
@@ -470,6 +480,54 @@ equally stuck once its last authentication key expires, but it is a real change 
 **Deployed contracts.** v1.7.0 on Sepolia is immutable and keeps the old behaviour. The threat
 model must say so.
 
+**Correction 2026-11-18 (limit L2).** The "never validated key" case above is closed for one call,
+not for two. `validateVm` does not read the state of the DID, so a pending authentication key can be
+validated after the DID was deactivated and after every other key expired, and that key then
+reactivates the DID (evidence 5 probe 4). The NatSpec sentence of `reactivateDid` ("a DID with no
+controller whose authentication keys have all expired while it was deactivated cannot be
+reactivated") therefore holds only when no key is still pending. The NatSpec is inaccurate for the
+pending-key case and will be corrected with the v1.9.0 code; it is not edited here. Decision D6 is
+unchanged in intent. See [Limits Found After Release](#limits-found-after-release).
+
+## Limits Found After Release
+
+Found on 2026-11-18, after v1.8.0 was tagged. L1 and L2 were reported by the SSIoBC-trust session;
+L3 was found while testing them. All three were verified on unchanged v1.8.0 source, on both
+variants, by one probe (evidence 5: `probe-lifetime.t.sol.txt`, results in
+`probe-lifetime-results.txt`; 12 tests pass). The probe needs `ContractVm.unit.t.sol` and
+`OpenCaller` from `test/mocks/MockContractKeys.sol`: copy it to `test/unit/` without the
+`.txt` suffix to run it. Probe numbers below are the numbers in its test names.
+
+**What does not change.** None of the three lets anyone act on a DID whose controller never named
+them. The core argument stands. The limits are about how well a controller can take a naming back.
+L1 for a plain EOA key, L2 and L3 exist in every earlier version too; v1.8.0 widened who can use
+them, because an open-call contract lets a stranger make the call.
+
+| Limit | What happens | Probe | What still ends it today |
+|---|---|---|---|
+| L1 no upper bound on the lifetime | `validateVm(pos, type(uint88).max)` succeeds and stores 309485009821345068724781055 (probe 1). The key is still authorized three years later. For an open-call contract a stranger picks that value (probe 2). Once the owner's own key has passed its 365 days, the owner's `expireVm` and `createVm` revert `VmAlreadyExpired`, and the contract key stays authorized until the DID lapses (126144001 in the probe, four years after the owner's last write); validation does not renew the DID | 1, 2 | another live key of the DID, or a live key of a controller DID, calls `expireVm` on it (probe 3: a second key validated at day 300 expires the contract key at day 366, and `isAuthorized` turns false); otherwise the DID lapsing |
+| L2 validation ignores the state of the DID | the owner deactivates the DID, 366 days pass, every key is expired, and a key that was named but never validated validates itself and then calls `reactivateDid`. Both succeed, the DID is active again with a new 4-year expiration and the key is authorized (probe 4). On a DID that lapsed by time the pending key can still validate, but `isAuthorized` is false and `reactivateDid` reverts `DidNotDeactivated` (probe 6) | 4, 6 | nothing stops the validation. After it, a live key of a controller DID can expire the key (read from the expiry rules, not probed); a DID that has no controller and no other live key has nobody who can |
+| L3 a pending key cannot be withdrawn | `expireVm` on a VM that was never validated reverts `VmAlreadyExpired`, even while the owner's key is live, and the named address can validate afterwards and is then authorized (probe 5). A naming is a standing offer with no cancel | 5 | only the address itself, by validating and so turning it into a normal key that a live key can then expire (read, not probed); or the DID lapsing |
+
+Reading the table:
+
+1. **L1 and the reference issuer.** An issuer contract that fixes the expiration in its code (the
+   `VClaimIssuer` pattern: `validateVm(positionHash, 0)`, default lifetime) is not exposed to L1.
+   An open-call contract is. The warning in the threat model about open-call contracts now has a
+   second reason.
+2. **L2 and the Reactivation Fix.** The fix closed the old path in which a never validated key
+   reactivated a DID. It did not close the path in which that key validates first. See the
+   correction note in [Reactivation Fix](#reactivation-fix).
+3. **NatSpec.** The `reactivateDid` NatSpec sentence is inaccurate for the pending-key case. It
+   will be corrected with the v1.9.0 code; this branch does not touch `src/`.
+4. **Trust boundary.** Each limit harms the controller or owner that named the address, never a
+   third party. The repository's test for a new `revert` (can this let someone act on a DID they do
+   not control?) is answered no for all three, so any on-chain change is a design choice to make
+   for v1.9.0, not a security fix. The design follows.
+5. **What owners should do now.** Renew your own authentication key before it expires. Do not leave
+   a pending key behind. Know that a pending key can bring a deactivated DID back. Never name a
+   contract that forwards arbitrary calls. The threat model carries these in plain words.
+
 ## Phase 2 Outline
 
 The full task plan is `.temp/plans/2026-11-17-contract-vm-validation-plan.md` (working file, not
@@ -483,7 +541,7 @@ approval.
    constructor-time call; constructor validates then self-destructs and the address is redeployed;
    arbitrary-call contract; EIP-7702 account validated through its delegate by a relayer;
    deactivation and reactivation of a DID that holds a contract VM. A reference issuer contract in
-   `test/mocks/` (and in the examples repository): validation behind access control, expiration
+   `test/mocks/` (the reusable one is `VClaimIssuer` in SSIoBC-vclaim v0.10.0): validation behind access control, expiration
    fixed in code. Replace, do not delete, the two
    `test_ValidateVm_Should_Revert_When_CalledThroughIntermediary` tests: the intermediary now gets
    `InvalidSignature` for a VM that is not its own.
@@ -511,14 +569,14 @@ Before the first build in this worktree: `lib/` holds empty submodule folders
 
 ## What the Other Repositories Must Change
 
-Neither needs a code change for the feature to work. Not edited from here.
+Neither needed a code change for the feature to work. Not edited from here. Status read on 2026-11-18: SSIoBC-vclaim v0.10.0 (tag, commit f5234f6) and SSIoBC-trust v0.1.1, both pinning SSIoBC-did at 73240bc (v1.8.0).
 
-| # | Repository | Change |
-|---|---|---|
-| 1 | SSIoBC-vclaim | Docs that say the sender is an EOA (SSIoBC-vclaim, file `claim-lifecycle-flows.md` line 42 and lines 201 to 229) describe one case now. Add the issuer-contract flow and an integration test: a contract with an assertion key calls `issueClaim`. Move the DidManager dependency to v1.8.0 when it exists. |
-| 2 | SSIoBC-trust | `setTrust` and `removeTrust` become callable by a contract that holds a `0x01` key. Decide if that is wanted and write it down; if not, the rule goes in `TrustManager`. Add a test for the chosen behaviour. |
-| 4 | both | Warn in the docs: a DID that names an open generic-call contract as a key can be used by anyone (finding 11). |
-| 3 | both | A VM in the Native variant always resolves with type `EcdsaSecp256k1VerificationKey2019` (`src/W3CResolverNative.sol` line 21, read), which is not true for a contract. Presentation only; the SDK or the consumer has to know. In the Full variant the controller sets the type. |
+| # | Repository | Change | Status |
+|---|---|---|---|
+| 1 | SSIoBC-vclaim | Docs that say the sender is an EOA (SSIoBC-vclaim, file `claim-lifecycle-flows.md` line 42 and lines 201 to 229) describe one case now. Add the issuer-contract flow and an integration test: a contract with an assertion key calls `issueClaim`. Move the DidManager dependency to v1.8.0 when it exists. | closed in v0.10.0 (docs, issuer-contract flow, integration tests, move to v1.8.0, open-call warning) |
+| 2 | SSIoBC-trust | `setTrust` and `removeTrust` become callable by a contract that holds a `0x01` key. Decide if that is wanted and write it down; if not, the rule goes in `TrustManager`. Add a test for the chosen behaviour. | closed in v0.1.1 (move to v1.8.0, key lifetime tests, threat model) |
+| 4 | both | Warn in the docs: a DID that names an open generic-call contract as a key can be used by anyone (finding 11). | closed: vclaim v0.10.0 (open-call warning), trust v0.1.1 (threat model) |
+| 3 | both | A VM in the Native variant always resolves with type `EcdsaSecp256k1VerificationKey2019` (`src/W3CResolverNative.sol` line 21, read), which is not true for a contract. Presentation only; the SDK or the consumer has to know. In the Full variant the controller sets the type. | open |
 
 ## Not Covered
 
@@ -537,3 +595,5 @@ Neither needs a code change for the feature to work. Not edited from here.
 | 2026-11-17 | Owner approved the plan and decided D5 = B (self-reactivation needs a live key only; the controller rule is not added to it) and D6 = A. Plan and this section updated. |
 | 2026-11-17 | Phase 2 implemented: commits 6e7c566..c4cdccb (squashed into 73240bc on main). |
 | 2026-11-17 | Released as tag v1.8.0 (commit 73240bc, pull request #49). Not deployed: Sepolia still runs v1.7.0. |
+| 2026-11-18 | Sibling references aligned: the `issueClaim` call is at line 276 of `VClaimManager.sol` in SSIoBC-vclaim v0.10.0 (the 2026-11-17 text cited line 385 on a branch that was never merged); the reach table is re-stated against vclaim v0.10.0 (`issueClaim`, `revokeClaim`, `revokeClaims`; `checkClaim` is the read entry point) and trust v0.1.1; the planned reference issuer exists as the abstract base `VClaimIssuer` in vclaim v0.10.0; the vclaim and trust items of the other-repositories table are closed, the Native resolver type row stays open. |
+| 2026-11-18 | Limits found after v1.8.0 (L1, L2, L3) recorded in Limits Found After Release, findings 15 to 17 added, correction note added to the Reactivation Fix. Rows of 2026-11-17 are not reworded: finding 2 ("no on-chain bound proposed") and D6 stand as decided on their dates, and the limits reopen both for a v1.9.0 design. Probe committed as evidence 5. NatSpec of `reactivateDid` is inaccurate for the pending-key case and waits for the v1.9.0 code. |
