@@ -1,0 +1,29 @@
+Key lifecycle hardening (v1.9.0 proposal), prototype measurements
+Date: 2026-11-18. Base: v1.8.0 source (src/ of commit 73240bc). forge 1.8.1, solc 0.8.36, optimizer_runs = 200.
+Taken in throwaway copies of the tree: "v18" unpatched, "v19" with proto-hardening.patch. src/ in the repository is unchanged.
+
+Runtime size (forge build --sizes), bytes
+contract            v18      v19      delta
+DidManager          12,766   12,846   +80
+DidManagerNative    11,897   11,986   +89
+
+Median gas (forge test --match-path test/unit/DidManager.unit.t.sol --gas-report, and the Native twin)
+function            v18       v19       delta
+Full validateVm     35,312    37,612    +2,300
+Full expireVm       24,920    24,920    0
+Full createDid      278,089   278,131   +42
+Full createVm       251,573   251,573   0
+Native validateVm   33,309    35,609    +2,300
+Native expireVm     33,919    33,938    +19
+Native createDid    211,700   211,742   +42
+Native createVm     134,349   134,349   0
+
+ABI: forge inspect methodIdentifiers, errors and events of DidManager and DidManagerNative are byte-identical between v18 and v19.
+
+Existing suite on v19 (FOUNDRY_PROFILE=ci, no stress or performance): 519 passed, 17 failed of 536.
+The 17 are tests that assert v1.8.0 behaviour:
+  12  the lifetime probe (probe-lifetime.t.sol.txt of the v1.8.0 evidence), both variants
+   4  test/fuzz/ContractVm.fuzz.t.sol: the two validateVm fuzz tests, both variants (they expect the requested expiration to be stored)
+   1  test/unit/VMStorage.unit.t.sol: test_ValidateVm_Should_UseCustomExpiration_When_ExpirationProvided (expects 2 years, gets 365 days)
+
+Prototype tests: proto-hardening.t.sol.txt, 38 of 38 pass (19 per variant).

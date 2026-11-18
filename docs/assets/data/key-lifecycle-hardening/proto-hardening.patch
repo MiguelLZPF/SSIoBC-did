@@ -1,0 +1,109 @@
+diff -ru v18/src/DidAggregate.sol src/DidAggregate.sol
+--- v18/src/DidAggregate.sol
++++ src/DidAggregate.sol
+@@ -86,7 +86,8 @@
+   /// executes arbitrary calls for arbitrary callers can be validated, and its expiration chosen, by anyone. The
+   /// address is bound, not its code. See docs/analysis/contract-vm-validation-design.md.
+   function validateVm(bytes32 positionHash, uint256 expiration) external {
+-    _validateVm(positionHash, expiration, msg.sender);
++    (, bytes32 didHash) = _validateVm(positionHash, expiration, msg.sender);
++    if (_isExpired(didHash)) revert DidExpired();
+   }
+ 
+   function expireVm(bytes32 methods, bytes32 senderId, bytes32 senderVmId, bytes32 targetId, bytes32 vmId)
+diff -ru v18/src/storage/VMHooks.sol src/storage/VMHooks.sol
+--- v18/src/storage/VMHooks.sol
++++ src/storage/VMHooks.sol
+@@ -36,7 +36,11 @@
+   /// @param expiration The expiration timestamp to set (0 = use default).
+   /// @param sender The caller (msg.sender), an EOA or a contract, that must match the VM's ethereumAddress.
+   /// @return The VM identifier that was validated.
+-  function _validateVm(bytes32 positionHash, uint256 expiration, address sender) internal virtual returns (bytes32);
++  /// @return The hash of the DID that owns the VM.
++  function _validateVm(bytes32 positionHash, uint256 expiration, address sender)
++    internal
++    virtual
++    returns (bytes32, bytes32);
+ 
+   /// @dev Expires a VM by setting its expiration to the current block timestamp.
+   /// @param didHash The hash of the DID.
+diff -ru v18/src/storage/VMStorage.sol src/storage/VMStorage.sol
+--- v18/src/storage/VMStorage.sol
++++ src/storage/VMStorage.sol
+@@ -117,12 +117,12 @@
+     internal
+     virtual
+     override
+-    returns (bytes32 id)
++    returns (bytes32 id, bytes32)
+   {
+-    //* Params validation
+-    // Optional
+-    if (expiration == 0) {
+-      expiration = block.timestamp + DEFAULT_VM_EXPIRATION;
++    // Clamp: 0 or beyond the default lifetime is stored as the default lifetime
++    uint256 maxExpiration = block.timestamp + DEFAULT_VM_EXPIRATION;
++    if (expiration == 0 || expiration > maxExpiration) {
++      expiration = maxExpiration;
+     }
+     //* Implementation
+     bytes32 vmId = _vmIdByPositionHash[positionHash];
+@@ -135,7 +135,7 @@
+     vm.expiration = uint88(expiration);
+     //Event
+     emit VmValidated(vmId);
+-    return vmId;
++    return (vmId, didHash);
+   }
+ 
+   /**
+@@ -146,7 +146,9 @@
+    */
+   function _expireVm(bytes32 didHash, bytes32 id) internal virtual override {
+     VerificationMethod storage vm = _vmByNsAndId[didHash][id];
+-    if (vm.expiration <= block.timestamp) revert VmAlreadyExpired();
++    uint256 exp = vm.expiration;
++    // A pending VM (never validated, expiration 0) can be withdrawn; an unknown one cannot
++    if (exp == 0 ? vm.id == bytes32(0) : exp <= block.timestamp) revert VmAlreadyExpired();
+     vm.expiration = uint88(block.timestamp);
+     emit VmExpirationUpdated(didHash, id, true, uint88(block.timestamp));
+   }
+diff -ru v18/src/storage/VMStorageNative.sol src/storage/VMStorageNative.sol
+--- v18/src/storage/VMStorageNative.sol
++++ src/storage/VMStorageNative.sol
+@@ -101,10 +101,12 @@
+     internal
+     virtual
+     override
+-    returns (bytes32 id)
++    returns (bytes32 id, bytes32)
+   {
+-    if (expiration == 0) {
+-      expiration = block.timestamp + DEFAULT_VM_EXPIRATION_NATIVE;
++    // Clamp: 0 or beyond the default lifetime is stored as the default lifetime
++    uint256 maxExpiration = block.timestamp + DEFAULT_VM_EXPIRATION_NATIVE;
++    if (expiration == 0 || expiration > maxExpiration) {
++      expiration = maxExpiration;
+     }
+     bytes32 vmId = _vmIdByPositionHash[positionHash];
+     bytes32 didHash = _didHashByPositionHash[positionHash];
+@@ -114,7 +116,7 @@
+     if (vm.ethereumAddress != sender) revert InvalidSignature();
+     vm.expiration = uint88(expiration);
+     emit VmValidated(vmId);
+-    return vmId;
++    return (vmId, didHash);
+   }
+ 
+   /**
+@@ -124,7 +126,9 @@
+    */
+   function _expireVm(bytes32 didHash, bytes32 id) internal virtual override {
+     VerificationMethod storage vm = _vmByNsAndId[didHash][id];
+-    if (vm.expiration <= block.timestamp) revert VmAlreadyExpired();
++    uint256 exp = vm.expiration;
++    // A pending VM (never validated, expiration 0) can be withdrawn; an unknown one cannot
++    if (exp == 0 ? vm.ethereumAddress == address(0) : exp <= block.timestamp) revert VmAlreadyExpired();
+     vm.expiration = uint88(block.timestamp);
+     emit VmExpirationUpdated(didHash, id, true, uint88(block.timestamp));
+   }
