@@ -2,6 +2,7 @@
 
 **Status**: decided by the owner on 2026-11-18: D1 = A, D2 = A, D3 = A. All three changes ship in v1.9.0. Not implemented yet; no change in `src/`.
 **Date**: 2026-11-18. **Base**: v1.8.0 (tag `v1.8.0`, commit 73240bc).
+**Visual summary**: [key-lifecycle-hardening-map.html](./key-lifecycle-hardening-map.html) (generator: `key-lifecycle-hardening-map.py`).
 **Follows**: [contract-vm-validation-design.md](./contract-vm-validation-design.md), section "Limits Found After Release".
 
 ## Table of Contents
@@ -69,9 +70,11 @@ sets the expiration to `block.timestamp` in the prototype. From then on `validat
 withdrawn key; the SDK maps it). **Planned refinement from the review**: store 1, not
 `block.timestamp`. With `block.timestamp` a key that was never active cannot be told apart from a
 validated key that expired at that time, in `getExpiration` and in `resolve` with expired keys
-included. A stored 1 reads as "never active". (assumed: reasoned from the two conditions, not yet
-prototyped; `validateVm` and a second `expireVm` still revert because 1 is neither 0 nor in the
-future. The plan prototypes it first.) Two side effects to state in NatSpec: `expireVm` renews the
+included. A stored 1 reads as "never active". (verified by the plan reviewer on a patched copy, both variants: the event carries 1, the stored
+value is 1, `validateVm` reverts `VmAlreadyValidated` and a second `expireVm` reverts
+`VmAlreadyExpired`. With this marker the sizes are +100 B and +109 B, not the prototype's +80 B
+and +89 B. A stored 1 alone does not prove a withdrawal, because a validator can also request 1:
+only the `VmExpirationUpdated` event from `expireVm` does.) Two side effects to state in NatSpec: `expireVm` renews the
 DID's own 4-year expiration, as every write does, so a withdrawal does too. A VM id that does not exist still reverts
 `VmAlreadyExpired`, as today. Existence is a non-zero `id` in the Full variant and a non-zero
 `ethereumAddress` in the Native variant. Who may call it does not change: the same authenticated,
@@ -222,7 +225,7 @@ boundary arithmetic; and every number in `measurements.txt`, including the ident
 
 1. A way to extend a live key without a new VM id. Unchanged.
 2. A spoiled key (a past or near expiration chosen by the validator). Unchanged, see alternative 5.
-3. The visual map and the implementation plan. They follow the decisions.
+3. The implementation plan is a working file (`.temp/plans/2026-11-18-key-lifecycle-hardening-plan.md`, not tracked): ten tasks, reviewed independently on 2026-11-18 with 4 major and 7 minor corrections applied.
 4. After these changes any live authentication key of a DID can still undo a deactivation, also one made by a controller. That is decision D5 = B of v1.8.0 and is not reopened here.
 
 ## Decision Log
@@ -232,3 +235,4 @@ boundary arithmetic; and every number in `measurements.txt`, including the ident
 | 2026-11-18 | Proposal written from the three limits found after v1.8.0 and a prototype (38 tests, both variants). Waiting for D1 to D3. |
 | 2026-11-18 | Revised after the independent review: no blocker, 3 major and 7 minor findings applied. Recommendation on C2 reversed (leave out). Waiting for D1 to D3. |
 | 2026-11-18 | Owner decided D1 = A, D2 = A, D3 = A: all three changes ship. D2 went against the recommendation; C2 is a recorded exception to the rule for new reverts, and the pending-key recovery route is removed. Implementation plan follows. |
+| 2026-11-18 | Implementation plan written and reviewed independently (no blocker; 4 major and 7 minor corrections applied). The "store 1" marker was confirmed on a patched copy. Visual map drawn. Waiting for the owner's approval of the plan. |
